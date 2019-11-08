@@ -44,6 +44,23 @@ services:
       - mongo
       - configuration_server
       - service_discovery
+
+  tx_mempool:
+    image: localhost:5000/tx_mempool:latest
+    container_name: tx_mempool
+    ports:
+      - "8082:8080"
+      - "8083:8081"
+    networks:
+      bitnet:
+       ipv4_address: 172.18.0.6
+    restart: on-failure
+    depends_on:
+      - mongo
+      - configuration_server
+      - service_discovery
+      - bitcoind_adapter
+    
 networks:
   bitnet:
     driver: bridge

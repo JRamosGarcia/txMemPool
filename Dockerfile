@@ -1,9 +1,9 @@
 FROM openjdk:8-jdk-alpine
 
 #Le instalamos curl. Que viene bien para ver conectividad.
-#RUN apk add --update \
-#    curl \
-#    && rm -rf /var/cache/apk/*
+RUN apk add --update \
+    curl \
+    && rm -rf /var/cache/apk/*
 
 VOLUME /tmp
 

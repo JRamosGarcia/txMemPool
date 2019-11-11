@@ -19,47 +19,79 @@ services:
       bitnet:
         ipv4_address: 172.18.0.5
     
-  mongo:
+  mongo1:
     image: mongo:latest
-    container_name: mongo
-    ports:
-      - "27017:27017"
+    container_name: mongo1
+#    ports:
+#     - "27017:27017"
     networks:
       bitnet:
        ipv4_address: 172.18.0.2
     volumes:
-      - mongodb_data_volume:/data/db
+      - mongodb_data_volume1:/data/db
 
-  bitcoind_adapter:
+  mongo2:
+    image: mongo:latest
+    container_name: mongo2
+#    ports:
+#      - "27017:27017"
+    networks:
+      bitnet:
+       ipv4_address: 172.18.0.7
+    volumes:
+      - mongodb_data_volume2:/data/db
+
+  bitcoind_adapter1:
     image: localhost:5000/bitcoind_adapter:latest
-    container_name: bitcoind_adapter 
+    container_name: bitcoind_adapter1 
     ports:
       - "8080:8080"
       - "8081:8081"
+    environment:
+      - spring_data_mongodb_uri=mongodb://172.18.0.2:27017/memPool
     networks:
       bitnet:
        ipv4_address: 172.18.0.3
     restart: on-failure
     depends_on:
-      - mongo
+      - mongo1
       - configuration_server
       - service_discovery
+
+  bitcoind_adapter2:
+    image: localhost:5000/bitcoind_adapter:latest
+    container_name: bitcoind_adapter2 
+    ports:
+      - "8082:8080"
+      - "8083:8081"
+    environment:
+      - spring_data_mongodb_uri=mongodb://172.18.0.7:27017/memPool
+    networks:
+      bitnet:
+       ipv4_address: 172.18.0.8
+    restart: on-failure
+    depends_on:
+      - mongo2
+      - configuration_server
+      - service_discovery
+
 
   tx_mempool:
     image: localhost:5000/tx_mempool:latest
     container_name: tx_mempool
     ports:
-      - "8082:8080"
-      - "8083:8081"
+      - "8084:8080"
+      - "8085:8081"
     networks:
       bitnet:
        ipv4_address: 172.18.0.6
     restart: on-failure
     depends_on:
-      - mongo
+#      - mongo
       - configuration_server
       - service_discovery
-      - bitcoind_adapter
+      - bitcoind_adapter1
+      - bitcoind_adapter2
     
 networks:
   bitnet:
@@ -69,4 +101,5 @@ networks:
         - subnet:  172.18.0.0/16
 #        - gateway: 172.18.0.1
 volumes:
-  mongodb_data_volume:
+  mongodb_data_volume1:
+  mongodb_data_volume2:

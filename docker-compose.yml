@@ -1,6 +1,37 @@
 version: "3"
 services:
-
+  
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: zookeeper
+#    ports:
+#    - "2181:2181"
+    networks:
+      bitnet:
+        ipv4_address: ${ZOOKEEPER_IP_ADDRESS}
+  
+  kafka1:
+    image: wurstmeister/kafka
+    container_name: kafka1
+#    ports:
+#    - "9092:9092"
+    environment:
+      BROKER_ID: 0
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
+      KAFKA_LOG_DIRS: /tmp/kafka-logs
+      KAFKA_LISTENERS: PLAINTEXT://${KAFKA1_IP_ADDRESS}:${KAFKA1_PORT}
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+      KAFKA_CREATE_TOPICS: "txandblocks:1:1"
+      
+    networks:
+      bitnet:
+        ipv4_address: ${KAFKA1_IP_ADDRESS}
+    volumes:
+      - kafka_data_volume1:/tmp/kafka-logs
+#      - /var/run/docker.sock:/var/run/docker.sock # Esto no deberia ponerse, 
+    depends_on:
+      - zookeeper
+  
   configuration_server:
     image: ${REGISTRY_HOST}/configuration_server:latest
     container_name: configuration_server 
@@ -136,3 +167,6 @@ networks:
 volumes:
   mongodb_data_volume1:
   mongodb_data_volume2:
+  kafka_data_volume1:
+  kafka_data_volume2:
+  kafka_data_volume3:

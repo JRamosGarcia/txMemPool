@@ -21,7 +21,7 @@ services:
       KAFKA_LOG_DIRS: /tmp/kafka-logs
       KAFKA_LISTENERS: PLAINTEXT://${KAFKA1_IP_ADDRESS}:${KAFKA1_PORT}
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
-      KAFKA_CREATE_TOPICS: "txandblocks:1:1"
+      KAFKA_CREATE_TOPICS: ${TOPIC_MEMPOOL_TX_CHANGES}:1:1
       
     networks:
       bitnet:
@@ -88,6 +88,8 @@ services:
       bitcoind.host: ${BITCOIND_HOST_IP_ADDRESS}
       bitcoind.port: ${BITCOIND_PORT}
       server.port: ${BITCOIND_1_ADAPTER_PORT}
+      spring.cloud.stream.kafka.binder.zkNodes: ${ZOOKEEPER_IP_ADDRESS}
+      spring.cloud.stream.kafka.binder.brokers: ${KAFKA1_IP_ADDRESS}      
     networks:
       bitnet:
        ipv4_address: ${BITCOIND_1_ADAPTER_IP_ADDRESS}
@@ -110,6 +112,8 @@ services:
       bitcoind.host: ${BITCOIND_HOST_IP_ADDRESS}
       bitcoind.port: ${BITCOIND_PORT}
       server.port: ${BITCOIND_2_ADAPTER_PORT}
+      spring.cloud.stream.kafka.binder.zkNodes: ${ZOOKEEPER_IP_ADDRESS}
+      spring.cloud.stream.kafka.binder.brokers: ${KAFKA1_IP_ADDRESS}      
     networks:
       bitnet:
        ipv4_address: ${BITCOIND_2_ADAPTER_IP_ADDRESS}

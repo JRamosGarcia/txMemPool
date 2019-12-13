@@ -82,6 +82,9 @@ services:
 #      - "8080:8080"
 #      - "8081:8081"
     environment:
+      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000"
+      spring.cloud.config.enabled: "true"
+      spring.cloud.config.fail-fast: "true"
       spring.cloud.config.uri: http://${CONFIGURATION_SERVER_IP_ADDRESS}:${CONFIGURATION_SERVER_PORT}
       eureka.client.serviceUrl.defaultZone: http://${SERVICE_DISCOVERY_IP_ADDRESS}:${SERVICE_DISCOVERY_PORT}/eureka/
       spring.data.mongodb.uri: mongodb://${MONGO_1_IP_ADDRESS}:${MONGO_1_PORT}/memPool
@@ -106,6 +109,9 @@ services:
 #      - "8082:8080"
 #      - "8083:8081"
     environment:
+      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000"
+      spring.cloud.config.enabled: "true"
+      spring.cloud.config.fail-fast: "true"
       spring.cloud.config.uri: http://${CONFIGURATION_SERVER_IP_ADDRESS}:${CONFIGURATION_SERVER_PORT}
       eureka.client.serviceUrl.defaultZone: http://${SERVICE_DISCOVERY_IP_ADDRESS}:${SERVICE_DISCOVERY_PORT}/eureka/
       spring.data.mongodb.uri: mongodb://${MONGO_2_IP_ADDRESS}:${MONGO_2_PORT}/memPool
@@ -131,6 +137,9 @@ services:
 #      - "8084:8080"
 #      - "8085:8081"
     environment:
+       JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000"
+       spring.cloud.config.enabled: "true"
+       spring.cloud.config.fail-fast: "true"
        spring_cloud_config_uri: http://${CONFIGURATION_SERVER_IP_ADDRESS}:${CONFIGURATION_SERVER_PORT}
        eureka.client.serviceUrl.defaultZone: http://${SERVICE_DISCOVERY_IP_ADDRESS}:${SERVICE_DISCOVERY_PORT}/eureka/
        management.server.port: ${TX_MEMPOOL_MANAGEMENT_PORT}

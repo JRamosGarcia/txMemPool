@@ -1,6 +1,5 @@
 package com.mempoolexplorer.txmempool.bitcoindadapter.entites;
 
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,8 +20,8 @@ public class Transaction {
 	private Integer ancestorSize;// The size of in-mempool ancestors (including this one)
 	private List<String> depends = new ArrayList<>();// An array holding TXIDs of unconfirmed transactions (encoded as
 														// hex in
+	private String hex;//Raw transaction in hexadecimal
 	// RPC
-
 
 	/**
 	 * Returns all addresses involved in this transaction, address in inputs,
@@ -140,6 +139,13 @@ public class Transaction {
 		this.depends = depends;
 	}
 
+	public String getHex() {
+		return hex;
+	}
+
+	public void setHex(String hex) {
+		this.hex = hex;
+	}
 
 	@Override
 	public String toString() {
@@ -170,16 +176,15 @@ public class Transaction {
 		builder.append(ancestorSize);
 		builder.append(", depends=");
 		builder.append(depends);
+		builder.append(", hex=");
+		builder.append(hex);
 		builder.append("]");
 		return builder.toString();
 	}
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((txId == null) ? 0 : txId.hashCode());
-		return result;
+		return txId.hashCode();
 	}
 
 	@Override

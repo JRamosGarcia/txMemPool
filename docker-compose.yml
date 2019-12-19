@@ -21,7 +21,7 @@ services:
       KAFKA_LOG_DIRS: /tmp/kafka-logs
       KAFKA_LISTENERS: PLAINTEXT://${KAFKA1_IP_ADDRESS}:${KAFKA1_PORT}
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
-      KAFKA_CREATE_TOPICS: ${TOPIC_MEMPOOL_TX_CHANGES}:1:1
+      KAFKA_CREATE_TOPICS: ${TOPIC_MEMPOOL_TX_EVENTS}:1:1
       
     networks:
       bitnet:
@@ -39,11 +39,12 @@ services:
 #      - "8888:8888"
     environment:
       server.port: ${CONFIGURATION_SERVER_PORT}
-    
     networks:
       bitnet:
         ipv4_address: ${CONFIGURATION_SERVER_IP_ADDRESS}
-        
+    volumes:
+      - configuration_server_volume:/tmp
+            
   service_discovery:
     image: ${REGISTRY_HOST}/service_discovery:latest
     container_name: service_discovery 
@@ -52,6 +53,8 @@ services:
     networks:
       bitnet:
         ipv4_address: ${SERVICE_DISCOVERY_IP_ADDRESS}
+    volumes:
+      - service_discovery_volume:/tmp
     
   mongo1:
     image: mongo:latest
@@ -64,16 +67,16 @@ services:
     volumes:
       - mongodb_data_volume1:/data/db
 
-  mongo2:
-    image: mongo:latest
-    container_name: mongo2
-#    ports:
-#      - "27017:27017"
-    networks:
-      bitnet:
-       ipv4_address: ${MONGO_2_IP_ADDRESS}
-    volumes:
-      - mongodb_data_volume2:/data/db
+#  mongo2:
+#    image: mongo:latest
+#    container_name: mongo2
+##    ports:
+##      - "27017:27017"
+#    networks:
+#      bitnet:
+#       ipv4_address: ${MONGO_2_IP_ADDRESS}
+#    volumes:
+#      - mongodb_data_volume2:/data/db
 
   bitcoind_adapter1:
     image: ${REGISTRY_HOST}/bitcoind_adapter:latest
@@ -101,33 +104,37 @@ services:
       - mongo1
       - configuration_server
       - service_discovery
+    volumes:
+      - bitcoindAdapter1_volume:/tmp
 
-  bitcoind_adapter2:
-    image: ${REGISTRY_HOST}/bitcoind_adapter:latest
-    container_name: bitcoind_adapter2 
-#   ports:
-#      - "8082:8080"
-#      - "8083:8081"
-    environment:
-      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000"
-      spring.cloud.config.enabled: "true"
-      spring.cloud.config.fail-fast: "true"
-      spring.cloud.config.uri: http://${CONFIGURATION_SERVER_IP_ADDRESS}:${CONFIGURATION_SERVER_PORT}
-      eureka.client.serviceUrl.defaultZone: http://${SERVICE_DISCOVERY_IP_ADDRESS}:${SERVICE_DISCOVERY_PORT}/eureka/
-      spring.data.mongodb.uri: mongodb://${MONGO_2_IP_ADDRESS}:${MONGO_2_PORT}/memPool
-      bitcoind.host: ${BITCOIND_HOST_IP_ADDRESS}
-      bitcoind.port: ${BITCOIND_PORT}
-      server.port: ${BITCOIND_2_ADAPTER_PORT}
-      spring.cloud.stream.kafka.binder.zkNodes: ${ZOOKEEPER_IP_ADDRESS}
-      spring.cloud.stream.kafka.binder.brokers: ${KAFKA1_IP_ADDRESS}      
-    networks:
-      bitnet:
-       ipv4_address: ${BITCOIND_2_ADAPTER_IP_ADDRESS}
-    restart: on-failure
-    depends_on:
-      - mongo2
-      - configuration_server
-      - service_discovery
+#  bitcoind_adapter2:
+#    image: ${REGISTRY_HOST}/bitcoind_adapter:latest
+#    container_name: bitcoind_adapter2 
+##   ports:
+##      - "8082:8080"
+##      - "8083:8081"
+#    environment:
+#      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000"
+#      spring.cloud.config.enabled: "true"
+#      spring.cloud.config.fail-fast: "true"
+#      spring.cloud.config.uri: http://${CONFIGURATION_SERVER_IP_ADDRESS}:${CONFIGURATION_SERVER_PORT}
+#      eureka.client.serviceUrl.defaultZone: http://${SERVICE_DISCOVERY_IP_ADDRESS}:${SERVICE_DISCOVERY_PORT}/eureka/
+#      spring.data.mongodb.uri: mongodb://${MONGO_2_IP_ADDRESS}:${MONGO_2_PORT}/memPool
+#      bitcoind.host: ${BITCOIND_HOST_IP_ADDRESS}
+#      bitcoind.port: ${BITCOIND_PORT}
+#      server.port: ${BITCOIND_2_ADAPTER_PORT}
+#      spring.cloud.stream.kafka.binder.zkNodes: ${ZOOKEEPER_IP_ADDRESS}
+#      spring.cloud.stream.kafka.binder.brokers: ${KAFKA1_IP_ADDRESS}      
+#    networks:
+#      bitnet:
+#       ipv4_address: ${BITCOIND_2_ADAPTER_IP_ADDRESS}
+#    restart: on-failure
+#    depends_on:
+#      - mongo2
+#      - configuration_server
+#      - service_discovery
+#    volumes:
+#      - bitcoindAdapter2_volume:/tmp
 
 
   tx_mempool:
@@ -154,9 +161,12 @@ services:
 #      - mongo
       - configuration_server
       - service_discovery
-      - bitcoind_adapter1
-      - bitcoind_adapter2
-
+#TODO: Hay que volver a poner esto
+#      - bitcoind_adapter1
+#      - bitcoind_adapter2
+    volumes:
+      - tx_mempool_volume:/tmp
+          
   gateway_service:
     image: ${REGISTRY_HOST}/gateway_service:latest
     container_name: gateway_service
@@ -171,6 +181,8 @@ services:
 #      - bitcoind_adapter1
 #      - bitcoind_adapter2
 #      - tx_mempool
+    volumes:
+      - gateway_service_volume:/tmp
        
 networks:
   bitnet:
@@ -181,7 +193,13 @@ networks:
 #        - gateway: 172.18.0.1
 volumes:
   mongodb_data_volume1:
-  mongodb_data_volume2:
+#  mongodb_data_volume2:
   kafka_data_volume1:
   kafka_data_volume2:
   kafka_data_volume3:
+  bitcoindAdapter1_volume:
+#  bitcoindAdapter2_volume:
+  tx_mempool_volume:
+  configuration_server_volume:
+  service_discovery_volume:
+  gateway_service_volume:

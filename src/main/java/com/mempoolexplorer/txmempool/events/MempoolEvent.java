@@ -72,7 +72,7 @@ public class MempoolEvent {
 			return Optional.empty();
 	}
 
-	public Optional<TxPoolChanges> tryConstructTxPoolChanges() {
+	public Optional<TxPoolChanges> buildTxPoolChanges() {
 		if (this.eventType != null && this.eventType == EventType.REFRESH_POOL) {
 			TxPoolChanges txpc = new TxPoolChanges();
 			txpc.setChangeCounter(changeCounter);

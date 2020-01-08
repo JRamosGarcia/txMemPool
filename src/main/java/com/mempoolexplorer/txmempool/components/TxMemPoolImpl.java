@@ -119,7 +119,7 @@ public class TxMemPoolImpl implements TxMemPool {
 		// We do no update mining queue if we are receiving the full txMemPool
 		if (txPoolChanges.getChangeCounter() == 0) {
 			if (updateFullTxMemPool) {
-				logger.info("Receiving full txMemPool due to bitcoindAdapter (re)start. "
+				logger.info("Receiving full txMemPool due to bitcoindAdapter/txMemPool (re)start. "
 						+ "Dropping last txMemPool (if any) It can take a while...");
 				drop();
 				updateFullTxMemPool = false;

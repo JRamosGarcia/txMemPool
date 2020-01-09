@@ -14,6 +14,7 @@ public class Transaction {
 	private Fees fees;
 	private Double satBytes;
 	private Long timeInSecs;// Epoch time in seconds since the transaction entered.
+	//BE CAREFUL: THIS FIVE FIELDS ARE NOT KEPT UPDATED, CAN CHANGE ONCE RECEIVED!!!!
 	private Integer descendantCount;// The number of in-mempool descendant transactions (including this one)
 	private Integer descendantSize;// The size of in-mempool descendants (including this one)
 	private Integer ancestorCount;// The number of in-mempool ancestor transactions (including this one)

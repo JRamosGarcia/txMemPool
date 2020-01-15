@@ -4,18 +4,19 @@ import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 
 /**
  * Class that represents a transaction that should be mined and it's not.
+ * Prefers containment over extends to avoid copy constructor
  */
-public class NotMinedTransaction {
+public class NotMinedTransaction implements Feeable {
 
 	/**
 	 * This is the ordinal position of the transaction in the blockQueue.
 	 */
-	private Transaction transaction;
+	private Transaction tx;
 	private Integer ordinalpositionInBlock;
 
 	public NotMinedTransaction(Transaction transaction, Integer ordinalpositionInBlock) {
 		super();
-		this.transaction = transaction;
+		this.tx = transaction;
 		this.ordinalpositionInBlock = ordinalpositionInBlock;
 	}
 
@@ -23,8 +24,18 @@ public class NotMinedTransaction {
 		return ordinalpositionInBlock;
 	}
 
-	public Transaction getTransaction() {
-		return transaction;
+	public Transaction getTx() {
+		return tx;
+	}
+
+	@Override
+	public String getTxId() {
+		return tx.getTxId();
+	}
+
+	@Override
+	public double getSatvByte() {
+		return tx.getSatvByte();
 	}
 
 }

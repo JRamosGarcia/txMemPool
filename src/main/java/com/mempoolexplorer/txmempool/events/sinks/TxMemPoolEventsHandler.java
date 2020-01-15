@@ -3,8 +3,12 @@ package com.mempoolexplorer.txmempool.events.sinks;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.TopicPartition;
@@ -22,12 +26,16 @@ import org.springframework.messaging.handler.annotation.Header;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
+import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.NotInMemPoolTx;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.mempool.TxPoolChanges;
+import com.mempoolexplorer.txmempool.components.RepudiatedTransactionPool;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.events.CustomChannels;
 import com.mempoolexplorer.txmempool.events.MempoolEvent;
 import com.mempoolexplorer.txmempool.feingintefaces.BitcoindAdapter;
+import com.mempoolexplorer.txmempool.utils.AsciiUtils;
+import com.mempoolexplorer.txmempool.utils.SysProps;
 
 @EnableBinding(CustomChannels.class)
 public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<ListenerContainerIdleEvent> {
@@ -42,6 +50,9 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 	@Autowired
 	private BitcoindAdapter bitcoindAdapter;
+	
+	@Autowired
+	private RepudiatedTransactionPool repudiatedTransactionPool;
 
 	@Value("${spring.cloud.stream.bindings.txMemPoolEvents.destination}")
 	private String topic;
@@ -58,13 +69,11 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	public void blockSink(MempoolEvent mempoolEvent, @Header(KafkaHeaders.CONSUMER) Consumer<?, ?> consumer) {
 		if ((mempoolEvent.getEventType() == MempoolEvent.EventType.NEW_BLOCK) && (!initializing.get())) {
 			Block block = mempoolEvent.tryConstructBlock().get();
-			logger.info("New Block with {} transactions", block.getTxs().size());
-			OnNewBlock(block, numConsecutiveBlocks);
-
-			numConsecutiveBlocks++;
+			logger.info("New Block with {} transactions", block.getTxIds().size());
+			OnNewBlock(block, numConsecutiveBlocks++);
 		} else if (mempoolEvent.getEventType() == MempoolEvent.EventType.REFRESH_POOL) {
 			// OnRefreshPool
-			TxPoolChanges txpc = mempoolEvent.buildTxPoolChanges().get();
+			TxPoolChanges txpc = mempoolEvent.tryConstructTxPoolChanges().get();
 			// When initializing but bitcoindAdapter is not intitializing
 			if ((initializing.get()) && (txpc.getChangeCounter() != 0) && (!loadingFullMempool.get())) {
 				// We pause incoming messages, but several messages has been taken from kafka at
@@ -89,6 +98,47 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 		MisMinedTransactions misMinedTransactions = txMemPool.calculateMisMinedTransactions(block,
 				numConsecutiveBlocks);
 		logger.info(misMinedTransactions.toString());
+		//TODO: Buen sitio para poner una alarma!
+		logger.info("Equals: {}", checkNotInMemPoolTxs(block, misMinedTransactions));
+		logger.info(strLogBlockNotInMemPoolData(block));
+		repudiatedTransactionPool.refresh(block, misMinedTransactions, txMemPool.getTxIdSet());
+	}
+
+	private String strLogBlockNotInMemPoolData(Block block) {
+		String nl = SysProps.NL;
+		StringBuilder sb = new StringBuilder();
+		sb.append("CoinbaseTxId: " + block.getCoinBaseTxId());
+		sb.append(nl);
+		sb.append("CoinbaseField: " + block.getCoinBaseField());
+		sb.append(nl);
+		sb.append("Ascci: " + AsciiUtils.hexToAscii(block.getCoinBaseField()));
+		sb.append(nl);
+		sb.append("block.notInmempool: [");
+
+		Iterator<NotInMemPoolTx> it = block.getNotInMemPoolTransactions().values().iterator();
+		while (it.hasNext()) {
+			NotInMemPoolTx tx = it.next();
+			sb.append(nl);
+			sb.append(tx.toString());
+		}
+		sb.append(nl);
+		sb.append("]");
+		return sb.toString();
+	}
+
+	private boolean checkNotInMemPoolTxs(Block block, MisMinedTransactions misMinedTransactions) {
+		Set<String> blockSet = new HashSet<String>();
+		blockSet.addAll(block.getNotInMemPoolTransactions().keySet());
+		blockSet.add(block.getCoinBaseTxId());
+		Set<String> mmSet = misMinedTransactions.getMinedButNotInMemPool();
+		if (blockSet.size() != mmSet.size()) {
+			return false;
+		}
+		if (!blockSet.stream().filter(txId -> !mmSet.contains(txId)).collect(Collectors.toList()).isEmpty()
+				|| !mmSet.stream().filter(txId -> !blockSet.contains(txId)).collect(Collectors.toList()).isEmpty()) {
+			return false;
+		}
+		return true;
 	}
 
 	private void doFullLoadAsync() {
@@ -99,7 +149,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	// calling thread.
 	@Override
 	public void onApplicationEvent(ListenerContainerIdleEvent event) {
-		//logger.info(event.toString());
+		// logger.info(event.toString());
 		if (doResume.get()) {
 			if (event.getConsumer().paused().size() > 0) {
 				event.getConsumer().resume(event.getConsumer().paused());

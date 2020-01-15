@@ -102,7 +102,7 @@ public class MiningQueue {
 		return Optional.empty();
 	}
 
-	public Map<String, NotMinedTransaction> calculateNotMinedButInMiningQueueBlock(int numConsecutiveBlocks,
+	public Map<String, NotMinedTransaction> calculateNotMinedButInCandidateBlock(int numConsecutiveBlocks,
 			Map<String, Transaction> minedTransactionMap) {
 
 		QueuedBlock queuedBlock = blockList.get(numConsecutiveBlocks);
@@ -110,10 +110,10 @@ public class MiningQueue {
 		return queuedBlock.txMap.entrySet().stream().filter(e -> !minedTransactionMap.containsKey(e.getKey()))
 				.map(e -> {
 					return new NotMinedTransaction(e.getValue().getTx(), e.getValue().getPositionInBlock());
-				}).collect(Collectors.toMap(nmTx -> nmTx.getTransaction().getTxId(), nmTx -> nmTx));
+				}).collect(Collectors.toMap(nmTx -> nmTx.getTx().getTxId(), nmTx -> nmTx));
 	}
 
-	public Map<String, Transaction> calculateMinedButNotInMiningQueueBlock(int numConsecutiveBlocks,
+	public Map<String, Transaction> calculateMinedInMempoolButNotInCandidateBlock(int numConsecutiveBlocks,
 			Map<String, Transaction> minedTransactionMap) {
 		QueuedBlock queuedBlock = blockList.get(numConsecutiveBlocks);
 

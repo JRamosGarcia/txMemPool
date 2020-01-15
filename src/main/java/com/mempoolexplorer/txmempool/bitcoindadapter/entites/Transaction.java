@@ -4,8 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.mempoolexplorer.txmempool.entites.Feeable;
 
-public class Transaction {
+public class Transaction implements Feeable {
 	private String txId;
 	private List<TxInput> txInputs = new ArrayList<>();
 	private List<TxOutput> txOutputs = new ArrayList<>();
@@ -14,14 +15,15 @@ public class Transaction {
 	private Fees fees;
 	private Double satBytes;
 	private Long timeInSecs;// Epoch time in seconds since the transaction entered.
-	//BE CAREFUL: THIS FIVE FIELDS ARE NOT KEPT UPDATED, CAN CHANGE ONCE RECEIVED!!!!
+	// BE CAREFUL: THIS FIVE FIELDS ARE NOT KEPT UPDATED, COULD CHANGE ONCE
+	// RECEIVED!!!!
 	private Integer descendantCount;// The number of in-mempool descendant transactions (including this one)
 	private Integer descendantSize;// The size of in-mempool descendants (including this one)
 	private Integer ancestorCount;// The number of in-mempool ancestor transactions (including this one)
 	private Integer ancestorSize;// The size of in-mempool ancestors (including this one)
 	private List<String> depends = new ArrayList<>();// An array holding TXIDs of unconfirmed transactions (encoded as
 														// hex in
-	private String hex;//Raw transaction in hexadecimal
+	private String hex;// Raw transaction in hexadecimal
 	// RPC
 
 	/**
@@ -36,8 +38,16 @@ public class Transaction {
 				.collect(Collectors.toCollection(() -> txInputsAddresses));
 	}
 
+	@Override
 	public String getTxId() {
 		return txId;
+	}
+
+	@Override
+	public double getSatvByte() {
+		if (vSize == 0)
+			return 0;
+		return ((double) fees.getBase()) / ((double) vSize);
 	}
 
 	public void setTxId(String txId) {

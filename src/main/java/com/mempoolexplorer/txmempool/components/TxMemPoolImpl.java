@@ -1,6 +1,5 @@
 package com.mempoolexplorer.txmempool.components;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +15,7 @@ import org.springframework.stereotype.Component;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.mempool.TxPoolChanges;
+import com.mempoolexplorer.txmempool.entites.MaxMinFeeTransactionMap;
 import com.mempoolexplorer.txmempool.entites.MiningQueue;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.NotMinedTransaction;
@@ -101,17 +101,15 @@ public class TxMemPoolImpl implements TxMemPool {
 
 	@Autowired
 	private TxMempoolProperties txMempoolProperties;
-
 	private Logger logger = LoggerFactory.getLogger(this.getClass());
-
 	private AtomicReference<MiningQueue> miningQueueRef = new AtomicReference<>(new MiningQueue());
+
 	private ConcurrentSkipListMap<TxKey, Transaction> txMemPool = new ConcurrentSkipListMap<>();
 	// This is very anoying but necessary since txPoolChanges.getRemovedTxsId() are
 	// Strings, not TxKeys. :-(
 	private ConcurrentHashMap<String, TxKey> txKeyMap = new ConcurrentHashMap<>();
 
 	private int numRefreshedWatcher = 0;// Counter for not refreshing miningQueue all the time
-
 	private boolean updateFullTxMemPool = true;
 
 	@Override
@@ -126,6 +124,9 @@ public class TxMemPoolImpl implements TxMemPool {
 			}
 			refreshTxMemPool(txPoolChanges);
 		} else {
+			if (!updateFullTxMemPool) {
+				logger.info("Full txMemPool received!");
+			}
 			updateFullTxMemPool = true;// Needed if bitcoindAdapter restarts
 			refreshTxMemPool(txPoolChanges);
 
@@ -192,30 +193,34 @@ public class TxMemPoolImpl implements TxMemPool {
 		// In block, but not in memPool
 		Set<String> minedButNotInMemPool = new HashSet<>();
 		// In block and memPool
-		Map<String, Transaction> minedTransactionMap = new HashMap<>();
+		MaxMinFeeTransactionMap<Transaction> minedAndInMemPool = new MaxMinFeeTransactionMap<>();
 
-		block.getTxs().stream().forEach(txId -> {
+		block.getTxIds().stream().forEach(txId -> {
 			TxKey txKey = txKeyMap.get(txId);
 			if (null == txKey) {
 				minedButNotInMemPool.add(txId);
 			} else {
-				minedTransactionMap.put(txId, txMemPool.get(txKeyMap.get(txId)));
+				minedAndInMemPool.put(txMemPool.get(txKeyMap.get(txId)));
 			}
 		});
 
-		Map<String, NotMinedTransaction> notMinedButInMiningQueueBlock = miningQueue
-				.calculateNotMinedButInMiningQueueBlock(numConsecutiveBlocks, minedTransactionMap);
+		// TODO: Optimizar esto
+		Map<String, NotMinedTransaction> notMinedButInCandidateBlockMap = miningQueue
+				.calculateNotMinedButInCandidateBlock(numConsecutiveBlocks, minedAndInMemPool.getTxMap());
 
-		Map<String, Transaction> minedButNotInMiningQueueBlock = miningQueue
-				.calculateMinedButNotInMiningQueueBlock(numConsecutiveBlocks, minedTransactionMap);
+		// TODO: Optimizar esto sobre todo
+		Map<String, Transaction> minedInMempoolButNotInCandidateBlockMap = miningQueue
+				.calculateMinedInMempoolButNotInCandidateBlock(numConsecutiveBlocks, minedAndInMemPool.getTxMap());
 
 		MisMinedTransactions mmt = new MisMinedTransactions();
 		mmt.setBlockChangeTime(block.getChangeTime());
 		mmt.setBlockHeight(block.getHeight());
-		mmt.setNumTxInMinedBlock(block.getTxs().size());
+		mmt.setNumTxInMinedBlock(block.getTxIds().size());
 		mmt.setMinedButNotInMemPool(minedButNotInMemPool);
-		mmt.setNotMinedButInMiningQueueBlock(notMinedButInMiningQueueBlock);
-		mmt.setMinedButNotInMiningQueueBlock(minedButNotInMiningQueueBlock);
+		mmt.setMinedAndInMemPool(minedAndInMemPool);
+		mmt.setNotMinedButInCandidateBlock(new MaxMinFeeTransactionMap<>(notMinedButInCandidateBlockMap));
+		mmt.setMinedInMempoolButNotInCandidateBlock(
+				new MaxMinFeeTransactionMap<>(minedInMempoolButNotInCandidateBlockMap));
 		return mmt;
 	}
 
@@ -228,6 +233,11 @@ public class TxMemPoolImpl implements TxMemPool {
 		txMemPool = new ConcurrentSkipListMap<>();
 		txKeyMap = new ConcurrentHashMap<>();
 		miningQueueRef.set(new MiningQueue());
+	}
+
+	@Override
+	public Set<String> getTxIdSet() {
+		return txKeyMap.keySet();
 	}
 
 }

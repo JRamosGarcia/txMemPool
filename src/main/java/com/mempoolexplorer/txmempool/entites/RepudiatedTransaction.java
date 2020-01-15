@@ -23,7 +23,9 @@ public class RepudiatedTransaction {
 
 	private State state = State.INMEMPOOL;
 
-	private Long totalFeesLost = 0L; // Total Fees lost due to repudiation (fees*repudiatingBlockList.size)
+	private Double totalSatvBytesLost = 0D; // Total Satoshis per byte lost due to repudiation (sum of
+											// (Tx.satByte-blockMinSatBytes) for each repudiating block)
+	private Long totalFeesLost = 0l;// totalSatvBytesLost*tx.vSize
 
 	private Instant timeWhenShouldHaveBeenMined;// Mining time of the fist block in which the tx should have been mined
 
@@ -62,6 +64,14 @@ public class RepudiatedTransaction {
 		this.state = state;
 	}
 
+	public Double getTotalSatvBytesLost() {
+		return totalSatvBytesLost;
+	}
+
+	public void setTotalSatvBytesLost(Double totalSatvBytesLost) {
+		this.totalSatvBytesLost = totalSatvBytesLost;
+	}
+
 	public Long getTotalFeesLost() {
 		return totalFeesLost;
 	}
@@ -93,6 +103,12 @@ public class RepudiatedTransaction {
 		builder.append("RepudiatedTransaction [txId=");
 		builder.append(tx.getTxId());
 		builder.append(nl);
+		builder.append("ancestor/descendantCount=(");
+		builder.append(tx.getAncestorCount());
+		builder.append(",");
+		builder.append(tx.getDescendantCount());
+		builder.append(")");
+		builder.append(nl);
 		builder.append(", repudiatingBlockList=(");
 		repudiatingBlockList.stream().mapToInt(rb -> rb.getBlockHeight()).forEach(bh -> {
 			builder.append("bh: " + bh + "pos: " + positionInBlockHeightMap.get(bh) + ", ");
@@ -101,6 +117,8 @@ public class RepudiatedTransaction {
 		builder.append(nl);
 		builder.append(", state=");
 		builder.append(state);
+		builder.append(", totalSatvBytesLost=");
+		builder.append(totalSatvBytesLost);
 		builder.append(", totalFeesLost=");
 		builder.append(totalFeesLost);
 		builder.append(", timeWhenShouldHaveBeenMined=");

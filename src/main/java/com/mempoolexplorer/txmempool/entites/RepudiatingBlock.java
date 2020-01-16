@@ -2,6 +2,7 @@ package com.mempoolexplorer.txmempool.entites;
 
 import java.time.Instant;
 
+import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.CoinBaseTx;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
 public class RepudiatingBlock {
@@ -19,8 +20,7 @@ public class RepudiatingBlock {
 
 	private Long lostReward;// In satoshis
 	private Integer minedButNotInMemPoolTxNum;// >=1 due to coinbase transaction
-	private String coinbaseTxId;// For fun
-	private String coinbase;// For searching mining operator
+	private CoinBaseTx coinBaseTx;
 	private String minerName = UNKNOWN;// If not known, "Unknown"
 
 	public Integer getBlockHeight() {
@@ -104,20 +104,12 @@ public class RepudiatingBlock {
 		this.minedButNotInMemPoolTxNum = minedButNotInMemPoolTxNum;
 	}
 
-	public String getCoinbaseTxId() {
-		return coinbaseTxId;
+	public CoinBaseTx getCoinBaseTx() {
+		return coinBaseTx;
 	}
 
-	public void setCoinbaseTxId(String coinbaseTxId) {
-		this.coinbaseTxId = coinbaseTxId;
-	}
-
-	public String getCoinbase() {
-		return coinbase;
-	}
-
-	public void setCoinbase(String coinbase) {
-		this.coinbase = coinbase;
+	public void setCoinBaseTx(CoinBaseTx coinBaseTx) {
+		this.coinBaseTx = coinBaseTx;
 	}
 
 	public String getMinerName() {
@@ -166,11 +158,8 @@ public class RepudiatingBlock {
 		builder.append("minedButNotInMemPoolTxNum=");
 		builder.append(minedButNotInMemPoolTxNum);
 		builder.append(nl);
-		builder.append("coinbaseTxId=");
-		builder.append(coinbaseTxId);
-		builder.append(nl);
-		builder.append("coinbase=");
-		builder.append(coinbase);
+		builder.append("coinBaseTx=");
+		builder.append(coinBaseTx);
 		builder.append(nl);
 		builder.append("minerName=");
 		builder.append(minerName);

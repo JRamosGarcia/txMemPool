@@ -50,16 +50,18 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 			if (null == rTx) {
 				rTx = new RepudiatedTransaction();
 				newRtx = true;
+				rTx.setTx(nmTx.getTx());
+				rTx.setState(RepudiatedTransaction.State.INMEMPOOL);
 			}
 			rTx.getPositionInBlockHeightMap().put(block.getHeight(), nmTx.getOrdinalpositionInBlock());
+
 			rTx.getRepudiatingBlockList().add(repudiatingBlock);
-			rTx.setState(RepudiatedTransaction.State.INMEMPOOL);
 			if (rTx.getRepudiatingBlockList().size() == 1) {
 				rTx.setTimeWhenShouldHaveBeenMined(block.getChangeTime());
 			}
+			
 			rTx.setTotalSatvBytesLost(calculateTotalSatvBytesLost(repudiatingBlock, rTx));
 			rTx.setTotalFeesLost(calculateTotalFeesLost(repudiatingBlock, rTx));
-			rTx.setTx(nmTx.getTx());
 			if (newRtx) {
 				repudiatedTransactionMap.put(rTx.getTx().getTxId(), rTx);
 			}
@@ -147,8 +149,7 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 		RepudiatingBlock repBlock = new RepudiatingBlock();
 		repBlock.setBlockChangeTime(block.getChangeTime());
 		repBlock.setBlockHeight(block.getHeight());
-		repBlock.setCoinbaseTxId(block.getCoinBaseTxId());
-		repBlock.setCoinbase(block.getCoinBaseField());
+		repBlock.setCoinBaseTx(block.getCoinBaseTx());
 		repBlock.setLostReward(calculateLostReward(block, mmt));
 		repBlock.setMaxMinFeesInBlock(calculateMaxMinFeesInBlock(block, mmt));
 		repBlock.setMinedAndInMemPoolStats(calculateStats(mmt.getMinedAndInMemPool()));

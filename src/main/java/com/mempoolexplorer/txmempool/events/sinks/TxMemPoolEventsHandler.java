@@ -107,11 +107,14 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	private String strLogBlockNotInMemPoolData(Block block) {
 		String nl = SysProps.NL;
 		StringBuilder sb = new StringBuilder();
-		sb.append("CoinbaseTxId: " + block.getCoinBaseTxId());
+		sb.append("CoinbaseTxId: " + block.getCoinBaseTx().getTxId());
 		sb.append(nl);
-		sb.append("CoinbaseField: " + block.getCoinBaseField());
+		sb.append("CoinbaseField: " + block.getCoinBaseTx().getvInField());
 		sb.append(nl);
-		sb.append("Ascci: " + AsciiUtils.hexToAscii(block.getCoinBaseField()));
+		sb.append("CoinbasevSize: " + block.getCoinBaseTx().getSizeInvBytes());
+		sb.append(nl);
+		
+		sb.append("Ascci: " + AsciiUtils.hexToAscii(block.getCoinBaseTx().getvInField()));
 		sb.append(nl);
 		sb.append("block.notInmempool: [");
 
@@ -129,7 +132,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	private boolean checkNotInMemPoolTxs(Block block, MisMinedTransactions misMinedTransactions) {
 		Set<String> blockSet = new HashSet<String>();
 		blockSet.addAll(block.getNotInMemPoolTransactions().keySet());
-		blockSet.add(block.getCoinBaseTxId());
+		blockSet.add(block.getCoinBaseTx().getTxId());
 		Set<String> mmSet = misMinedTransactions.getMinedButNotInMemPool();
 		if (blockSet.size() != mmSet.size()) {
 			return false;

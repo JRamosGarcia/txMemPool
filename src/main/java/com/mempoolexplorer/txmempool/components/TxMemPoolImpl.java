@@ -204,6 +204,8 @@ public class TxMemPoolImpl implements TxMemPool {
 			}
 		});
 
+		miningQueue.substractCoinBaseTxVSize(numConsecutiveBlocks, block.getCoinBaseTx().getSizeInvBytes());
+
 		// TODO: Optimizar esto
 		Map<String, NotMinedTransaction> notMinedButInCandidateBlockMap = miningQueue
 				.calculateNotMinedButInCandidateBlock(numConsecutiveBlocks, minedAndInMemPool.getTxMap());

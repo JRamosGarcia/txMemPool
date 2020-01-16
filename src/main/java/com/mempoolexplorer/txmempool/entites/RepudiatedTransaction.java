@@ -3,6 +3,7 @@ package com.mempoolexplorer.txmempool.entites;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -109,11 +110,19 @@ public class RepudiatedTransaction {
 		builder.append(tx.getDescendantCount());
 		builder.append(")");
 		builder.append(nl);
-		builder.append(", repudiatingBlockList=(");
-		repudiatingBlockList.stream().mapToInt(rb -> rb.getBlockHeight()).forEach(bh -> {
-			builder.append("bh: " + bh + "pos: " + positionInBlockHeightMap.get(bh) + ", ");
-		});
-		builder.append(")");
+		builder.append(", repudiatingBlockList=[");
+
+		Iterator<RepudiatingBlock> it = repudiatingBlockList.iterator();
+		while (it.hasNext()) {
+			RepudiatingBlock rBlock = it.next();
+			builder.append("(bh: " + rBlock.getBlockHeight() + ",pos: "
+					+ positionInBlockHeightMap.get(rBlock.getBlockHeight()) + ")");
+			if (it.hasNext()) {
+				builder.append(", ");
+			}
+		}
+
+		builder.append("]");
 		builder.append(nl);
 		builder.append(", state=");
 		builder.append(state);

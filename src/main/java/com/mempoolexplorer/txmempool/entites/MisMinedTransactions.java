@@ -63,7 +63,8 @@ public class MisMinedTransactions {
 		return notMinedButInCandidateBlock;
 	}
 
-	public void setNotMinedButInCandidateBlock(MaxMinFeeTransactionMap<NotMinedTransaction> notMinedButInCandidateBlock) {
+	public void setNotMinedButInCandidateBlock(
+			MaxMinFeeTransactionMap<NotMinedTransaction> notMinedButInCandidateBlock) {
 		this.notMinedButInCandidateBlock = notMinedButInCandidateBlock;
 	}
 
@@ -71,7 +72,8 @@ public class MisMinedTransactions {
 		return minedInMempoolButNotInCandidateBlock;
 	}
 
-	public void setMinedInMempoolButNotInCandidateBlock(MaxMinFeeTransactionMap<Transaction> minedInMempoolButNotInCandidateBlock) {
+	public void setMinedInMempoolButNotInCandidateBlock(
+			MaxMinFeeTransactionMap<Transaction> minedInMempoolButNotInCandidateBlock) {
 		this.minedInMempoolButNotInCandidateBlock = minedInMempoolButNotInCandidateBlock;
 	}
 
@@ -123,14 +125,15 @@ public class MisMinedTransactions {
 				+ minedInMempoolButNotInCandidateBlock.getTxMap().size() + "#tx, ");
 		builder.append(calculateVSize(minedInMempoolButNotInCandidateBlock.getTxMap().values().stream()) + "vBytes)");
 		buildTransactionLogStr(builder, minedInMempoolButNotInCandidateBlock, true);
-		builder.append("minedButNotInMemPool: ");
+		builder.append("minedButNotInMemPool: (#" + minedButNotInMemPool.size() + ")");
 		builder.append(nl + "[" + nl);
 		builder.append(String.join(nl, minedButNotInMemPool.stream().collect(Collectors.toList())));
-		builder.append(nl + "]" + nl);
+		builder.append(nl + "]");
 		return builder.toString();
 	}
 
-	private void buildTransactionLogStr(StringBuilder builder, MaxMinFeeTransactionMap<Transaction> mmftp, boolean logAllTxs) {
+	private void buildTransactionLogStr(StringBuilder builder, MaxMinFeeTransactionMap<Transaction> mmftp,
+			boolean logAllTxs) {
 		builder.append(nl + "[" + nl);
 		builder.append(mmftp.getMaxMinFee().toString());
 		if (logAllTxs) {

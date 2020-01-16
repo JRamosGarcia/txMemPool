@@ -15,14 +15,17 @@ public class Transaction implements Feeable {
 	private Fees fees;
 	private Double satBytes;
 	private Long timeInSecs;// Epoch time in seconds since the transaction entered.
-	// BE CAREFUL: THIS FIVE FIELDS ARE NOT KEPT UPDATED, COULD CHANGE ONCE
+	// BE CAREFUL: THIS SIX FIELDS ARE NOT KEPT UPDATED, COULD CHANGE ONCE
 	// RECEIVED!!!!
 	private Integer descendantCount;// The number of in-mempool descendant transactions (including this one)
-	private Integer descendantSize;// The size of in-mempool descendants (including this one)
+	private Integer descendantSize;// virtual transaction size of in-mempool descendants (including this one)
 	private Integer ancestorCount;// The number of in-mempool ancestor transactions (including this one)
-	private Integer ancestorSize;// The size of in-mempool ancestors (including this one)
-	private List<String> depends = new ArrayList<>();// An array holding TXIDs of unconfirmed transactions (encoded as
-														// hex in
+	private Integer ancestorSize;// virtual transaction size of in-mempool ancestors (including this one)
+	private List<String> depends = new ArrayList<>();// unconfirmed transactions used as inputs for this transaction
+														// (txIds list)
+	private List<String> spentby = new ArrayList<>();// unconfirmed transactions spending outputs from this transaction
+														// (txIds list)
+	private Boolean bip125Replaceable;
 	private String hex;// Raw transaction in hexadecimal
 	// RPC
 
@@ -150,6 +153,22 @@ public class Transaction implements Feeable {
 		this.depends = depends;
 	}
 
+	public List<String> getSpentby() {
+		return spentby;
+	}
+
+	public void setSpentby(List<String> spentby) {
+		this.spentby = spentby;
+	}
+
+	public Boolean getBip125Replaceable() {
+		return bip125Replaceable;
+	}
+
+	public void setBip125Replaceable(Boolean bip125Replaceable) {
+		this.bip125Replaceable = bip125Replaceable;
+	}
+
 	public String getHex() {
 		return hex;
 	}
@@ -187,6 +206,10 @@ public class Transaction implements Feeable {
 		builder.append(ancestorSize);
 		builder.append(", depends=");
 		builder.append(depends);
+		builder.append(", spentby=");
+		builder.append(spentby);
+		builder.append(", bip125Replaceable=");
+		builder.append(bip125Replaceable);
 		builder.append(", hex=");
 		builder.append(hex);
 		builder.append("]");

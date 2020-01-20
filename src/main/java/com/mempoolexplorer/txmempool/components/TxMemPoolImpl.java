@@ -26,7 +26,7 @@ public class TxMemPoolImpl implements TxMemPool {
 
 	private class TxKey implements Comparable<TxKey> {
 		private String txId;
-		private Double satBytes;
+		private Double satBytes;// This must include ancestors!!
 		private Long firstSeenInSecs;
 
 		public TxKey(String txId, Double satBytes, Long firstSeenInSecs) {
@@ -152,13 +152,15 @@ public class TxMemPoolImpl implements TxMemPool {
 		sb.append(txpc.getNewTxs().size());
 		sb.append(" new transactions, ");
 		sb.append(txpc.getRemovedTxsId().size());
-		sb.append(" removed transactions.");
+		sb.append(" removed transactions, ");
+		sb.append(txpc.getTxAncestryChangesMap().size());
+		sb.append(" updated transactions.");
 		logger.info(sb.toString());
 	}
 
 	private void refreshTxMemPool(TxPoolChanges txPoolChanges) {
 		txPoolChanges.getNewTxs().stream().forEach(tx -> {
-			TxKey txKey = new TxKey(tx.getTxId(), tx.getSatBytes(), tx.getTimeInSecs());
+			TxKey txKey = new TxKey(tx.getTxId(), tx.getSatvByte(), tx.getTimeInSecs());
 			txKeyMap.put(tx.getTxId(), txKey);
 			txMemPool.put(txKey, tx);
 		});
@@ -170,6 +172,21 @@ public class TxMemPoolImpl implements TxMemPool {
 				logger.info("Removing non existing tx from mempool, txId: {}", txId);
 			}
 		});
+		txPoolChanges.getTxAncestryChangesMap().entrySet().stream().forEach(entry -> {
+			TxKey txKey = txKeyMap.get(entry.getKey());
+			if (null == txKey) {
+				logger.info("Non existing txKey in txKeyMap for update, txId: {}", entry.getKey());
+				return;
+			}
+			Transaction oldTx = txMemPool.get(txKey);
+			if (null == oldTx) {
+				logger.info("Non existing tx in txMemPool for update, txId: {}", entry.getKey());
+				return;
+			}
+			oldTx.setFees(entry.getValue().getFees());
+			oldTx.setTxAncestry(entry.getValue().getTxAncestry());
+		});
+
 	}
 
 	@Override

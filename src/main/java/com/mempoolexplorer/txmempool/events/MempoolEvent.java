@@ -28,6 +28,7 @@ public class MempoolEvent {
 
 	private Integer changeCounter;// Used by TxPoolChanges
 	private List<Transaction> newTxs; // Used by TxPoolChanges
+	private Map<String, TxAncestryChanges> txAncestryChangesMap;// Used by TxPoolChanges
 	private List<String> removedTxsId;// Used by TxPoolChanges and Block
 
 	// Used by Block class:
@@ -48,6 +49,7 @@ public class MempoolEvent {
 		mpe.changeTime = txPoolChanges.getChangeTime();
 		mpe.changeCounter = txPoolChanges.getChangeCounter();
 		mpe.newTxs = txPoolChanges.getNewTxs();
+		mpe.txAncestryChangesMap = txPoolChanges.getTxAncestryChangesMap();
 		mpe.removedTxsId = txPoolChanges.getRemovedTxsId();
 		return mpe;
 	}
@@ -62,7 +64,7 @@ public class MempoolEvent {
 		mpe.minedTime = block.getMinedTime();
 		mpe.medianMinedTime = block.getMedianMinedTime();
 		mpe.removedTxsId = block.getTxIds();
-		mpe.coinBaseTx=block.getCoinBaseTx();
+		mpe.coinBaseTx = block.getCoinBaseTx();
 		mpe.notInMemPoolTransactions = block.getNotInMemPoolTransactions();
 		return mpe;
 	}
@@ -90,6 +92,7 @@ public class MempoolEvent {
 			txpc.setChangeCounter(changeCounter);
 			txpc.setChangeTime(changeTime);
 			txpc.setNewTxs(newTxs);
+			txpc.setTxAncestryChangesMap(txAncestryChangesMap);
 			txpc.setRemovedTxsId(removedTxsId);
 			return Optional.of(txpc);
 		} else
@@ -126,6 +129,14 @@ public class MempoolEvent {
 
 	public void setNewTxs(List<Transaction> newTxs) {
 		this.newTxs = newTxs;
+	}
+
+	public Map<String, TxAncestryChanges> getTxAncestryChangesMap() {
+		return txAncestryChangesMap;
+	}
+
+	public void setTxAncestryChangesMap(Map<String, TxAncestryChanges> txAncestryChangesMap) {
+		this.txAncestryChangesMap = txAncestryChangesMap;
 	}
 
 	public List<String> getRemovedTxsId() {

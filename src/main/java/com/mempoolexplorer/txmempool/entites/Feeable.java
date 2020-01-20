@@ -8,6 +8,6 @@ public interface Feeable {
 
 	String getTxId();
 
-	double getSatvByte();
+	double getSatvByte();// This includes ancestors if any
 
 }

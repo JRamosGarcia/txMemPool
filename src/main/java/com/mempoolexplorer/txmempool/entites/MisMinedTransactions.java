@@ -142,8 +142,8 @@ public class MisMinedTransactions {
 				Transaction tx = it.next();
 				builder.append(nl);
 				builder.append(tx.getTxId() + ", "
-						+ Instant.ofEpochSecond(tx.getTimeInSecs()).atOffset(ZoneOffset.UTC).toString() + ", SatBytes: "
-						+ tx.getSatBytes());
+						+ Instant.ofEpochSecond(tx.getTimeInSecs()).atOffset(ZoneOffset.UTC).toString() + ", SatvByte: "
+						+ tx.getSatvByte());
 			}
 		}
 		builder.append(nl + "]" + nl);
@@ -158,7 +158,7 @@ public class MisMinedTransactions {
 			builder.append(nl);
 			builder.append(nmt.getTx().getTxId() + ", "
 					+ Instant.ofEpochSecond(nmt.getTx().getTimeInSecs()).atOffset(ZoneOffset.UTC).toString()
-					+ ", SatBytes: " + nmt.getTx().getSatBytes() + ", PosInBlock: " + nmt.getOrdinalpositionInBlock());
+					+ ", SatvByte: " + nmt.getTx().getSatvByte() + ", PosInBlock: " + nmt.getOrdinalpositionInBlock());
 		}
 		builder.append(nl + "]" + nl);
 	}

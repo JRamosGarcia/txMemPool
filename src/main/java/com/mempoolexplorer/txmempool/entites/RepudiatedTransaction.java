@@ -105,9 +105,9 @@ public class RepudiatedTransaction {
 		builder.append(tx.getTxId());
 		builder.append(nl);
 		builder.append("ancestor/descendantCount=(");
-		builder.append(tx.getAncestorCount());
+		builder.append(tx.getTxAncestry().getAncestorCount());
 		builder.append(",");
-		builder.append(tx.getDescendantCount());
+		builder.append(tx.getTxAncestry().getDescendantCount());
 		builder.append(")");
 		builder.append(nl);
 		builder.append(", repudiatingBlockList=[");

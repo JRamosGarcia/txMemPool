@@ -12,19 +12,11 @@ public class Transaction implements Feeable {
 	private List<TxOutput> txOutputs = new ArrayList<>();
 	private Integer size;// In bytes
 	private Integer vSize;// In bytes
+	// BE CAREFUL: THIS FIELD MUST KEPT UPDATED, COULD CHANGE ONCE RECEIVED!!!!
 	private Fees fees;
-	private Double satBytes;
 	private Long timeInSecs;// Epoch time in seconds since the transaction entered.
-	// BE CAREFUL: THIS SIX FIELDS ARE NOT KEPT UPDATED, COULD CHANGE ONCE
-	// RECEIVED!!!!
-	private Integer descendantCount;// The number of in-mempool descendant transactions (including this one)
-	private Integer descendantSize;// virtual transaction size of in-mempool descendants (including this one)
-	private Integer ancestorCount;// The number of in-mempool ancestor transactions (including this one)
-	private Integer ancestorSize;// virtual transaction size of in-mempool ancestors (including this one)
-	private List<String> depends = new ArrayList<>();// unconfirmed transactions used as inputs for this transaction
-														// (txIds list)
-	private List<String> spentby = new ArrayList<>();// unconfirmed transactions spending outputs from this transaction
-														// (txIds list)
+	// BE CAREFUL: THIS FIELD MUST KEPT UPDATED, COULD CHANGE ONCE RECEIVED!!!!
+	private TxAncestry txAncestry;
 	private Boolean bip125Replaceable;
 	private String hex;// Raw transaction in hexadecimal
 	// RPC
@@ -50,7 +42,8 @@ public class Transaction implements Feeable {
 	public double getSatvByte() {
 		if (vSize == 0)
 			return 0;
-		return ((double) fees.getBase()) / ((double) vSize);
+		return ((double) fees.getAncestor()) / ((double) txAncestry.getAncestorSize());// getAncestorSize returns vSize.
+																						// No worries.
 	}
 
 	public void setTxId(String txId) {
@@ -97,14 +90,6 @@ public class Transaction implements Feeable {
 		this.fees = fees;
 	}
 
-	public Double getSatBytes() {
-		return satBytes;
-	}
-
-	public void setSatBytes(Double satBytes) {
-		this.satBytes = satBytes;
-	}
-
 	public Long getTimeInSecs() {
 		return timeInSecs;
 	}
@@ -113,52 +98,12 @@ public class Transaction implements Feeable {
 		this.timeInSecs = timeInSecs;
 	}
 
-	public Integer getDescendantCount() {
-		return descendantCount;
+	public TxAncestry getTxAncestry() {
+		return txAncestry;
 	}
 
-	public void setDescendantCount(Integer descendantCount) {
-		this.descendantCount = descendantCount;
-	}
-
-	public Integer getDescendantSize() {
-		return descendantSize;
-	}
-
-	public void setDescendantSize(Integer descendantSize) {
-		this.descendantSize = descendantSize;
-	}
-
-	public Integer getAncestorCount() {
-		return ancestorCount;
-	}
-
-	public void setAncestorCount(Integer ancestorCount) {
-		this.ancestorCount = ancestorCount;
-	}
-
-	public Integer getAncestorSize() {
-		return ancestorSize;
-	}
-
-	public void setAncestorSize(Integer ancestorSize) {
-		this.ancestorSize = ancestorSize;
-	}
-
-	public List<String> getDepends() {
-		return depends;
-	}
-
-	public void setDepends(List<String> depends) {
-		this.depends = depends;
-	}
-
-	public List<String> getSpentby() {
-		return spentby;
-	}
-
-	public void setSpentby(List<String> spentby) {
-		this.spentby = spentby;
+	public void setTxAncestry(TxAncestry txAncestry) {
+		this.txAncestry = txAncestry;
 	}
 
 	public Boolean getBip125Replaceable() {
@@ -192,22 +137,10 @@ public class Transaction implements Feeable {
 		builder.append(vSize);
 		builder.append(", fees=");
 		builder.append(fees);
-		builder.append(", satBytes=");
-		builder.append(satBytes);
 		builder.append(", timeInSecs=");
 		builder.append(timeInSecs);
-		builder.append(", descendantCount=");
-		builder.append(descendantCount);
-		builder.append(", descendantSize=");
-		builder.append(descendantSize);
-		builder.append(", ancestorCount=");
-		builder.append(ancestorCount);
-		builder.append(", ancestorSize=");
-		builder.append(ancestorSize);
-		builder.append(", depends=");
-		builder.append(depends);
-		builder.append(", spentby=");
-		builder.append(spentby);
+		builder.append(", txAncestry=");
+		builder.append(txAncestry);
 		builder.append(", bip125Replaceable=");
 		builder.append(bip125Replaceable);
 		builder.append(", hex=");

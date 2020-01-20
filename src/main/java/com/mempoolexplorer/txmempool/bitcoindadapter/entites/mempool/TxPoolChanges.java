@@ -2,15 +2,19 @@ package com.mempoolexplorer.txmempool.bitcoindadapter.entites.mempool;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
+import com.mempoolexplorer.txmempool.events.TxAncestryChanges;
 
 public class TxPoolChanges {
 	private Instant changeTime;
 	private Integer changeCounter;
 	private List<Transaction> newTxs = new ArrayList<>();
 	private List<String> removedTxsId = new ArrayList<>();
+	private Map<String, TxAncestryChanges> txAncestryChangesMap = new HashMap<>();
 
 	public Instant getChangeTime() {
 		return changeTime;
@@ -44,6 +48,14 @@ public class TxPoolChanges {
 		this.removedTxsId = removedTxsId;
 	}
 
+	public Map<String, TxAncestryChanges> getTxAncestryChangesMap() {
+		return txAncestryChangesMap;
+	}
+
+	public void setTxAncestryChangesMap(Map<String, TxAncestryChanges> txAncestryChangesMap) {
+		this.txAncestryChangesMap = txAncestryChangesMap;
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
@@ -55,6 +67,8 @@ public class TxPoolChanges {
 		builder.append(newTxs);
 		builder.append(", removedTxsId=");
 		builder.append(removedTxsId);
+		builder.append(", txAncestryChangesMap=");
+		builder.append(txAncestryChangesMap);
 		builder.append("]");
 		return builder.toString();
 	}

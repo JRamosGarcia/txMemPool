@@ -22,6 +22,11 @@ services:
       KAFKA_LISTENERS: PLAINTEXT://${KAFKA1_IP_ADDRESS}:${KAFKA1_PORT}
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
       KAFKA_CREATE_TOPICS: ${TOPIC_MEMPOOL_TX_EVENTS}:1:1
+      KAFKA_MESSAGE_MAX_BYTES: 4000000
+#fetch.message.max.bytes
+#replica.fetch.max.bytes
+#max.message.bytes
+#message.max.bytes
       
     networks:
       bitnet:

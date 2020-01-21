@@ -145,10 +145,7 @@ public class MiningQueue {
 	// fee is already included in a Tx
 	private Set<String> parentsAlreadyInBlockTxIdSet = new HashSet<>();
 
-	// These are the transactions used for padding a block.
-	private Set<String> paddingTransactionTxIdSet = new HashSet<>();
-
-	private QueuedBlock currentBlock = new QueuedBlock(0);
+	private QueuedBlock lastBlock = new QueuedBlock(0);
 
 	private Boolean isDirty = Boolean.FALSE;
 
@@ -157,8 +154,7 @@ public class MiningQueue {
 	 */
 	public MiningQueue() {
 		super();
-		blockList.add(currentBlock);
-
+		blockList.add(lastBlock);
 	}
 
 	/**
@@ -169,7 +165,7 @@ public class MiningQueue {
 	 */
 	public MiningQueue(TxMemPool txMemPool, Integer maxTransactionsNumber) {
 		super();
-		blockList.add(currentBlock);
+		blockList.add(lastBlock);
 
 		txMemPool.getDescendingTxStream().limit(maxTransactionsNumber).forEach(tx -> {
 			Set<String> allParentsOfTx = txMemPool.getAllParentsOf(tx);// Excluding itself
@@ -189,14 +185,17 @@ public class MiningQueue {
 		});
 	}
 
+	// TODO: This does not cover the case of a big last transaction that not fits in
+	// a block and let a big hole.
 	// tx comes ordered in descending Sat/vByte
 	public void addTx(Transaction tx, Set<String> allParentsOfTx) {
 		if (parentsAlreadyInBlockTxIdSet.contains(tx.getTxId())) {
 			// This tx is another's parent. It's fees are already accounted, ignore it.
 			return;
 		}
+
 		if (allParentsOfTx.isEmpty()) {
-			addSimpleTx(tx, allParentsOfTx);// Shortcut for efficiency. but below is the general case
+			addSimpleTx(tx);
 		}
 		// These two list do not overlap any element
 		List<TxToBeMined> alreadyInCurrentBlockTxList = getAlreadyInCurrentBlockTxListOf(allParentsOfTx);
@@ -207,18 +206,18 @@ public class MiningQueue {
 		// Effective size due to previous mining
 		int txEffectiveVSizeInCurrentBlock = tx.getTxAncestry().getAncestorSize() - alreadyInQueueBNICBParentsVSize;
 
-		if (currentBlock.getFreeSpace() > txEffectiveVSizeInCurrentBlock) {
+		if (lastBlock.getFreeSpace() > txEffectiveVSizeInCurrentBlock) {
 
 			alreadyInCurrentBlockTxList.stream().forEach(txtbm -> {
-				currentBlock.remove(txtbm);
+				lastBlock.remove(txtbm);
 			});
 
-			currentBlock.addTx(tx, txEffectiveVSizeInCurrentBlock);
+			lastBlock.addTx(tx, txEffectiveVSizeInCurrentBlock);
 
 			parentsAlreadyInBlockTxIdSet.addAll(allParentsOfTx);
 		} else {
-			currentBlock = new QueuedBlock(currentBlock.getPosition() + 1);
-			blockList.add(currentBlock);
+			lastBlock = new QueuedBlock(lastBlock.getPosition() + 1);
+			blockList.add(lastBlock);
 			addTx(tx, allParentsOfTx);// Recursive only one level
 		}
 	}
@@ -229,23 +228,32 @@ public class MiningQueue {
 	 * @param tx             txs comes ordered in descending Sat/vByte
 	 * @param allParentsOfTx
 	 */
-	private void addSimpleTx(Transaction tx, Set<String> allParentsOfTx) {
-		if (currentBlock.getFreeSpace() >= tx.getTxAncestry().getAncestorSize()) {
-			currentBlock.addTx(tx, tx.getTxAncestry().getAncestorSize());
-			parentsAlreadyInBlockTxIdSet.addAll(allParentsOfTx);
-		} else {
-			currentBlock = new QueuedBlock(currentBlock.getPosition() + 1);
-			blockList.add(currentBlock);
-			addSimpleTx(tx, allParentsOfTx);// Recursive only one level
+	private void addSimpleTx(Transaction tx) {
+		// normaly blockToFill==lastBlock but it there are enough room in other previous
+		// block and tx is simple, blockToFill can be other "almost full" block
+		QueuedBlock blockToFill = getQueuedBlockToFill(tx);
+		blockToFill.addTx(tx, tx.getvSize());// It's a simple tx, no parents.
+	}
+
+	private QueuedBlock getQueuedBlockToFill(Transaction tx) {
+		Iterator<QueuedBlock> it = blockList.iterator();
+		while (it.hasNext()) {
+			QueuedBlock block = it.next();
+			if (block.getFreeSpace() >= tx.getvSize()) {// tx with no parents!
+				return block;
+			}
 		}
+		lastBlock = new QueuedBlock(lastBlock.getPosition() + 1);
+		blockList.add(lastBlock);
+		return lastBlock;
 	}
 
 	private List<TxToBeMined> getAlreadyInCurrentBlockTxListOf(Set<String> allParentsOfTx) {
-		return allParentsOfTx.stream().map(txId -> currentBlock.getTxMap().get(txId)).collect(Collectors.toList());
+		return allParentsOfTx.stream().map(txId -> lastBlock.getTxMap().get(txId)).collect(Collectors.toList());
 	}
 
 	private List<TxToBeMined> getAlreadyInQueueButNotInCurrentBlockTxListFrom(Set<String> allParentsOfTx) {
-		return allParentsOfTx.stream().filter(txId -> !currentBlock.getTxMap().containsKey(txId))
+		return allParentsOfTx.stream().filter(txId -> !lastBlock.getTxMap().containsKey(txId))
 				.map(txId -> getTxToBeMined(txId)).filter(Optional::isPresent).map(Optional::get)
 				.collect(Collectors.toList());
 	}

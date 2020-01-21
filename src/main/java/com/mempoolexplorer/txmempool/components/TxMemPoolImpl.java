@@ -1,11 +1,14 @@
 package com.mempoolexplorer.txmempool.components;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +29,7 @@ public class TxMemPoolImpl implements TxMemPool {
 
 	private class TxKey implements Comparable<TxKey> {
 		private String txId;
-		private Double satBytes;// This must include ancestors!!
+		private Double satBytes;// This includes ancestors!!
 		private Long firstSeenInSecs;
 
 		public TxKey(String txId, Double satBytes, Long firstSeenInSecs) {
@@ -99,17 +102,21 @@ public class TxMemPoolImpl implements TxMemPool {
 
 	}
 
+	private Logger logger = LoggerFactory.getLogger(this.getClass());
+
 	@Autowired
 	private TxMempoolProperties txMempoolProperties;
-	private Logger logger = LoggerFactory.getLogger(this.getClass());
+
 	private AtomicReference<MiningQueue> miningQueueRef = new AtomicReference<>(new MiningQueue());
 
 	private ConcurrentSkipListMap<TxKey, Transaction> txMemPool = new ConcurrentSkipListMap<>();
+
 	// This is very anoying but necessary since txPoolChanges.getRemovedTxsId() are
 	// Strings, not TxKeys. :-(
 	private ConcurrentHashMap<String, TxKey> txKeyMap = new ConcurrentHashMap<>();
 
 	private int numRefreshedWatcher = 0;// Counter for not refreshing miningQueue all the time
+
 	private boolean updateFullTxMemPool = true;
 
 	@Override
@@ -144,57 +151,9 @@ public class TxMemPoolImpl implements TxMemPool {
 
 	}
 
-	private void logTxPoolChanges(TxPoolChanges txpc) {
-		StringBuilder sb = new StringBuilder();
-		sb.append("TxPoolChanges(");
-		sb.append(txpc.getChangeCounter());
-		sb.append("): ");
-		sb.append(txpc.getNewTxs().size());
-		sb.append(" new transactions, ");
-		sb.append(txpc.getRemovedTxsId().size());
-		sb.append(" removed transactions, ");
-		sb.append(txpc.getTxAncestryChangesMap().size());
-		sb.append(" updated transactions.");
-		logger.info(sb.toString());
-	}
-
-	private void refreshTxMemPool(TxPoolChanges txPoolChanges) {
-		txPoolChanges.getNewTxs().stream().forEach(tx -> {
-			TxKey txKey = new TxKey(tx.getTxId(), tx.getSatvByte(), tx.getTimeInSecs());
-			txKeyMap.put(tx.getTxId(), txKey);
-			txMemPool.put(txKey, tx);
-		});
-		txPoolChanges.getRemovedTxsId().stream().forEach(txId -> {
-			TxKey txKey = txKeyMap.remove(txId);
-			if (null != txKey) {
-				txMemPool.remove(txKey);
-			} else {
-				logger.info("Removing non existing tx from mempool, txId: {}", txId);
-			}
-		});
-		txPoolChanges.getTxAncestryChangesMap().entrySet().stream().forEach(entry -> {
-			TxKey txKey = txKeyMap.get(entry.getKey());
-			if (null == txKey) {
-				logger.info("Non existing txKey in txKeyMap for update, txId: {}", entry.getKey());
-				return;
-			}
-			Transaction oldTx = txMemPool.get(txKey);
-			if (null == oldTx) {
-				logger.info("Non existing tx in txMemPool for update, txId: {}", entry.getKey());
-				return;
-			}
-			oldTx.setFees(entry.getValue().getFees());
-			oldTx.setTxAncestry(entry.getValue().getTxAncestry());
-		});
-
-	}
-
 	@Override
 	public void updateMiningQueue() {
-		MiningQueue newMiningQueue = new MiningQueue();
-		txMemPool.descendingMap().entrySet().stream().limit(txMempoolProperties.getMiningQueueNumTxs()).forEach(e -> {
-			newMiningQueue.addTx(e.getValue());
-		});
+		MiningQueue newMiningQueue = new MiningQueue(this, txMempoolProperties.getMiningQueueNumTxs());
 		this.miningQueueRef.set(newMiningQueue);
 	}
 
@@ -248,15 +207,83 @@ public class TxMemPoolImpl implements TxMemPool {
 		return txKeyMap.size();
 	}
 
-	public void drop() {
+	@Override
+	public Set<String> getTxIdSet() {
+		return txKeyMap.keySet();
+	}
+
+	@Override
+	public Stream<Transaction> getDescendingTxStream() {
+		return txMemPool.descendingMap().entrySet().stream().map(e -> e.getValue());
+	}
+
+	// TODO: must be tested
+	@Override
+	public Set<String> getAllParentsOf(Transaction tx) {
+		// recursive witchcraft
+		List<String> txDepends = tx.getTxAncestry().getDepends();
+		if (!txDepends.isEmpty()) {
+			Set<String> parentSet = txDepends.stream().collect(Collectors.toSet());
+			Set<String> granpaSet = parentSet.stream().map(txId -> txKeyMap.get(txId))
+					.map(txKey -> txMemPool.get(txKey)).map(trx -> getAllParentsOf(trx)).flatMap(pSet -> pSet.stream())
+					.collect(Collectors.toSet());
+			parentSet.addAll(granpaSet);
+			return parentSet;
+		}
+		return new HashSet<>();
+	}
+
+	private void drop() {
 		txMemPool = new ConcurrentSkipListMap<>();
 		txKeyMap = new ConcurrentHashMap<>();
 		miningQueueRef.set(new MiningQueue());
 	}
 
-	@Override
-	public Set<String> getTxIdSet() {
-		return txKeyMap.keySet();
+	private void refreshTxMemPool(TxPoolChanges txPoolChanges) {
+		txPoolChanges.getNewTxs().stream().forEach(tx -> {
+			TxKey txKey = new TxKey(tx.getTxId(), tx.getSatvByte(), tx.getTimeInSecs());
+			txKeyMap.put(tx.getTxId(), txKey);
+			txMemPool.put(txKey, tx);
+		});
+		txPoolChanges.getRemovedTxsId().stream().forEach(txId -> {
+			TxKey txKey = txKeyMap.remove(txId);
+			if (null != txKey) {
+				txMemPool.remove(txKey);
+			} else {
+				logger.info("Removing non existing tx from mempool, txId: {}", txId);
+			}
+		});
+		txPoolChanges.getTxAncestryChangesMap().entrySet().stream().forEach(entry -> {
+			TxKey txKey = txKeyMap.get(entry.getKey());
+			if (null == txKey) {
+				logger.info("Non existing txKey in txKeyMap for update, txId: {}", entry.getKey());
+				return;
+			}
+			Transaction oldTx = txMemPool.get(txKey);
+			if (null == oldTx) {
+				logger.info("Non existing tx in txMemPool for update, txId: {}", entry.getKey());
+				return;
+			}
+			// This is safe since tx.getSatvByte() is calculated through ancestor fee/vSize
+			// and it does not change between old and new Fee or TxAncestry classes.
+			oldTx.setFees(entry.getValue().getFees());
+			oldTx.setTxAncestry(entry.getValue().getTxAncestry());
+		});
+
+	}
+
+	private void logTxPoolChanges(TxPoolChanges txpc) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("TxPoolChanges(");
+		sb.append(txpc.getChangeCounter());
+		sb.append("): ");
+		sb.append(txpc.getNewTxs().size());
+		sb.append(" new transactions, ");
+		sb.append(txpc.getRemovedTxsId().size());
+		sb.append(" removed transactions, ");
+		sb.append(txpc.getTxAncestryChangesMap().size());
+		sb.append(" updated transactions.");
+		logger.info(sb.toString());
 	}
 
 }

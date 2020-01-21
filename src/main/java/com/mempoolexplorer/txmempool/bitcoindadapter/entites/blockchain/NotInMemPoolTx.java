@@ -5,16 +5,14 @@ import com.mempoolexplorer.txmempool.entites.Feeable;
 public class NotInMemPoolTx implements Feeable {
 
 	private String txId;
-	private Long fees;// in Satoshis
-	private Integer vSize;
-	private Double satvBytes;
+	private Long fees;// in Satoshis. Sadly this does not take into account Ancestors
+	private Integer vSize;// Sadly this does not take into account Ancestors
 
-	public NotInMemPoolTx(String txId, Long fees, Integer vSize, Double satvBytes) {
+	public NotInMemPoolTx(String txId, Long fees, Integer vSize) {
 		super();
 		this.txId = txId;
 		this.fees = fees;
 		this.vSize = vSize;
-		this.satvBytes = satvBytes;
 	}
 
 	@Override
@@ -24,7 +22,7 @@ public class NotInMemPoolTx implements Feeable {
 
 	@Override
 	public double getSatvByte() {
-		return satvBytes;
+		return ((double) fees / ((double) vSize));
 	}
 
 	public void setTxId(String txId) {
@@ -47,14 +45,6 @@ public class NotInMemPoolTx implements Feeable {
 		this.vSize = vSize;
 	}
 
-	public Double getSatvBytes() {
-		return satvBytes;
-	}
-
-	public void setSatvBytes(Double satvBytes) {
-		this.satvBytes = satvBytes;
-	}
-
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
@@ -64,8 +54,6 @@ public class NotInMemPoolTx implements Feeable {
 		builder.append(fees);
 		builder.append(", vSize=");
 		builder.append(vSize);
-		builder.append(", satvBytes=");
-		builder.append(satvBytes);
 		builder.append("]");
 		return builder.toString();
 	}

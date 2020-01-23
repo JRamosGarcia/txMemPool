@@ -2,12 +2,10 @@ package com.mempoolexplorer.txmempool.entites;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -17,7 +15,6 @@ import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.entites.miningqueue.QueuedBlock;
-import com.mempoolexplorer.txmempool.entites.miningqueue.TxToBeMined;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
 /**
@@ -49,25 +46,26 @@ public class MisMinedTransactions {
 	public static MisMinedTransactions from(TxMemPool txMemPool, QueuedBlock queuedBlock, Block block,
 			List<Integer> coinBaseTxVSizeList) {
 
-		// In block, but not in memPool
+		// In block, but not in memPool nor queuedBlock
 		Set<String> minedButNotInMemPool = new HashSet<>();
 		// In block and memPool
 		MaxMinFeeTransactionMap<Transaction> minedAndInMemPool = new MaxMinFeeTransactionMap<>();
-
-		Map<String, Transaction> minedInMempoolButNotInCandidateBlockMap = new HashMap<>();
+		// In block and memPool but not in queuedBlock
+		MaxMinFeeTransactionMap<Transaction> minedInMempoolButNotInCandidateBlockMap = new MaxMinFeeTransactionMap<>();
 
 		block.getTxIds().stream().forEach(txId -> {
 			Optional<Transaction> optTx = txMemPool.getTx(txId);
 			if (optTx.isPresent()) {
 				minedAndInMemPool.put(optTx.get());
 				if (!queuedBlock.contains(txId)) {
-					minedInMempoolButNotInCandidateBlockMap.put(txId, optTx.get());
+					minedInMempoolButNotInCandidateBlockMap.put(optTx.get());
 				}
 			} else {
 				minedButNotInMemPool.add(txId);
 			}
 		});
 
+		// In mempool and queuedBlock but not in block
 		MaxMinFeeTransactionMap<NotMinedTransaction> notMinedButInCandidateBlockMap = calculateNotMinedButInCandidateBlock(
 				queuedBlock, minedAndInMemPool.getTxMap());
 
@@ -80,8 +78,7 @@ public class MisMinedTransactions {
 		mmt.setMinedButNotInMemPool(minedButNotInMemPool);
 		mmt.setMinedAndInMemPool(minedAndInMemPool);
 		mmt.setNotMinedButInCandidateBlock(notMinedButInCandidateBlockMap);
-		mmt.setMinedInMempoolButNotInCandidateBlock(
-				new MaxMinFeeTransactionMap<>(minedInMempoolButNotInCandidateBlockMap));
+		mmt.setMinedInMempoolButNotInCandidateBlock(minedInMempoolButNotInCandidateBlockMap);
 		return mmt;
 	}
 

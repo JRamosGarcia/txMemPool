@@ -62,7 +62,7 @@ public class MiningQueue {
 	// tx comes ordered in descending Sat/vByte
 	private void addTx(Transaction tx, TxMemPool txMemPool) {
 
-		if (!getTxToBeMined(tx.getTxId()).isEmpty()) {
+		if (getTxToBeMined(tx.getTxId()).isPresent()) {
 			// This tx is another's parent that has been yet included in a block. Ignore it
 			return;
 		}

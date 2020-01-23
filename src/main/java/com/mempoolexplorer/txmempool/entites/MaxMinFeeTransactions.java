@@ -4,7 +4,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
- * Class that keeps track of max and min fee and txIds asociated
+ * Class that keeps track of max and min fee and txIds using getSatvByteIncludingAncestors()
  */
 public class MaxMinFeeTransactions {
 
@@ -30,14 +30,14 @@ public class MaxMinFeeTransactions {
 	}
 
 	public void checkFees(Feeable feeable) {
-		if ((feeable.getSatvByte() == Double.MIN_VALUE) || (feeable.getSatvByte() == Double.MAX_VALUE))
+		if ((feeable.getSatvByteIncludingAncestors() == Double.MIN_VALUE) || (feeable.getSatvByteIncludingAncestors() == Double.MAX_VALUE))
 			return;
-		if (feeable.getSatvByte() > maxFee) {
-			maxFee = feeable.getSatvByte();
+		if (feeable.getSatvByteIncludingAncestors() > maxFee) {
+			maxFee = feeable.getSatvByteIncludingAncestors();
 			maxFeeTxId = feeable.getTxId();
 		}
-		if (feeable.getSatvByte() < minFee) {
-			minFee = feeable.getSatvByte();
+		if (feeable.getSatvByteIncludingAncestors() < minFee) {
+			minFee = feeable.getSatvByteIncludingAncestors();
 			minFeeTxId = feeable.getTxId();
 		}
 	}
@@ -52,6 +52,11 @@ public class MaxMinFeeTransactions {
 				return maxFeeTxId;
 			}
 
+			@Override
+			public double getSatvByteIncludingAncestors() {
+				return maxFee;
+			}
+			
 			@Override
 			public double getSatvByte() {
 				return maxFee;
@@ -70,6 +75,10 @@ public class MaxMinFeeTransactions {
 				return minFeeTxId;
 			}
 
+			@Override
+			public double getSatvByteIncludingAncestors() {
+				return minFee;
+			}
 			@Override
 			public double getSatvByte() {
 				return minFee;

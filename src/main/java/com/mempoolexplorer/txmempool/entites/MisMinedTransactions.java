@@ -2,13 +2,22 @@ package com.mempoolexplorer.txmempool.entites;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
+import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
+import com.mempoolexplorer.txmempool.components.TxMemPool;
+import com.mempoolexplorer.txmempool.entites.miningqueue.QueuedBlock;
+import com.mempoolexplorer.txmempool.entites.miningqueue.TxToBeMined;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
 /**
@@ -34,6 +43,76 @@ public class MisMinedTransactions {
 
 	// Ok
 	MaxMinFeeTransactionMap<Transaction> minedAndInMemPool = new MaxMinFeeTransactionMap<>();
+
+	private Boolean coherentSets = true;
+
+	public static MisMinedTransactions from(TxMemPool txMemPool, QueuedBlock queuedBlock, Block block,
+			List<Integer> coinBaseTxVSizeList) {
+
+		// In block, but not in memPool
+		Set<String> minedButNotInMemPool = new HashSet<>();
+		// In block and memPool
+		MaxMinFeeTransactionMap<Transaction> minedAndInMemPool = new MaxMinFeeTransactionMap<>();
+
+		Map<String, Transaction> minedInMempoolButNotInCandidateBlockMap = new HashMap<>();
+
+		block.getTxIds().stream().forEach(txId -> {
+			Optional<Transaction> optTx = txMemPool.getTx(txId);
+			if (optTx.isPresent()) {
+				minedAndInMemPool.put(optTx.get());
+				if (!queuedBlock.contains(txId)) {
+					minedInMempoolButNotInCandidateBlockMap.put(txId, optTx.get());
+				}
+			} else {
+				minedButNotInMemPool.add(txId);
+			}
+		});
+
+		MaxMinFeeTransactionMap<NotMinedTransaction> notMinedButInCandidateBlockMap = calculateNotMinedButInCandidateBlock(
+				queuedBlock, minedAndInMemPool.getTxMap());
+
+		MisMinedTransactions mmt = new MisMinedTransactions();
+		// TODO: Buen sitio para poner una alarma!
+		mmt.setCoherentSets(checkNotInMemPoolTxs(block, minedButNotInMemPool));
+		mmt.setBlockChangeTime(block.getChangeTime());
+		mmt.setBlockHeight(block.getHeight());
+		mmt.setNumTxInMinedBlock(block.getTxIds().size());
+		mmt.setMinedButNotInMemPool(minedButNotInMemPool);
+		mmt.setMinedAndInMemPool(minedAndInMemPool);
+		mmt.setNotMinedButInCandidateBlock(notMinedButInCandidateBlockMap);
+		mmt.setMinedInMempoolButNotInCandidateBlock(
+				new MaxMinFeeTransactionMap<>(minedInMempoolButNotInCandidateBlockMap));
+		return mmt;
+	}
+
+	private static MaxMinFeeTransactionMap<NotMinedTransaction> calculateNotMinedButInCandidateBlock(
+			QueuedBlock queuedBlock, Map<String, Transaction> minedAndInMemPoolTxMap) {
+
+		MaxMinFeeTransactionMap<NotMinedTransaction> notMinedButInCandidateBlockMap = new MaxMinFeeTransactionMap<>();
+
+		queuedBlock.getTxMap().entrySet().stream().filter(e -> !minedAndInMemPoolTxMap.containsKey(e.getKey()))
+				.map(e -> {
+					return new NotMinedTransaction(e.getValue().getTx(), e.getValue().getPositionInBlock());
+				}).forEach(nmt -> notMinedButInCandidateBlockMap.put(nmt));
+
+		return notMinedButInCandidateBlockMap;
+	}
+
+	private static boolean checkNotInMemPoolTxs(Block block, Set<String> minedButNotInMemPool) {
+		Set<String> blockSet = new HashSet<String>();
+		blockSet.addAll(block.getNotInMemPoolTransactions().keySet());
+		blockSet.add(block.getCoinBaseTx().getTxId());
+		if (blockSet.size() != minedButNotInMemPool.size()) {
+			return false;
+		}
+		if (!blockSet.stream().filter(txId -> !minedButNotInMemPool.contains(txId)).collect(Collectors.toList())
+				.isEmpty()
+				|| !minedButNotInMemPool.stream().filter(txId -> !blockSet.contains(txId)).collect(Collectors.toList())
+						.isEmpty()) {
+			return false;
+		}
+		return true;
+	}
 
 	public Integer getBlockHeight() {
 		return blockHeight;
@@ -93,6 +172,14 @@ public class MisMinedTransactions {
 		this.minedAndInMemPool = minedAndInMemPool;
 	}
 
+	public Boolean getCoherentSets() {
+		return coherentSets;
+	}
+
+	public void setCoherentSets(Boolean coherentSets) {
+		this.coherentSets = coherentSets;
+	}
+
 	private String nl = SysProps.NL;
 
 	@Override
@@ -102,6 +189,9 @@ public class MisMinedTransactions {
 		builder.append("MisMinedTransactions:");
 		builder.append(nl);
 		builder.append("---------------------");
+		builder.append(nl);
+		builder.append("COHERENTSETS: ");
+		builder.append(coherentSets);
 		builder.append(nl);
 		builder.append("blockHeight: ");
 		builder.append(blockHeight);
@@ -129,6 +219,9 @@ public class MisMinedTransactions {
 		builder.append(nl + "[" + nl);
 		builder.append(String.join(nl, minedButNotInMemPool.stream().collect(Collectors.toList())));
 		builder.append(nl + "]");
+		builder.append(nl);
+		builder.append("COHERENTSETS: ");
+		builder.append(coherentSets);
 		return builder.toString();
 	}
 
@@ -143,7 +236,7 @@ public class MisMinedTransactions {
 				builder.append(nl);
 				builder.append(tx.getTxId() + ", "
 						+ Instant.ofEpochSecond(tx.getTimeInSecs()).atOffset(ZoneOffset.UTC).toString() + ", SatvByte: "
-						+ tx.getSatvByte());
+						+ tx.getSatvByteIncludingAncestors());
 			}
 		}
 		builder.append(nl + "]" + nl);
@@ -158,7 +251,8 @@ public class MisMinedTransactions {
 			builder.append(nl);
 			builder.append(nmt.getTx().getTxId() + ", "
 					+ Instant.ofEpochSecond(nmt.getTx().getTimeInSecs()).atOffset(ZoneOffset.UTC).toString()
-					+ ", SatvByte: " + nmt.getTx().getSatvByte() + ", PosInBlock: " + nmt.getOrdinalpositionInBlock());
+					+ ", SatvByte: " + nmt.getTx().getSatvByteIncludingAncestors() + ", PosInBlock: "
+					+ nmt.getOrdinalpositionInBlock());
 		}
 		builder.append(nl + "]" + nl);
 	}

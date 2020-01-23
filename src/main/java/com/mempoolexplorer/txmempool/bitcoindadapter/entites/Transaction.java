@@ -39,11 +39,18 @@ public class Transaction implements Feeable {
 	}
 
 	@Override
-	public double getSatvByte() {
-		if (vSize == 0)
+	public double getSatvByteIncludingAncestors() {
+		if (txAncestry.getAncestorSize() == 0)
 			return 0;
 		return ((double) fees.getAncestor()) / ((double) txAncestry.getAncestorSize());// getAncestorSize returns vSize.
 																						// No worries.
+	}
+
+	@Override
+	public double getSatvByte() {
+		if (vSize == 0)
+			return 0;
+		return ((double) fees.getBase()) / ((double) vSize);
 	}
 
 	public void setTxId(String txId) {

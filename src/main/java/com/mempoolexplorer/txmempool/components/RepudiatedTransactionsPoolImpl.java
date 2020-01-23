@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,8 +12,8 @@ import org.springframework.stereotype.Component;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
-import com.mempoolexplorer.txmempool.entites.MaxMinFeeTransactions;
 import com.mempoolexplorer.txmempool.entites.MaxMinFeeTransactionMap;
+import com.mempoolexplorer.txmempool.entites.MaxMinFeeTransactions;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.NotMinedTransaction;
 import com.mempoolexplorer.txmempool.entites.RepudiatedTransaction;
@@ -37,9 +36,9 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 	}
 
 	@Override
-	public void refresh(Block block, MisMinedTransactions mmt, Set<String> memPoolSet) {
+	public void refresh(Block block, MisMinedTransactions mmt, TxMemPool txMemPool) {
 
-		RepudiatingBlock repudiatingBlock = calculateRepudiatingBlock(block, mmt, memPoolSet);
+		RepudiatingBlock repudiatingBlock = calculateRepudiatingBlock(block, mmt);
 		totalFeesLost += repudiatingBlock.getLostReward();
 		logger.info(repudiatingBlock.toString());
 		Iterator<NotMinedTransaction> it = mmt.getNotMinedButInCandidateBlock().getTxMap().values().iterator();
@@ -67,14 +66,14 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 			}
 		}
 
-		clearRepudiatedTransactionMap(block, memPoolSet);// In case of mined or deleted txs
+		clearRepudiatedTransactionMap(block, txMemPool);// In case of mined or deleted txs
 		logIt();
 	}
 
 	private double calculateTotalSatvBytesLost(RepudiatingBlock repudiatingBlock, RepudiatedTransaction rTx) {
 		double totalSatvBytesLost = rTx.getTotalSatvBytesLost();
 		double blockSatvBytesLost = repudiatingBlock.getMaxMinFeesInBlock().getMinFee().orElse(0D);
-		double diff = rTx.getTx().getSatvByte() - blockSatvBytesLost;
+		double diff = rTx.getTx().getSatvByteIncludingAncestors() - blockSatvBytesLost;
 		return totalSatvBytesLost + diff;
 	}
 
@@ -96,7 +95,7 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 
 	}
 
-	private void clearRepudiatedTransactionMap(Block block, Set<String> memPoolSet) {
+	private void clearRepudiatedTransactionMap(Block block, TxMemPool txMemPool) {
 		// TODO: mirar sincronia de memPoolSet
 		List<String> txIdsToRemoveList = new ArrayList<>();// txIds to remove.
 
@@ -119,7 +118,7 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 		while (rtIt.hasNext()) {
 			RepudiatedTransaction rt = rtIt.next();
 			String txId = rt.getTx().getTxId();
-			if (!memPoolSet.contains(txId)) {
+			if (!txMemPool.contains(txId)) {
 				txIdsToRemoveList.add(txId);
 				rt.setState(RepudiatedTransaction.State.DELETED);
 				rt.setFinallyMinedOnBlock(-1);
@@ -145,7 +144,7 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 		logger.info(sb.toString());
 	}
 
-	private RepudiatingBlock calculateRepudiatingBlock(Block block, MisMinedTransactions mmt, Set<String> memPoolSet) {
+	private RepudiatingBlock calculateRepudiatingBlock(Block block, MisMinedTransactions mmt) {
 		RepudiatingBlock repBlock = new RepudiatingBlock();
 		repBlock.setBlockChangeTime(block.getChangeTime());
 		repBlock.setBlockHeight(block.getHeight());

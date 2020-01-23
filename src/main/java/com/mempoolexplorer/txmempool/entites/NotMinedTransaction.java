@@ -34,6 +34,11 @@ public class NotMinedTransaction implements Feeable {
 	}
 
 	@Override
+	public double getSatvByteIncludingAncestors() {
+		return tx.getSatvByteIncludingAncestors();
+	}
+
+	@Override
 	public double getSatvByte() {
 		return tx.getSatvByte();
 	}

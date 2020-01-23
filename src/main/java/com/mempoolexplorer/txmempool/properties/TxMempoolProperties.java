@@ -9,6 +9,7 @@ public class TxMempoolProperties {
 
 	private Integer refreshCountToCreateNewMiningQueue;
 	private Integer miningQueueNumTxs;
+	private Integer miningQueueMaxNumBlocks;
 
 	public Integer getRefreshCountToCreateNewMiningQueue() {
 		return refreshCountToCreateNewMiningQueue;
@@ -24,6 +25,14 @@ public class TxMempoolProperties {
 
 	public void setMiningQueueNumTxs(Integer miningQueueNumTxs) {
 		this.miningQueueNumTxs = miningQueueNumTxs;
+	}
+
+	public Integer getMiningQueueMaxNumBlocks() {
+		return miningQueueMaxNumBlocks;
+	}
+
+	public void setMiningQueueMaxNumBlocks(Integer miningQueueMaxNumBlocks) {
+		this.miningQueueMaxNumBlocks = miningQueueMaxNumBlocks;
 	}
 
 }

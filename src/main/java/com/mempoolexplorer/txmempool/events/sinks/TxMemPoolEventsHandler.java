@@ -3,12 +3,11 @@ package com.mempoolexplorer.txmempool.events.sinks;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.TopicPartition;
@@ -30,10 +29,14 @@ import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.NotInMem
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.mempool.TxPoolChanges;
 import com.mempoolexplorer.txmempool.components.RepudiatedTransactionPool;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
+import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
+import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
+import com.mempoolexplorer.txmempool.entites.miningqueue.QueuedBlock;
 import com.mempoolexplorer.txmempool.events.CustomChannels;
 import com.mempoolexplorer.txmempool.events.MempoolEvent;
 import com.mempoolexplorer.txmempool.feingintefaces.BitcoindAdapter;
+import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
 import com.mempoolexplorer.txmempool.utils.AsciiUtils;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
@@ -50,9 +53,15 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 	@Autowired
 	private BitcoindAdapter bitcoindAdapter;
-	
+
 	@Autowired
 	private RepudiatedTransactionPool repudiatedTransactionPool;
+
+	@Autowired
+	private LiveMiningQueueContainer liveMiningQueueContainer;
+
+	@Autowired
+	private TxMempoolProperties txMempoolProperties;
 
 	@Value("${spring.cloud.stream.bindings.txMemPoolEvents.destination}")
 	private String topic;
@@ -64,6 +73,8 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	private AtomicBoolean initializing = new AtomicBoolean(true);
 
 	private AtomicBoolean loadingFullMempool = new AtomicBoolean(false);
+
+	private List<Integer> coinBaseTxVSizeList = new ArrayList<>();
 
 	@StreamListener("txMemPoolEvents")
 	public void blockSink(MempoolEvent mempoolEvent, @Header(KafkaHeaders.CONSUMER) Consumer<?, ?> consumer) {
@@ -86,22 +97,41 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 				// Load full mempool asyncronous via REST service, then resume kafka msgs
 				doFullLoadAsync();// Method must return ASAP, this is a kafka queue.
 			} else if (!loadingFullMempool.get()) {// This is because consumer.pause does not pause inmediately
-				// Refresh the mempool
-				txMemPool.refresh(txpc);
+				refreshMemPoolAndLiveMiningQueue(txpc);
 				initializing.set(false);
 			}
 			numConsecutiveBlocks = 0;
 		}
 	}
 
+	private void refreshMemPoolAndLiveMiningQueue(TxPoolChanges txpc) {
+		txMemPool.refresh(txpc);
+		liveMiningQueueContainer.refreshIfNeeded(txMemPool);
+		coinBaseTxVSizeList.clear();// If we have new txPoolChanges, we reset coinBaseVSizeList
+	}
+
 	private void OnNewBlock(Block block, int numConsecutiveBlocks) {
-		MisMinedTransactions misMinedTransactions = txMemPool.calculateMisMinedTransactions(block,
-				numConsecutiveBlocks);
+		coinBaseTxVSizeList.add(block.getCoinBaseTx().getSizeInvBytes());
+		if (coinBaseTxVSizeList.size() != numConsecutiveBlocks) {
+			// TODO: Alarm here!
+			logger.warn("THIS SHOULD NO BE HAPPENING: coinBaseTxVSizeList.size() != numConsecutiveBlocks");
+			return;
+		}
+
+		MiningQueue miningQueue = MiningQueue.buildFrom(coinBaseTxVSizeList, txMemPool,
+				txMempoolProperties.getMiningQueueNumTxs(), coinBaseTxVSizeList.size());
+
+		Optional<QueuedBlock> optQB = miningQueue.getQueuedBlock(coinBaseTxVSizeList.size() - 1);
+		if (optQB.isEmpty()) {
+			// TODO: Alarm here!
+			logger.warn("THIS SHOULD NO BE HAPPENING: optQB.isEmpty()");
+			return;
+		}
+		MisMinedTransactions misMinedTransactions = MisMinedTransactions.from(txMemPool, optQB.get(), block,
+				coinBaseTxVSizeList);
 		logger.info(misMinedTransactions.toString());
-		//TODO: Buen sitio para poner una alarma!
-		logger.info("Equals: {}", checkNotInMemPoolTxs(block, misMinedTransactions));
 		logger.info(strLogBlockNotInMemPoolData(block));
-		repudiatedTransactionPool.refresh(block, misMinedTransactions, txMemPool.getTxIdSet());
+		repudiatedTransactionPool.refresh(block, misMinedTransactions, txMemPool);
 	}
 
 	private String strLogBlockNotInMemPoolData(Block block) {
@@ -113,7 +143,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 		sb.append(nl);
 		sb.append("CoinbasevSize: " + block.getCoinBaseTx().getSizeInvBytes());
 		sb.append(nl);
-		
+
 		sb.append("Ascci: " + AsciiUtils.hexToAscii(block.getCoinBaseTx().getvInField()));
 		sb.append(nl);
 		sb.append("block.notInmempool: [");
@@ -127,21 +157,6 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 		sb.append(nl);
 		sb.append("]");
 		return sb.toString();
-	}
-
-	private boolean checkNotInMemPoolTxs(Block block, MisMinedTransactions misMinedTransactions) {
-		Set<String> blockSet = new HashSet<String>();
-		blockSet.addAll(block.getNotInMemPoolTransactions().keySet());
-		blockSet.add(block.getCoinBaseTx().getTxId());
-		Set<String> mmSet = misMinedTransactions.getMinedButNotInMemPool();
-		if (blockSet.size() != mmSet.size()) {
-			return false;
-		}
-		if (!blockSet.stream().filter(txId -> !mmSet.contains(txId)).collect(Collectors.toList()).isEmpty()
-				|| !mmSet.stream().filter(txId -> !blockSet.contains(txId)).collect(Collectors.toList()).isEmpty()) {
-			return false;
-		}
-		return true;
 	}
 
 	private void doFullLoadAsync() {

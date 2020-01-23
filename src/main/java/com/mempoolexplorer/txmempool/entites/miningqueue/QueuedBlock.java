@@ -3,7 +3,9 @@ package com.mempoolexplorer.txmempool.entites.miningqueue;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.utils.SysProps;
@@ -49,10 +51,10 @@ public class QueuedBlock {
 		return SysProps.MAX_BLOCK_SIZE - coinBaseVSize - vSize;
 	}
 
-	public Map<String, TxToBeMined> getTxMap() {
-		return txMap;
+	public Stream<Entry<String, TxToBeMined>> getEntriesStream(){
+		return txMap.entrySet().stream();
 	}
-
+	
 	public Optional<TxToBeMined> getTx(String txId) {
 		return Optional.ofNullable(txMap.get(txId));
 	}

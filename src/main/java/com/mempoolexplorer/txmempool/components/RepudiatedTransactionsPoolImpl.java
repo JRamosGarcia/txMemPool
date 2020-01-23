@@ -58,7 +58,7 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 			if (rTx.getRepudiatingBlockList().size() == 1) {
 				rTx.setTimeWhenShouldHaveBeenMined(block.getChangeTime());
 			}
-			
+
 			rTx.setTotalSatvBytesLost(calculateTotalSatvBytesLost(repudiatingBlock, rTx));
 			rTx.setTotalFeesLost(calculateTotalFeesLost(repudiatingBlock, rTx));
 			if (newRtx) {
@@ -73,12 +73,12 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 	private double calculateTotalSatvBytesLost(RepudiatingBlock repudiatingBlock, RepudiatedTransaction rTx) {
 		double totalSatvBytesLost = rTx.getTotalSatvBytesLost();
 		double blockSatvBytesLost = repudiatingBlock.getMaxMinFeesInBlock().getMinFee().orElse(0D);
-		double diff = rTx.getTx().getSatvByteIncludingAncestors() - blockSatvBytesLost;
+		double diff = rTx.getTx().getSatvByte() - blockSatvBytesLost;
 		return totalSatvBytesLost + diff;
 	}
 
 	private long calculateTotalFeesLost(RepudiatingBlock repudiatingBlock, RepudiatedTransaction rTx) {
-		return (long) (rTx.getTotalSatvBytesLost()*rTx.getTx().getFees().getBase());
+		return (long) (rTx.getTotalSatvBytesLost() * rTx.getTx().getFees().getBase());
 	}
 
 	private void logIt() {
@@ -194,6 +194,7 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 	private MaxMinFeeTransactions calculateMaxMinFeesInBlock(Block block, MisMinedTransactions mmt) {
 		MaxMinFeeTransactions maxMinFeesInBlock = new MaxMinFeeTransactions();
 		maxMinFeesInBlock.checkFees(mmt.getMinedAndInMemPool().getMaxMinFee());
+		// block.getNotInMemPoolTransactions() does not contain coinBaseTx
 		maxMinFeesInBlock.checkFees(new MaxMinFeeTransactions(block.getNotInMemPoolTransactions().values().stream()));
 		return maxMinFeesInBlock;
 	}

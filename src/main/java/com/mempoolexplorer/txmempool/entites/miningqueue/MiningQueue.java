@@ -160,9 +160,10 @@ public class MiningQueue {
 
 	private Optional<TxToBeMined> getTxToBeMined(String txId) {
 		for (QueuedBlock block : blockList) {
-			TxToBeMined txToBeMined = block.getTxMap().get(txId);
-			if (txToBeMined != null)
-				return Optional.of(txToBeMined);
+			Optional<TxToBeMined> optTxToBeMined = block.getTx(txId);
+			if (optTxToBeMined.isPresent()) {
+				return optTxToBeMined;
+			}
 		}
 		return Optional.empty();
 	}

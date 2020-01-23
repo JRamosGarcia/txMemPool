@@ -87,10 +87,9 @@ public class MisMinedTransactions {
 
 		MaxMinFeeTransactionMap<NotMinedTransaction> notMinedButInCandidateBlockMap = new MaxMinFeeTransactionMap<>();
 
-		queuedBlock.getTxMap().entrySet().stream().filter(e -> !minedAndInMemPoolTxMap.containsKey(e.getKey()))
-				.map(e -> {
-					return new NotMinedTransaction(e.getValue().getTx(), e.getValue().getPositionInBlock());
-				}).forEach(nmt -> notMinedButInCandidateBlockMap.put(nmt));
+		queuedBlock.getEntriesStream().filter(e -> !minedAndInMemPoolTxMap.containsKey(e.getKey())).map(e -> {
+			return new NotMinedTransaction(e.getValue().getTx(), e.getValue().getPositionInBlock());
+		}).forEach(nmt -> notMinedButInCandidateBlockMap.put(nmt));
 
 		return notMinedButInCandidateBlockMap;
 	}

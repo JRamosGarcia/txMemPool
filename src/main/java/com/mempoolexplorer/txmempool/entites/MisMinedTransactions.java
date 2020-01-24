@@ -39,7 +39,7 @@ public class MisMinedTransactions {
 	private Set<String> minedButNotInMemPool = new HashSet<>();
 
 	// Ok
-	MaxMinFeeTransactionMap<Transaction> minedAndInMemPool = new MaxMinFeeTransactionMap<>();
+	MaxMinFeeTransactionMap<Transaction> minedAndInMemPool = new MaxMinFeeTransactionMap<Transaction>();
 
 	private Boolean coherentSets = true;
 
@@ -49,9 +49,11 @@ public class MisMinedTransactions {
 		// In block, but not in memPool nor queuedBlock
 		Set<String> minedButNotInMemPool = new HashSet<>();
 		// In block and memPool
-		MaxMinFeeTransactionMap<Transaction> minedAndInMemPool = new MaxMinFeeTransactionMap<>();
+		MaxMinFeeTransactionMap<Transaction> minedAndInMemPool = new MaxMinFeeTransactionMap<>(
+				SysProps.EXPECTED_NUM_TX_IN_BLOCK);
 		// In block and memPool but not in queuedBlock
-		MaxMinFeeTransactionMap<Transaction> minedInMempoolButNotInCandidateBlockMap = new MaxMinFeeTransactionMap<>();
+		MaxMinFeeTransactionMap<Transaction> minedInMempoolButNotInCandidateBlockMap = new MaxMinFeeTransactionMap<>(
+				SysProps.EXPECTED_MAX_REPUDIATED_TXS);
 
 		block.getTxIds().stream().forEach(txId -> {
 			Optional<Transaction> optTx = txMemPool.getTx(txId);
@@ -85,7 +87,8 @@ public class MisMinedTransactions {
 	private static MaxMinFeeTransactionMap<NotMinedTransaction> calculateNotMinedButInCandidateBlock(
 			QueuedBlock queuedBlock, Map<String, Transaction> minedAndInMemPoolTxMap) {
 
-		MaxMinFeeTransactionMap<NotMinedTransaction> notMinedButInCandidateBlockMap = new MaxMinFeeTransactionMap<>();
+		MaxMinFeeTransactionMap<NotMinedTransaction> notMinedButInCandidateBlockMap = new MaxMinFeeTransactionMap<>(
+				SysProps.EXPECTED_MAX_REPUDIATED_TXS);
 
 		queuedBlock.getEntriesStream().filter(e -> !minedAndInMemPoolTxMap.containsKey(e.getKey())).map(e -> {
 			return new NotMinedTransaction(e.getValue().getTx(), e.getValue().getPositionInBlock());

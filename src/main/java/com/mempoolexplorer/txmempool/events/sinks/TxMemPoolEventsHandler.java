@@ -111,12 +111,12 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	}
 
 	private void OnNewBlock(Block block, int numConsecutiveBlocks) {
-		coinBaseTxVSizeList.add(block.getCoinBaseTx().getSizeInvBytes());
 		if (coinBaseTxVSizeList.size() != numConsecutiveBlocks) {
 			// TODO: Alarm here!
-			logger.warn("THIS SHOULD NO BE HAPPENING: coinBaseTxVSizeList.size() != numConsecutiveBlocks");
+			logger.warn("THIS SHOULD NOT BE HAPPENING: coinBaseTxVSizeList.size() != numConsecutiveBlocks");
 			return;
 		}
+		coinBaseTxVSizeList.add(block.getCoinBaseTx().getSizeInvBytes());
 
 		MiningQueue miningQueue = MiningQueue.buildFrom(coinBaseTxVSizeList, txMemPool,
 				txMempoolProperties.getMiningQueueNumTxs(), coinBaseTxVSizeList.size());
@@ -124,7 +124,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 		Optional<QueuedBlock> optQB = miningQueue.getQueuedBlock(coinBaseTxVSizeList.size() - 1);
 		if (optQB.isEmpty()) {
 			// TODO: Alarm here!
-			logger.warn("THIS SHOULD NO BE HAPPENING: optQB.isEmpty()");
+			logger.warn("THIS SHOULD NOT BE HAPPENING: optQB.isEmpty()");
 			return;
 		}
 		MisMinedTransactions misMinedTransactions = MisMinedTransactions.from(txMemPool, optQB.get(), block,

@@ -64,8 +64,10 @@ public class TxMemPoolImpl implements TxMemPool {
 	}
 
 	@Override
-	public boolean contains(String txId) {
-		return txKeyMap.contains(txId);
+	public boolean containsKey(String txId) {
+		// return txKeyMap.contains(txId);//This is death!! it refers to the value not
+		// the key!!!
+		return txKeyMap.containsKey(txId);
 	}
 
 	@Override

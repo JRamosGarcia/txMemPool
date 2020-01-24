@@ -17,7 +17,7 @@ public interface TxMemPool {
 
 	Set<String> getAllParentsOf(Transaction tx);
 	
-	boolean contains(String txId);
+	boolean containsKey(String txId);
 
 	Optional<Transaction> getTx(String txId);
 

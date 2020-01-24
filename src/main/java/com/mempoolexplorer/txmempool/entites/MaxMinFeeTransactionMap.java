@@ -4,7 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Map that stores transactions (whatever the type while implementing Feeable) and the max/min of satoshis per byte.
+ * Map that stores transactions (whatever the type while implementing Feeable)
+ * and the max/min of satoshis per byte.
  */
 public class MaxMinFeeTransactionMap<T extends Feeable> {
 	MaxMinFeeTransactions maxMinFee = new MaxMinFeeTransactions();
@@ -12,6 +13,10 @@ public class MaxMinFeeTransactionMap<T extends Feeable> {
 	private Map<String, T> txMap = new HashMap<>();
 
 	public MaxMinFeeTransactionMap() {
+	}
+
+	public MaxMinFeeTransactionMap(int expectedSize) {
+		txMap = new HashMap<>(expectedSize);
 	}
 
 	public MaxMinFeeTransactionMap(Map<String, T> map) {

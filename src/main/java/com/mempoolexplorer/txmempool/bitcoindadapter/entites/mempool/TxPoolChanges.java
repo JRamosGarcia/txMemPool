@@ -8,13 +8,15 @@ import java.util.Map;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.events.TxAncestryChanges;
+import com.mempoolexplorer.txmempool.utils.SysProps;
 
 public class TxPoolChanges {
 	private Instant changeTime;
 	private Integer changeCounter;
 	private List<Transaction> newTxs = new ArrayList<>();
 	private List<String> removedTxsId = new ArrayList<>();
-	private Map<String, TxAncestryChanges> txAncestryChangesMap = new HashMap<>();
+	private Map<String, TxAncestryChanges> txAncestryChangesMap = new HashMap<>(
+			SysProps.EXPECTED_MAX_ANCESTRY_CHANGES);
 
 	public Instant getChangeTime() {
 		return changeTime;

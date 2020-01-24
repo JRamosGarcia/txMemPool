@@ -1,10 +1,10 @@
 package com.mempoolexplorer.txmempool.components;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +26,8 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-	private Map<String, RepudiatedTransaction> repudiatedTransactionMap = new HashMap<>();
+	private Map<String, RepudiatedTransaction> repudiatedTransactionMap = new HashMap<>(
+			SysProps.EXPECTED_MAX_REPUDIATED_TXS);
 
 	long totalFeesLost = 0;// Just For fun
 
@@ -37,6 +38,7 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 
 	@Override
 	public void refresh(Block block, MisMinedTransactions mmt, TxMemPool txMemPool) {
+		clearRepudiatedTransactionMap(block, txMemPool);// In case of mined or deleted txs
 
 		RepudiatingBlock repudiatingBlock = calculateRepudiatingBlock(block, mmt);
 		totalFeesLost += repudiatingBlock.getLostReward();
@@ -66,7 +68,6 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 			}
 		}
 
-		clearRepudiatedTransactionMap(block, txMemPool);// In case of mined or deleted txs
 		logIt();
 	}
 
@@ -96,41 +97,37 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 	}
 
 	private void clearRepudiatedTransactionMap(Block block, TxMemPool txMemPool) {
+		logger.info("MemPool size on clearRepudiatedTransactionMap: {}", txMemPool.getTxNumber());
 		// TODO: mirar sincronia de memPoolSet
-		List<String> txIdsToRemoveList = new ArrayList<>();// txIds to remove.
+		Set<String> txIdsToRemoveSet = new HashSet<>(SysProps.EXPECTED_MAX_REPUDIATED_TXS);// txIds to remove.
 
 		// Delete mined transactions
-		Iterator<String> it = block.getTxIds().iterator();
-		while (it.hasNext()) {
-			String txId = it.next();
-			RepudiatedTransaction rt = repudiatedTransactionMap.get(txId);
+		for (String bTxId : block.getTxIds()) {
+			RepudiatedTransaction rt = repudiatedTransactionMap.get(bTxId);
 			if (null != rt) {
-				txIdsToRemoveList.add(txId);
+				txIdsToRemoveSet.add(bTxId);
 				rt.setFinallyMinedOnBlock(block.getHeight());
 				rt.setState(RepudiatedTransaction.State.MINED);
 			}
 		}
-
 		// Delete deleted transactions
 		// TODO: It would be nice if we track new txs replacing old ones using Replace
 		// by Fee
-		Iterator<RepudiatedTransaction> rtIt = repudiatedTransactionMap.values().iterator();
-		while (rtIt.hasNext()) {
-			RepudiatedTransaction rt = rtIt.next();
-			String txId = rt.getTx().getTxId();
-			if (!txMemPool.contains(txId)) {
-				txIdsToRemoveList.add(txId);
-				rt.setState(RepudiatedTransaction.State.DELETED);
-				rt.setFinallyMinedOnBlock(-1);
+		for (RepudiatedTransaction rTx : repudiatedTransactionMap.values()) {
+			String rTxId = rTx.getTx().getTxId();
+			if (!txMemPool.containsKey(rTxId)) {
+				txIdsToRemoveSet.add(rTxId);
+				rTx.setState(RepudiatedTransaction.State.DELETED);
+				rTx.setFinallyMinedOnBlock(-1);
 			}
 		}
 
-		logClearedRepudiatedTransactionMap(txIdsToRemoveList);
+		logClearedRepudiatedTransactionMap(txIdsToRemoveSet);
 		// TODO: save in DB before delete?
-		txIdsToRemoveList.stream().forEach(txId -> repudiatedTransactionMap.remove(txId));
+		txIdsToRemoveSet.stream().forEach(txId -> repudiatedTransactionMap.remove(txId));
 	}
 
-	private void logClearedRepudiatedTransactionMap(List<String> txIds) {
+	private void logClearedRepudiatedTransactionMap(Set<String> txIds) {
 		String nl = SysProps.NL;
 		StringBuilder sb = new StringBuilder();
 		sb.append("DeletedRepudiatedTransactions (#" + txIds.size() + "):");

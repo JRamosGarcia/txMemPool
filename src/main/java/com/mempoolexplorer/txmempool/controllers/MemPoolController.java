@@ -22,7 +22,7 @@ public class MemPoolController {
 
 	@GetMapping("/{txId}")
 	public Boolean existTxId(@PathVariable("txId") String txId) throws TransactionNotFoundInMemPoolException {
-		return txMemPool.contains(txId);
+		return txMemPool.containsKey(txId);
 	}
 
 	@ExceptionHandler(TransactionNotFoundInMemPoolException.class)

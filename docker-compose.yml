@@ -90,7 +90,7 @@ services:
 #      - "8080:8080"
 #      - "8081:8081"
     environment:
-      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000"
+      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000"
       spring.cloud.config.enabled: "true"
       spring.cloud.config.fail-fast: "true"
       spring.cloud.config.uri: http://${CONFIGURATION_SERVER_IP_ADDRESS}:${CONFIGURATION_SERVER_PORT}
@@ -119,7 +119,7 @@ services:
 ##      - "8082:8080"
 ##      - "8083:8081"
 #    environment:
-#      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000"
+#      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000"
 #      spring.cloud.config.enabled: "true"
 #      spring.cloud.config.fail-fast: "true"
 #      spring.cloud.config.uri: http://${CONFIGURATION_SERVER_IP_ADDRESS}:${CONFIGURATION_SERVER_PORT}
@@ -149,7 +149,7 @@ services:
 #      - "8084:8080"
 #      - "8085:8081"
     environment:
-       JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000"
+       JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000"
        spring.cloud.config.enabled: "true"
        spring.cloud.config.fail-fast: "true"
        spring_cloud_config_uri: http://${CONFIGURATION_SERVER_IP_ADDRESS}:${CONFIGURATION_SERVER_PORT}

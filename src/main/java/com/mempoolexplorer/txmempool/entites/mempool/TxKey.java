@@ -67,4 +67,17 @@ public class TxKey implements Comparable<TxKey> {
 		return this.getTxId().compareTo(o.getTxId());
 	}
 
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("TxKey [txId=");
+		builder.append(txId);
+		builder.append(", satBytes=");
+		builder.append(satBytes);
+		builder.append(", firstSeenInSecs=");
+		builder.append(firstSeenInSecs);
+		builder.append("]");
+		return builder.toString();
+	}
+
 }

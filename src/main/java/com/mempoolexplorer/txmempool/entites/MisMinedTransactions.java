@@ -39,8 +39,10 @@ public class MisMinedTransactions {
 	private Set<String> minedButNotInMemPool = new HashSet<>();
 
 	// Ok
-	MaxMinFeeTransactionMap<Transaction> minedAndInMemPool = new MaxMinFeeTransactionMap<Transaction>();
+	private MaxMinFeeTransactionMap<Transaction> minedAndInMemPool = new MaxMinFeeTransactionMap<Transaction>();
 
+	private QueuedBlock queuedBlock;
+	
 	private Boolean coherentSets = true;
 
 	public static MisMinedTransactions from(TxMemPool txMemPool, QueuedBlock queuedBlock, Block block,
@@ -59,7 +61,7 @@ public class MisMinedTransactions {
 			Optional<Transaction> optTx = txMemPool.getTx(txId);
 			if (optTx.isPresent()) {
 				minedAndInMemPool.put(optTx.get());
-				if (!queuedBlock.contains(txId)) {
+				if (!queuedBlock.containsKey(txId)) {
 					minedInMempoolButNotInCandidateBlockMap.put(optTx.get());
 				}
 			} else {
@@ -81,6 +83,7 @@ public class MisMinedTransactions {
 		mmt.setMinedAndInMemPool(minedAndInMemPool);
 		mmt.setNotMinedButInCandidateBlock(notMinedButInCandidateBlockMap);
 		mmt.setMinedInMempoolButNotInCandidateBlock(minedInMempoolButNotInCandidateBlockMap);
+		mmt.setQueuedBlock(queuedBlock);
 		return mmt;
 	}
 
@@ -171,6 +174,14 @@ public class MisMinedTransactions {
 		this.minedAndInMemPool = minedAndInMemPool;
 	}
 
+	public QueuedBlock getQueuedBlock() {
+		return queuedBlock;
+	}
+
+	public void setQueuedBlock(QueuedBlock queuedBlock) {
+		this.queuedBlock = queuedBlock;
+	}
+
 	public Boolean getCoherentSets() {
 		return coherentSets;
 	}
@@ -210,6 +221,10 @@ public class MisMinedTransactions {
 				calculateVSize(notMinedButInCandidateBlock.getTxMap().values().stream().map(nmtx -> nmtx.getTx()))
 						+ "vBytes)");
 		buildNotMinedTransactionLogStr(builder);
+		builder.append(nl);
+		builder.append("QueuedBlock: ");
+		builder.append(queuedBlock);
+		builder.append(nl);
 		builder.append("minedInMempoolButNotInCandidateBlock: ("
 				+ minedInMempoolButNotInCandidateBlock.getTxMap().size() + "#tx, ");
 		builder.append(calculateVSize(minedInMempoolButNotInCandidateBlock.getTxMap().values().stream()) + "vBytes)");

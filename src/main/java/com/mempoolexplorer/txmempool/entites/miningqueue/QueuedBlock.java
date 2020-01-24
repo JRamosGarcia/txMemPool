@@ -32,15 +32,6 @@ public class QueuedBlock {
 		TxToBeMined txToBeMined = new TxToBeMined(tx, this, nextTxPositionInBlock++);
 		txMap.put(tx.getTxId(), txToBeMined);
 		txList.add(txToBeMined);
-
-	}
-
-	public Transaction removeLastTx() {
-		TxToBeMined pollLast = txList.pollLast();
-		vSize -= pollLast.getTx().getvSize();
-		nextTxPositionInBlock--;
-		txMap.remove(pollLast.getTx().getTxId());
-		return pollLast.getTx();
 	}
 
 	public TxToBeMined getLastTx() {
@@ -51,15 +42,15 @@ public class QueuedBlock {
 		return SysProps.MAX_BLOCK_SIZE - coinBaseVSize - vSize;
 	}
 
-	public Stream<Entry<String, TxToBeMined>> getEntriesStream(){
+	public Stream<Entry<String, TxToBeMined>> getEntriesStream() {
 		return txMap.entrySet().stream();
 	}
-	
+
 	public Optional<TxToBeMined> getTx(String txId) {
 		return Optional.ofNullable(txMap.get(txId));
 	}
 
-	public boolean contains(String txId) {
+	public boolean containsKey(String txId) {
 		return txMap.containsKey(txId);
 	}
 
@@ -73,6 +64,31 @@ public class QueuedBlock {
 
 	public int getCoinBaseVSize() {
 		return coinBaseVSize;
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("QueuedBlock [position=");
+		builder.append(position);
+		builder.append(", vSize=");
+		builder.append(vSize);
+		builder.append(", coinBaseVSize=");
+		builder.append(coinBaseVSize);
+		builder.append(", txList=");
+		for (TxToBeMined txToBeMined : txList) {
+			builder.append("txId: ");
+			builder.append(txToBeMined.getTx().getTxId());
+			builder.append(", pos: ");
+			builder.append(txToBeMined.getPositionInBlock());
+			builder.append(", satvByteIncAnces: ");
+			builder.append(txToBeMined.getTx().getSatvByteIncludingAncestors());
+			builder.append(", (" + txToBeMined.getTx().getTxAncestry().getAncestorCount() + ","
+					+ txToBeMined.getTx().getTxAncestry().getDescendantCount() + ")");
+			builder.append(SysProps.NL);
+		}
+		builder.append("]");
+		return builder.toString();
 	}
 
 }

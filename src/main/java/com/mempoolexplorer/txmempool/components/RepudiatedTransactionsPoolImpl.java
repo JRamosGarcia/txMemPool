@@ -1,22 +1,25 @@
 package com.mempoolexplorer.txmempool.components;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
+import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.entites.MaxMinFeeTransactionMap;
 import com.mempoolexplorer.txmempool.entites.MaxMinFeeTransactions;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.NotMinedTransaction;
 import com.mempoolexplorer.txmempool.entites.RepudiatedTransaction;
+import com.mempoolexplorer.txmempool.entites.RepudiatedTransactionMap;
 import com.mempoolexplorer.txmempool.entites.RepudiatingBlock;
 import com.mempoolexplorer.txmempool.entites.RepudiatingBlockStats;
 import com.mempoolexplorer.txmempool.utils.SysProps;
@@ -24,24 +27,39 @@ import com.mempoolexplorer.txmempool.utils.SysProps;
 @Component
 public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool {
 
+	@Autowired
+	private AlarmLogger alarmLogger;
+
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-	private Map<String, RepudiatedTransaction> repudiatedTransactionMap = new HashMap<>(
+	// Mutable version
+	private RepudiatedTransactionMap repudiatedTransactionMap = new RepudiatedTransactionMap(
 			SysProps.EXPECTED_MAX_REPUDIATED_TXS);
+
+	// Inmmutable version
+	private AtomicReference<RepudiatedTransactionMap> repudiatedTransactionMapRef = new AtomicReference<>();
 
 	long totalFeesLost = 0;// Just For fun
 
 	@Override
-	public Map<String, RepudiatedTransaction> getMap() {
-		return repudiatedTransactionMap;
+	public RepudiatedTransactionMap getInmutableMapView() {
+		return (RepudiatedTransactionMap) Collections.unmodifiableMap(repudiatedTransactionMapRef.get());
 	}
 
 	@Override
 	public void refresh(Block block, MisMinedTransactions mmt, TxMemPool txMemPool) {
+
 		clearRepudiatedTransactionMap(block, txMemPool);// In case of mined or deleted txs
 
 		RepudiatingBlock repudiatingBlock = calculateRepudiatingBlock(block, mmt);
-		totalFeesLost += repudiatingBlock.getLostReward();
+
+		long lostReward = repudiatingBlock.getLostReward().longValue();
+
+		if (lostReward < 0L) {
+			alarmLogger.addAlarm("Lost Reward: " + lostReward + ", in block: " + repudiatingBlock.getBlockHeight());
+		}
+
+		totalFeesLost += lostReward;
 		logger.info(repudiatingBlock.toString());
 		Iterator<NotMinedTransaction> it = mmt.getNotMinedButInCandidateBlock().getTxMap().values().iterator();
 		while (it.hasNext()) {
@@ -69,6 +87,14 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 		}
 
 		logIt();
+		copyMapToAtomicReference();
+	}
+
+	private void copyMapToAtomicReference() {
+		RepudiatedTransactionMap repudiatedTransactionCopyMap = new RepudiatedTransactionMap(
+				(int) (repudiatedTransactionMap.size() * SysProps.HM_INITIAL_CAPACITY_MULTIPLIER));
+		repudiatedTransactionCopyMap.putAll(repudiatedTransactionMap);
+		repudiatedTransactionMapRef.set(repudiatedTransactionCopyMap);
 	}
 
 	private double calculateTotalSatvBytesLost(RepudiatingBlock repudiatingBlock, RepudiatedTransaction rTx) {
@@ -98,7 +124,6 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 
 	private void clearRepudiatedTransactionMap(Block block, TxMemPool txMemPool) {
 		logger.info("MemPool size on clearRepudiatedTransactionMap: {}", txMemPool.getTxNumber());
-		// TODO: mirar sincronia de memPoolSet
 		Set<String> txIdsToRemoveSet = new HashSet<>(SysProps.EXPECTED_MAX_REPUDIATED_TXS);// txIds to remove.
 
 		// Delete mined transactions

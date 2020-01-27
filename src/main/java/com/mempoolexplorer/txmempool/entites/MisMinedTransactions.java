@@ -74,7 +74,6 @@ public class MisMinedTransactions {
 				queuedBlock, minedAndInMemPool.getTxMap());
 
 		MisMinedTransactions mmt = new MisMinedTransactions();
-		// TODO: Buen sitio para poner una alarma!
 		mmt.setCoherentSets(checkNotInMemPoolTxs(block, minedButNotInMemPool));
 		mmt.setBlockChangeTime(block.getChangeTime());
 		mmt.setBlockHeight(block.getHeight());

@@ -29,6 +29,7 @@ import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.NotInMem
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.mempool.TxPoolChanges;
 import com.mempoolexplorer.txmempool.components.RepudiatedTransactionPool;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
+import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
@@ -62,6 +63,9 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 	@Autowired
 	private TxMempoolProperties txMempoolProperties;
+
+	@Autowired
+	private AlarmLogger alarmLogger;
 
 	@Value("${spring.cloud.stream.bindings.txMemPoolEvents.destination}")
 	private String topic;
@@ -102,6 +106,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			}
 			numConsecutiveBlocks = 0;
 		}
+		alarmLogger.prettyPrint();
 	}
 
 	private void refreshMemPoolAndLiveMiningQueue(TxPoolChanges txpc) {
@@ -112,7 +117,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 	private void OnNewBlock(Block block, int numConsecutiveBlocks) {
 		if (coinBaseTxVSizeList.size() != numConsecutiveBlocks) {
-			// TODO: Alarm here!
+			alarmLogger.addAlarm("THIS SHOULD NOT BE HAPPENING: coinBaseTxVSizeList.size() != numConsecutiveBlocks");
 			logger.warn("THIS SHOULD NOT BE HAPPENING: coinBaseTxVSizeList.size() != numConsecutiveBlocks");
 			return;
 		}
@@ -123,15 +128,20 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 		Optional<QueuedBlock> optQB = miningQueue.getQueuedBlock(coinBaseTxVSizeList.size() - 1);
 		if (optQB.isEmpty()) {
-			// TODO: Alarm here!
+			alarmLogger.addAlarm("THIS SHOULD NOT BE HAPPENING: optQB.isEmpty()");
 			logger.warn("THIS SHOULD NOT BE HAPPENING: optQB.isEmpty()");
 			return;
 		}
 		MisMinedTransactions misMinedTransactions = MisMinedTransactions.from(txMemPool, optQB.get(), block,
 				coinBaseTxVSizeList);
+		if (!misMinedTransactions.getCoherentSets()) {
+			alarmLogger.addAlarm(
+					"!misMinedTransactions.getCoherentSets() on block: " + misMinedTransactions.getBlockHeight());
+		}
 		logger.info(misMinedTransactions.toString());
 		logger.info(strLogBlockNotInMemPoolData(block));
 		repudiatedTransactionPool.refresh(block, misMinedTransactions, txMemPool);
+		alarmLogger.prettyPrint();
 	}
 
 	private String strLogBlockNotInMemPoolData(Block block) {
@@ -187,7 +197,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			txMemPool.refresh(txpc);
 		} catch (Exception e) {
 			logger.error(e.toString());
-			// TODO: This is a good place for a system-wide alarm.
+			alarmLogger.addAlarm("Eror en MemPoolEventsHandler.run: " + e.toString());
 		} finally {
 			// If loading via REST has failed, we continue and wait for mempool convergence
 			// in the long run

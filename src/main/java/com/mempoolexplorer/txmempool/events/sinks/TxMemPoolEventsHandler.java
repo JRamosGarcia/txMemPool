@@ -82,31 +82,36 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 	@StreamListener("txMemPoolEvents")
 	public void blockSink(MempoolEvent mempoolEvent, @Header(KafkaHeaders.CONSUMER) Consumer<?, ?> consumer) {
-		if ((mempoolEvent.getEventType() == MempoolEvent.EventType.NEW_BLOCK) && (!initializing.get())) {
-			Block block = mempoolEvent.tryConstructBlock().get();
-			logger.info("New Block with {} transactions", block.getTxIds().size());
-			OnNewBlock(block, numConsecutiveBlocks++);
-		} else if (mempoolEvent.getEventType() == MempoolEvent.EventType.REFRESH_POOL) {
-			// OnRefreshPool
-			TxPoolChanges txpc = mempoolEvent.tryConstructTxPoolChanges().get();
-			// When initializing but bitcoindAdapter is not intitializing
-			if ((initializing.get()) && (txpc.getChangeCounter() != 0) && (!loadingFullMempool.get())) {
-				// We pause incoming messages, but several messages has been taken from kafka at
-				// once so this method will be called several times. Refresh the mempool only if
-				// not initializing
-				logger.info("txMemPool is starting but bitcoindAdapter started long ago... "
-						+ "pausing receiving kafka messages and loading full mempool from REST interface");
-				consumer.pause(Collections.singleton(new TopicPartition(topic, 0)));
-				loadingFullMempool.set(true);
-				// Load full mempool asyncronous via REST service, then resume kafka msgs
-				doFullLoadAsync();// Method must return ASAP, this is a kafka queue.
-			} else if (!loadingFullMempool.get()) {// This is because consumer.pause does not pause inmediately
-				refreshMemPoolAndLiveMiningQueue(txpc);
-				initializing.set(false);
+		try {
+			if ((mempoolEvent.getEventType() == MempoolEvent.EventType.NEW_BLOCK) && (!initializing.get())) {
+				Block block = mempoolEvent.tryConstructBlock().get();
+				logger.info("New Block with {} transactions", block.getTxIds().size());
+				OnNewBlock(block, numConsecutiveBlocks++);
+				alarmLogger.prettyPrint();
+			} else if (mempoolEvent.getEventType() == MempoolEvent.EventType.REFRESH_POOL) {
+				// OnRefreshPool
+				TxPoolChanges txpc = mempoolEvent.tryConstructTxPoolChanges().get();
+				// When initializing but bitcoindAdapter is not intitializing
+				if ((initializing.get()) && (txpc.getChangeCounter() != 0) && (!loadingFullMempool.get())) {
+					// We pause incoming messages, but several messages has been taken from kafka at
+					// once so this method will be called several times. Refresh the mempool only if
+					// not initializing
+					logger.info("txMemPool is starting but bitcoindAdapter started long ago... "
+							+ "pausing receiving kafka messages and loading full mempool from REST interface");
+					consumer.pause(Collections.singleton(new TopicPartition(topic, 0)));
+					loadingFullMempool.set(true);
+					// Load full mempool asyncronous via REST service, then resume kafka msgs
+					doFullLoadAsync();// Method must return ASAP, this is a kafka queue.
+				} else if (!loadingFullMempool.get()) {// This is because consumer.pause does not pause inmediately
+					refreshMemPoolAndLiveMiningQueue(txpc);
+					initializing.set(false);
+				}
+				numConsecutiveBlocks = 0;
 			}
-			numConsecutiveBlocks = 0;
+		} catch (Exception e) {
+			logger.error("Exception: ", e);
+			alarmLogger.addAlarm("Exception in @StreamListener of txMemPoolEvents" + e.toString());
 		}
-		alarmLogger.prettyPrint();
 	}
 
 	private void refreshMemPoolAndLiveMiningQueue(TxPoolChanges txpc) {

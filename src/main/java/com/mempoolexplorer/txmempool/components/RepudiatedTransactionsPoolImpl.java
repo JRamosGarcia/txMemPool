@@ -189,7 +189,7 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 		RepudiatingBlockStats minedAndInMemPoolStats = new RepudiatingBlockStats(mmftm.getMaxMinFee(),
 				mmftm.getTxMap().size(),
 				mmftm.getTxMap().values().stream().mapToLong(tx -> tx.getFees().getBase()).sum(),
-				mmftm.getTxMap().values().stream().mapToInt(tx -> tx.getvSize()).sum());
+				mmftm.getTxMap().values().stream().mapToInt(tx -> tx.getWeight()).sum());
 		return minedAndInMemPoolStats;
 	}
 
@@ -198,7 +198,7 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 		RepudiatingBlockStats minedAndInMemPoolStats = new RepudiatingBlockStats(mmfnmtm.getMaxMinFee(),
 				mmfnmtm.getTxMap().size(),
 				mmfnmtm.getTxMap().values().stream().mapToLong(tx -> tx.getTx().getFees().getBase()).sum(),
-				mmfnmtm.getTxMap().values().stream().mapToInt(tx -> tx.getTx().getvSize()).sum());
+				mmfnmtm.getTxMap().values().stream().mapToInt(tx -> tx.getTx().getWeight()).sum());
 		return minedAndInMemPoolStats;
 	}
 

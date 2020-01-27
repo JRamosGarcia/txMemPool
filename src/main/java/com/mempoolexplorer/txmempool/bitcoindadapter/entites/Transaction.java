@@ -10,8 +10,7 @@ public class Transaction implements Feeable {
 	private String txId;
 	private List<TxInput> txInputs = new ArrayList<>();
 	private List<TxOutput> txOutputs = new ArrayList<>();
-	private Integer size;// In bytes
-	private Integer vSize;// In bytes
+	private Integer weight;// for SegWit
 	// BE CAREFUL: THIS FIELD MUST KEPT UPDATED, COULD CHANGE ONCE RECEIVED!!!!
 	private Fees fees;
 	private Long timeInSecs;// Epoch time in seconds since the transaction entered.
@@ -42,15 +41,22 @@ public class Transaction implements Feeable {
 	public double getSatvByteIncludingAncestors() {
 		if (txAncestry.getAncestorSize() == 0)
 			return 0;
-		return ((double) fees.getAncestor()) / ((double) txAncestry.getAncestorSize());// getAncestorSize returns vSize.
-																						// No worries.
+		// txAncestry.getAncestorSize() return vSize. But it is rounded up as is an
+		// integer, not double. :-( .This is not accurate.
+		return ((double) fees.getAncestor()) / ((double) txAncestry.getAncestorSize());
+
 	}
 
 	@Override
 	public double getSatvByte() {
-		if (vSize == 0)
+		// We calculate this using weight, not a vSize field . This is accurate.
+		if (getvSize() == 0)
 			return 0;
-		return ((double) fees.getBase()) / ((double) vSize);
+		return (double) (fees.getBase()) / getvSize();
+	}
+
+	public double getvSize() {
+		return weight / 4.0D;
 	}
 
 	public void setTxId(String txId) {
@@ -73,20 +79,12 @@ public class Transaction implements Feeable {
 		this.txOutputs = txOutputs;
 	}
 
-	public Integer getSize() {
-		return size;
+	public Integer getWeight() {
+		return weight;
 	}
 
-	public void setSize(Integer size) {
-		this.size = size;
-	}
-
-	public Integer getvSize() {
-		return vSize;
-	}
-
-	public void setvSize(Integer vSize) {
-		this.vSize = vSize;
+	public void setWeight(Integer weight) {
+		this.weight = weight;
 	}
 
 	public Fees getFees() {
@@ -138,10 +136,10 @@ public class Transaction implements Feeable {
 		builder.append(txInputs);
 		builder.append(", txOutputs=");
 		builder.append(txOutputs);
-		builder.append(", size=");
-		builder.append(size);
+		builder.append(", weight=");
+		builder.append(weight);
 		builder.append(", vSize=");
-		builder.append(vSize);
+		builder.append(getvSize());
 		builder.append(", fees=");
 		builder.append(fees);
 		builder.append(", timeInSecs=");

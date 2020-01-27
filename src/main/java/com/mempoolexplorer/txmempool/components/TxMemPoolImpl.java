@@ -125,8 +125,12 @@ public class TxMemPoolImpl implements TxMemPool {
 				logger.info("Non existing tx in txMemPool for update, txId: {}", entry.getKey());
 				return;
 			}
-			// This is safe since tx.getSatvByte() is calculated through ancestor fee/vSize
-			// and it does not change between old and new Fee or TxAncestry classes.
+			// This is safe since tx.getSatvByte() is ALWAYS calculated through ancestor
+			// fee/vSize and it does not change between old and new Fee or TxAncestry
+			// classes.
+			// Be carefull because tx.getSatvByteIncludingAncestors could not be coherent
+			// with tx.getSatvByte since one is calculated using vSize(a rounded up integer)
+			// and the other using weight (accurate)
 			oldTx.setFees(entry.getValue().getFees());
 			oldTx.setTxAncestry(entry.getValue().getTxAncestry());
 		});

@@ -5,14 +5,14 @@ public class RepudiatingBlockStats {
 	private MaxMinFeeTransactions maxMinFee;
 	private Integer numTxs;
 	private Long totalFees;
-	private Integer totalvSize;
+	private Integer totalWeight;
 
-	public RepudiatingBlockStats(MaxMinFeeTransactions maxMinFee, Integer numTxs, Long totalFees, Integer totalvSize) {
+	public RepudiatingBlockStats(MaxMinFeeTransactions maxMinFee, Integer numTxs, Long totalFees, Integer totalWeight) {
 		super();
 		this.maxMinFee = maxMinFee;
 		this.numTxs = numTxs;
 		this.totalFees = totalFees;
-		this.totalvSize = totalvSize;
+		this.totalWeight = totalWeight;
 	}
 
 	public MaxMinFeeTransactions getMaxMinFee() {
@@ -27,8 +27,8 @@ public class RepudiatingBlockStats {
 		return totalFees;
 	}
 
-	public Integer getTotalvSize() {
-		return totalvSize;
+	public Integer getTotalWeight() {
+		return totalWeight;
 	}
 
 	@Override
@@ -40,8 +40,8 @@ public class RepudiatingBlockStats {
 		builder.append(numTxs);
 		builder.append(", totalFees=");
 		builder.append(totalFees);
-		builder.append(", totalvSize=");
-		builder.append(totalvSize);
+		builder.append(", totalWeight=");
+		builder.append(totalWeight);
 		builder.append("]");
 		return builder.toString();
 	}

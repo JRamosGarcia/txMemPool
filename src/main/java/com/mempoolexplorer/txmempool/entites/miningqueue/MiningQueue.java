@@ -33,12 +33,12 @@ public class MiningQueue {
 	private MiningQueue() {
 	}
 
-	public static MiningQueue buildFrom(List<Integer> coinBaseTxVSizeList, TxMemPool txMemPool,
+	public static MiningQueue buildFrom(List<Integer> coinBaseTxWeightList, TxMemPool txMemPool,
 			Integer maxTransactionsNumber, Integer maxNumBlocks) {
 		MiningQueue mq = new MiningQueue();
-		mq.maxNumBlocks = Math.max(coinBaseTxVSizeList.size(), maxNumBlocks);
-		for (int index = 0; index < coinBaseTxVSizeList.size(); index++) {
-			mq.blockList.add(new QueuedBlock(index, coinBaseTxVSizeList.get(index)));
+		mq.maxNumBlocks = Math.max(coinBaseTxWeightList.size(), maxNumBlocks);
+		for (int index = 0; index < coinBaseTxWeightList.size(); index++) {
+			mq.blockList.add(new QueuedBlock(index, coinBaseTxWeightList.get(index)));
 		}
 
 		txMemPool.getDescendingTxStream().limit(maxTransactionsNumber).forEach(tx -> {
@@ -84,11 +84,11 @@ public class MiningQueue {
 
 	private void addTxWithParents(Transaction tx, TxMemPool txMemPool, Set<String> allParentsOfTx) {
 		List<Transaction> notInAnyBlock = getNotInAnyQueuedBlockTxListOf(allParentsOfTx, txMemPool);
-		int notInAnyBlockVSize = notInAnyBlock.stream().mapToInt(trx -> trx.getvSize()).sum();
+		int notInAnyBlockWeight = notInAnyBlock.stream().mapToInt(trx -> trx.getWeight()).sum();
 
-		int txEffectiveVSizeInCurrentBlock = tx.getvSize() + notInAnyBlockVSize;
+		int txEffectiveWeightInCurrentBlock = tx.getWeight() + notInAnyBlockWeight;
 
-		Optional<QueuedBlock> blockToFill = getQueuedBlockToFill(txEffectiveVSizeInCurrentBlock, allParentsOfTx);
+		Optional<QueuedBlock> blockToFill = getQueuedBlockToFill(txEffectiveWeightInCurrentBlock, allParentsOfTx);
 
 		if (blockToFill.isPresent()) {
 			notInAnyBlock.stream().forEach(trx -> {
@@ -102,19 +102,19 @@ public class MiningQueue {
 		Iterator<QueuedBlock> it = blockList.iterator();
 		while (it.hasNext()) {
 			QueuedBlock block = it.next();
-			if (block.getFreeSpace() >= noParentsTx.getvSize()) {// tx with no parents!
+			if (block.getFreeSpace() >= noParentsTx.getWeight()) {// tx with no parents!
 				return Optional.of(block);
 			}
 		}
 		return createOrEmpty();
 	}
 
-	private Optional<QueuedBlock> getQueuedBlockToFill(int effectiveVSize, Set<String> allParentsOfTx) {
+	private Optional<QueuedBlock> getQueuedBlockToFill(int effectiveWeight, Set<String> allParentsOfTx) {
 		List<TxToBeMined> inAnyQueuedBlockTxList = getInAnyQueuedBlockTxListOf(allParentsOfTx);
 		Iterator<QueuedBlock> it = blockList.iterator();
 		while (it.hasNext()) {
 			QueuedBlock block = it.next();
-			if (block.getFreeSpace() >= effectiveVSize) {
+			if (block.getFreeSpace() >= effectiveWeight) {
 				// We cannot put a Tx if any of its parents is mined in a block after this one
 				if (notAnyTxAfterQueuedBlockPosition(block.getPosition(), inAnyQueuedBlockTxList)) {
 					return Optional.of(block);

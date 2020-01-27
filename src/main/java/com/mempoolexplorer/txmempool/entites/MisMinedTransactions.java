@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -45,8 +44,7 @@ public class MisMinedTransactions {
 	
 	private Boolean coherentSets = true;
 
-	public static MisMinedTransactions from(TxMemPool txMemPool, QueuedBlock queuedBlock, Block block,
-			List<Integer> coinBaseTxVSizeList) {
+	public static MisMinedTransactions from(TxMemPool txMemPool, QueuedBlock queuedBlock, Block block) {
 
 		// In block, but not in memPool nor queuedBlock
 		Set<String> minedButNotInMemPool = new HashSet<>();
@@ -213,12 +211,12 @@ public class MisMinedTransactions {
 		builder.append(nl);
 		builder.append(nl);
 		builder.append("minedAndInMemPool: (" + minedAndInMemPool.getTxMap().size() + "#tx, ");
-		builder.append(calculateVSize(minedAndInMemPool.getTxMap().values().stream()) + "vBytes)");
+		builder.append(calculateWUnits(minedAndInMemPool.getTxMap().values().stream()) + "wUnits)");
 		buildTransactionLogStr(builder, minedAndInMemPool, false);
 		builder.append("notMinedButInCandidateBlock: (" + notMinedButInCandidateBlock.getTxMap().size() + "#tx, ");
 		builder.append(
-				calculateVSize(notMinedButInCandidateBlock.getTxMap().values().stream().map(nmtx -> nmtx.getTx()))
-						+ "vBytes)");
+				calculateWUnits(notMinedButInCandidateBlock.getTxMap().values().stream().map(nmtx -> nmtx.getTx()))
+						+ "wUnits)");
 		buildNotMinedTransactionLogStr(builder);
 		builder.append(nl);
 		builder.append("QueuedBlock: ");
@@ -226,7 +224,7 @@ public class MisMinedTransactions {
 		builder.append(nl);
 		builder.append("minedInMempoolButNotInCandidateBlock: ("
 				+ minedInMempoolButNotInCandidateBlock.getTxMap().size() + "#tx, ");
-		builder.append(calculateVSize(minedInMempoolButNotInCandidateBlock.getTxMap().values().stream()) + "vBytes)");
+		builder.append(calculateWUnits(minedInMempoolButNotInCandidateBlock.getTxMap().values().stream()) + "wUnits)");
 		buildTransactionLogStr(builder, minedInMempoolButNotInCandidateBlock, true);
 		builder.append("minedButNotInMemPool: (#" + minedButNotInMemPool.size() + ")");
 		builder.append(nl + "[" + nl);
@@ -270,7 +268,7 @@ public class MisMinedTransactions {
 		builder.append(nl + "]" + nl);
 	}
 
-	private Integer calculateVSize(Stream<Transaction> txs) {
-		return txs.mapToInt(tx -> tx.getvSize()).sum();
+	private Integer calculateWUnits(Stream<Transaction> txs) {
+		return txs.mapToInt(tx -> tx.getWeight()).sum();
 	}
 }

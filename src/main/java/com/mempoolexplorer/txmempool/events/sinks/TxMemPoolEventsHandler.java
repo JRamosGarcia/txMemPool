@@ -78,7 +78,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 	private AtomicBoolean loadingFullMempool = new AtomicBoolean(false);
 
-	private List<Integer> coinBaseTxVSizeList = new ArrayList<>();
+	private List<Integer> coinBaseTxWeightList = new ArrayList<>();
 
 	@StreamListener("txMemPoolEvents")
 	public void blockSink(MempoolEvent mempoolEvent, @Header(KafkaHeaders.CONSUMER) Consumer<?, ?> consumer) {
@@ -112,28 +112,27 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	private void refreshMemPoolAndLiveMiningQueue(TxPoolChanges txpc) {
 		txMemPool.refresh(txpc);
 		liveMiningQueueContainer.refreshIfNeeded(txMemPool);
-		coinBaseTxVSizeList.clear();// If we have new txPoolChanges, we reset coinBaseVSizeList
+		coinBaseTxWeightList.clear();// If we have new txPoolChanges, we reset coinBaseVSizeList
 	}
 
 	private void OnNewBlock(Block block, int numConsecutiveBlocks) {
-		if (coinBaseTxVSizeList.size() != numConsecutiveBlocks) {
+		if (coinBaseTxWeightList.size() != numConsecutiveBlocks) {
 			alarmLogger.addAlarm("THIS SHOULD NOT BE HAPPENING: coinBaseTxVSizeList.size() != numConsecutiveBlocks");
 			logger.warn("THIS SHOULD NOT BE HAPPENING: coinBaseTxVSizeList.size() != numConsecutiveBlocks");
 			return;
 		}
-		coinBaseTxVSizeList.add(block.getCoinBaseTx().getSizeInvBytes());
+		coinBaseTxWeightList.add(block.getCoinBaseTx().getWeight());
 
-		MiningQueue miningQueue = MiningQueue.buildFrom(coinBaseTxVSizeList, txMemPool,
-				txMempoolProperties.getMiningQueueNumTxs(), coinBaseTxVSizeList.size());
+		MiningQueue miningQueue = MiningQueue.buildFrom(coinBaseTxWeightList, txMemPool,
+				txMempoolProperties.getMiningQueueNumTxs(), coinBaseTxWeightList.size());
 
-		Optional<QueuedBlock> optQB = miningQueue.getQueuedBlock(coinBaseTxVSizeList.size() - 1);
+		Optional<QueuedBlock> optQB = miningQueue.getQueuedBlock(coinBaseTxWeightList.size() - 1);
 		if (optQB.isEmpty()) {
 			alarmLogger.addAlarm("THIS SHOULD NOT BE HAPPENING: optQB.isEmpty()");
 			logger.warn("THIS SHOULD NOT BE HAPPENING: optQB.isEmpty()");
 			return;
 		}
-		MisMinedTransactions misMinedTransactions = MisMinedTransactions.from(txMemPool, optQB.get(), block,
-				coinBaseTxVSizeList);
+		MisMinedTransactions misMinedTransactions = MisMinedTransactions.from(txMemPool, optQB.get(), block);
 		if (!misMinedTransactions.getCoherentSets()) {
 			alarmLogger.addAlarm(
 					"!misMinedTransactions.getCoherentSets() on block: " + misMinedTransactions.getBlockHeight());
@@ -151,7 +150,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 		sb.append(nl);
 		sb.append("CoinbaseField: " + block.getCoinBaseTx().getvInField());
 		sb.append(nl);
-		sb.append("CoinbasevSize: " + block.getCoinBaseTx().getSizeInvBytes());
+		sb.append("CoinbaseWeight: " + block.getCoinBaseTx().getWeight());
 		sb.append(nl);
 
 		sb.append("Ascci: " + AsciiUtils.hexToAscii(block.getCoinBaseTx().getvInField()));

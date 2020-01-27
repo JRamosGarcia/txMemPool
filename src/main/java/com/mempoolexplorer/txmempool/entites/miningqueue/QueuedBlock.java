@@ -12,7 +12,9 @@ import com.mempoolexplorer.txmempool.utils.SysProps;
 
 public class QueuedBlock {
 	private int position = 0;
-	private int vSize = 0;
+	private int weight = 0;
+	private int coinBaseWeight = 0;
+
 	private Map<String, TxToBeMined> txMap = new HashMap<String, TxToBeMined>(SysProps.HM_INITIAL_CAPACITY_FOR_BLOCK);
 
 	// It's descending ordered because adds are ordered
@@ -20,15 +22,13 @@ public class QueuedBlock {
 
 	private int nextTxPositionInBlock = 0;
 
-	private int coinBaseVSize = 0;
-
-	public QueuedBlock(int position, int coinBaseVSize) {
+	public QueuedBlock(int position, int coinBaseWeight) {
 		this.position = position;
-		this.coinBaseVSize = coinBaseVSize;
+		this.coinBaseWeight = coinBaseWeight;
 	}
 
 	public void addTx(Transaction tx) {
-		vSize += tx.getvSize();
+		weight += tx.getWeight();
 		TxToBeMined txToBeMined = new TxToBeMined(tx, this, nextTxPositionInBlock++);
 		txMap.put(tx.getTxId(), txToBeMined);
 		txList.add(txToBeMined);
@@ -39,7 +39,7 @@ public class QueuedBlock {
 	}
 
 	public int getFreeSpace() {
-		return SysProps.MAX_BLOCK_SIZE - coinBaseVSize - vSize;
+		return SysProps.MAX_BLOCK_WEIGHT - coinBaseWeight - weight;
 	}
 
 	public Stream<Entry<String, TxToBeMined>> getEntriesStream() {
@@ -54,16 +54,16 @@ public class QueuedBlock {
 		return txMap.containsKey(txId);
 	}
 
-	public int getvSize() {
-		return vSize;
-	}
-
 	public int getPosition() {
 		return position;
 	}
 
-	public int getCoinBaseVSize() {
-		return coinBaseVSize;
+	public int getWeight() {
+		return weight;
+	}
+
+	public int getCoinBaseWeight() {
+		return coinBaseWeight;
 	}
 
 	@Override
@@ -71,10 +71,10 @@ public class QueuedBlock {
 		StringBuilder builder = new StringBuilder();
 		builder.append("QueuedBlock [position=");
 		builder.append(position);
-		builder.append(", vSize=");
-		builder.append(vSize);
-		builder.append(", coinBaseVSize=");
-		builder.append(coinBaseVSize);
+		builder.append(", weight=");
+		builder.append(weight);
+		builder.append(", coinBaseWeight=");
+		builder.append(coinBaseWeight);
 		builder.append(", txList=");
 		for (TxToBeMined txToBeMined : txList) {
 			builder.append("txId: ");

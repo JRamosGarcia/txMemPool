@@ -18,14 +18,14 @@ import com.mempoolexplorer.txmempool.entites.MaxMinFeeTransactionMap;
 import com.mempoolexplorer.txmempool.entites.MaxMinFeeTransactions;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.NotMinedTransaction;
-import com.mempoolexplorer.txmempool.entites.RepudiatedTransaction;
-import com.mempoolexplorer.txmempool.entites.RepudiatedTransactionMap;
-import com.mempoolexplorer.txmempool.entites.RepudiatingBlock;
-import com.mempoolexplorer.txmempool.entites.RepudiatingBlockStats;
+import com.mempoolexplorer.txmempool.entites.IgnoredTransaction;
+import com.mempoolexplorer.txmempool.entites.IgnoredTransactionMap;
+import com.mempoolexplorer.txmempool.entites.IgnoringBlock;
+import com.mempoolexplorer.txmempool.entites.IgnoringBlockStats;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
 @Component
-public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool {
+public class IgnoredTransactionsPoolImpl implements IgnoredTransactionPool {
 
 	@Autowired
 	private AlarmLogger alarmLogger;
@@ -33,56 +33,56 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
 	// Mutable version
-	private RepudiatedTransactionMap repudiatedTransactionMap = new RepudiatedTransactionMap(
-			SysProps.EXPECTED_MAX_REPUDIATED_TXS);
+	private IgnoredTransactionMap ignoredTransactionMap = new IgnoredTransactionMap(
+			SysProps.EXPECTED_MAX_IGNORED_TXS);
 
 	// Inmmutable version
-	private AtomicReference<RepudiatedTransactionMap> repudiatedTransactionMapRef = new AtomicReference<>();
+	private AtomicReference<IgnoredTransactionMap> ignoredTransactionMapRef = new AtomicReference<>();
 
 	long totalFeesLost = 0;// Just For fun
 
 	@Override
-	public RepudiatedTransactionMap getInmutableMapView() {
-		return (RepudiatedTransactionMap) Collections.unmodifiableMap(repudiatedTransactionMapRef.get());
+	public IgnoredTransactionMap getInmutableMapView() {
+		return (IgnoredTransactionMap) Collections.unmodifiableMap(ignoredTransactionMapRef.get());
 	}
 
 	@Override
 	public void refresh(Block block, MisMinedTransactions mmt, TxMemPool txMemPool) {
 
-		clearRepudiatedTransactionMap(block, txMemPool);// In case of mined or deleted txs
+		clearIgnoredTransactionMap(block, txMemPool);// In case of mined or deleted txs
 
-		RepudiatingBlock repudiatingBlock = calculateRepudiatingBlock(block, mmt);
+		IgnoringBlock ignoringBlock = calculateIgnorigBlock(block, mmt);
 
-		long lostReward = repudiatingBlock.getLostReward().longValue();
+		long lostReward = ignoringBlock.getLostReward().longValue();
 
 		if (lostReward < 0L) {
-			alarmLogger.addAlarm("Lost Reward: " + lostReward + ", in block: " + repudiatingBlock.getBlockHeight());
+			alarmLogger.addAlarm("Lost Reward: " + lostReward + ", in block: " + ignoringBlock.getBlockHeight());
 		}
 
 		totalFeesLost += lostReward;
-		logger.info(repudiatingBlock.toString());
+		logger.info(ignoringBlock.toString());
 		Iterator<NotMinedTransaction> it = mmt.getNotMinedButInCandidateBlock().getTxMap().values().iterator();
 		while (it.hasNext()) {
 			NotMinedTransaction nmTx = it.next();
 			boolean newRtx = false;
-			RepudiatedTransaction rTx = repudiatedTransactionMap.get(nmTx.getTx().getTxId());
+			IgnoredTransaction rTx = ignoredTransactionMap.get(nmTx.getTx().getTxId());
 			if (null == rTx) {
-				rTx = new RepudiatedTransaction();
+				rTx = new IgnoredTransaction();
 				newRtx = true;
 				rTx.setTx(nmTx.getTx());
-				rTx.setState(RepudiatedTransaction.State.INMEMPOOL);
+				rTx.setState(IgnoredTransaction.State.INMEMPOOL);
 			}
 			rTx.getPositionInBlockHeightMap().put(block.getHeight(), nmTx.getOrdinalpositionInBlock());
 
-			rTx.getRepudiatingBlockList().add(repudiatingBlock);
-			if (rTx.getRepudiatingBlockList().size() == 1) {
+			rTx.getIgnoringBlockList().add(ignoringBlock);
+			if (rTx.getIgnoringBlockList().size() == 1) {
 				rTx.setTimeWhenShouldHaveBeenMined(block.getChangeTime());
 			}
 
-			rTx.setTotalSatvBytesLost(calculateTotalSatvBytesLost(repudiatingBlock, rTx));
-			rTx.setTotalFeesLost(calculateTotalFeesLost(repudiatingBlock, rTx));
+			rTx.setTotalSatvBytesLost(calculateTotalSatvBytesLost(ignoringBlock, rTx));
+			rTx.setTotalFeesLost(calculateTotalFeesLost(rTx));
 			if (newRtx) {
-				repudiatedTransactionMap.put(rTx.getTx().getTxId(), rTx);
+				ignoredTransactionMap.put(rTx.getTx().getTxId(), rTx);
 			}
 		}
 
@@ -91,29 +91,29 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 	}
 
 	private void copyMapToAtomicReference() {
-		RepudiatedTransactionMap repudiatedTransactionCopyMap = new RepudiatedTransactionMap(
-				(int) (repudiatedTransactionMap.size() * SysProps.HM_INITIAL_CAPACITY_MULTIPLIER));
-		repudiatedTransactionCopyMap.putAll(repudiatedTransactionMap);
-		repudiatedTransactionMapRef.set(repudiatedTransactionCopyMap);
+		IgnoredTransactionMap ignoredTransactionCopyMap = new IgnoredTransactionMap(
+				(int) (ignoredTransactionMap.size() * SysProps.HM_INITIAL_CAPACITY_MULTIPLIER));
+		ignoredTransactionCopyMap.putAll(ignoredTransactionMap);
+		ignoredTransactionMapRef.set(ignoredTransactionCopyMap);
 	}
 
-	private double calculateTotalSatvBytesLost(RepudiatingBlock repudiatingBlock, RepudiatedTransaction rTx) {
+	private double calculateTotalSatvBytesLost(IgnoringBlock ignoringBlock, IgnoredTransaction rTx) {
 		double totalSatvBytesLost = rTx.getTotalSatvBytesLost();
-		double blockSatvBytesLost = repudiatingBlock.getMaxMinFeesInBlock().getMinFee().orElse(0D);
+		double blockSatvBytesLost = ignoringBlock.getMaxMinFeesInBlock().getMinFee().orElse(0D);
 		double diff = rTx.getTx().getSatvByte() - blockSatvBytesLost;
 		return totalSatvBytesLost + diff;
 	}
 
-	private long calculateTotalFeesLost(RepudiatingBlock repudiatingBlock, RepudiatedTransaction rTx) {
+	private long calculateTotalFeesLost(IgnoredTransaction rTx) {
 		return (long) (rTx.getTotalSatvBytesLost() * rTx.getTx().getFees().getBase());
 	}
 
 	private void logIt() {
 		String nl = SysProps.NL;
 		StringBuilder sb = new StringBuilder();
-		sb.append("repudiatedTransactionMap (#" + repudiatedTransactionMap.size() + "):");
+		sb.append("ignoredTransactionMap (#" + ignoredTransactionMap.size() + "):");
 		sb.append(nl);
-		repudiatedTransactionMap.values().stream().forEach(rtx -> {
+		ignoredTransactionMap.values().stream().forEach(rtx -> {
 			sb.append(rtx.toString());
 			sb.append(nl);
 		});
@@ -122,52 +122,52 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 
 	}
 
-	private void clearRepudiatedTransactionMap(Block block, TxMemPool txMemPool) {
-		logger.info("MemPool size on clearRepudiatedTransactionMap: {}", txMemPool.getTxNumber());
-		Set<String> txIdsToRemoveSet = new HashSet<>(SysProps.EXPECTED_MAX_REPUDIATED_TXS);// txIds to remove.
+	private void clearIgnoredTransactionMap(Block block, TxMemPool txMemPool) {
+		logger.info("MemPool size on clearIgnoredTransactionMap: {}", txMemPool.getTxNumber());
+		Set<String> txIdsToRemoveSet = new HashSet<>(SysProps.EXPECTED_MAX_IGNORED_TXS);// txIds to remove.
 
 		// Delete mined transactions
 		for (String bTxId : block.getTxIds()) {
-			RepudiatedTransaction rt = repudiatedTransactionMap.get(bTxId);
+			IgnoredTransaction rt = ignoredTransactionMap.get(bTxId);
 			if (null != rt) {
 				txIdsToRemoveSet.add(bTxId);
 				rt.setFinallyMinedOnBlock(block.getHeight());
-				rt.setState(RepudiatedTransaction.State.MINED);
+				rt.setState(IgnoredTransaction.State.MINED);
 			}
 		}
 		// Delete deleted transactions
 		// TODO: It would be nice if we track new txs replacing old ones using Replace
 		// by Fee
-		for (RepudiatedTransaction rTx : repudiatedTransactionMap.values()) {
+		for (IgnoredTransaction rTx : ignoredTransactionMap.values()) {
 			String rTxId = rTx.getTx().getTxId();
 			if (!txMemPool.containsKey(rTxId)) {
 				txIdsToRemoveSet.add(rTxId);
-				rTx.setState(RepudiatedTransaction.State.DELETED);
+				rTx.setState(IgnoredTransaction.State.DELETED);
 				rTx.setFinallyMinedOnBlock(-1);
 			}
 		}
 
-		logClearedRepudiatedTransactionMap(txIdsToRemoveSet);
+		logClearedIgnoredTransactionMap(txIdsToRemoveSet);
 		// TODO: save in DB before delete?
-		txIdsToRemoveSet.stream().forEach(txId -> repudiatedTransactionMap.remove(txId));
+		txIdsToRemoveSet.stream().forEach(txId -> ignoredTransactionMap.remove(txId));
 	}
 
-	private void logClearedRepudiatedTransactionMap(Set<String> txIds) {
+	private void logClearedIgnoredTransactionMap(Set<String> txIds) {
 		String nl = SysProps.NL;
 		StringBuilder sb = new StringBuilder();
-		sb.append("DeletedRepudiatedTransactions (#" + txIds.size() + "):");
+		sb.append("DeletedIgnoredTransactions (#" + txIds.size() + "):");
 		Iterator<String> it = txIds.iterator();
 		while (it.hasNext()) {
 			String txId = it.next();
-			RepudiatedTransaction rTx = repudiatedTransactionMap.get(txId);
+			IgnoredTransaction rTx = ignoredTransactionMap.get(txId);
 			sb.append(nl);
 			sb.append(rTx.toString());
 		}
 		logger.info(sb.toString());
 	}
 
-	private RepudiatingBlock calculateRepudiatingBlock(Block block, MisMinedTransactions mmt) {
-		RepudiatingBlock repBlock = new RepudiatingBlock();
+	private IgnoringBlock calculateIgnorigBlock(Block block, MisMinedTransactions mmt) {
+		IgnoringBlock repBlock = new IgnoringBlock();
 		repBlock.setBlockChangeTime(block.getChangeTime());
 		repBlock.setBlockHeight(block.getHeight());
 		repBlock.setCoinBaseTx(block.getCoinBaseTx());
@@ -177,7 +177,7 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 		repBlock.setMinedButNotInMemPoolTxNum(mmt.getMinedButNotInMemPool().size());
 		repBlock.setMinedInMempoolButNotInCandidateBlockStats(
 				calculateStats(mmt.getMinedInMempoolButNotInCandidateBlock()));
-		repBlock.setMinerName(RepudiatingBlock.UNKNOWN);
+		repBlock.setMinerName(IgnoringBlock.UNKNOWN);
 		repBlock.setNotMinedButInCandidateBlockStats(
 				calculateNotMinedTransactionStats(mmt.getNotMinedButInCandidateBlock()));
 		repBlock.setNumTxInMinedBlock(block.getTxIds().size());
@@ -185,17 +185,16 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionPool
 		return repBlock;
 	}
 
-	private RepudiatingBlockStats calculateStats(MaxMinFeeTransactionMap<Transaction> mmftm) {
-		RepudiatingBlockStats minedAndInMemPoolStats = new RepudiatingBlockStats(mmftm.getMaxMinFee(),
+	private IgnoringBlockStats calculateStats(MaxMinFeeTransactionMap<Transaction> mmftm) {
+		IgnoringBlockStats minedAndInMemPoolStats = new IgnoringBlockStats(mmftm.getMaxMinFee(),
 				mmftm.getTxMap().size(),
 				mmftm.getTxMap().values().stream().mapToLong(tx -> tx.getFees().getBase()).sum(),
 				mmftm.getTxMap().values().stream().mapToInt(tx -> tx.getWeight()).sum());
 		return minedAndInMemPoolStats;
 	}
 
-	private RepudiatingBlockStats calculateNotMinedTransactionStats(
-			MaxMinFeeTransactionMap<NotMinedTransaction> mmfnmtm) {
-		RepudiatingBlockStats minedAndInMemPoolStats = new RepudiatingBlockStats(mmfnmtm.getMaxMinFee(),
+	private IgnoringBlockStats calculateNotMinedTransactionStats(MaxMinFeeTransactionMap<NotMinedTransaction> mmfnmtm) {
+		IgnoringBlockStats minedAndInMemPoolStats = new IgnoringBlockStats(mmfnmtm.getMaxMinFee(),
 				mmfnmtm.getTxMap().size(),
 				mmfnmtm.getTxMap().values().stream().mapToLong(tx -> tx.getTx().getFees().getBase()).sum(),
 				mmfnmtm.getTxMap().values().stream().mapToInt(tx -> tx.getTx().getWeight()).sum());

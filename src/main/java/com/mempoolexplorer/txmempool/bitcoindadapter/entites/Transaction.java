@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.mempoolexplorer.txmempool.entites.Feeable;
 
 public class Transaction implements Feeable {
@@ -38,6 +39,7 @@ public class Transaction implements Feeable {
 	}
 
 	@Override
+	@JsonIgnore
 	public double getSatvByteIncludingAncestors() {
 		if (txAncestry.getAncestorSize() == 0)
 			return 0;
@@ -48,6 +50,7 @@ public class Transaction implements Feeable {
 	}
 
 	@Override
+	@JsonIgnore
 	public double getSatvByte() {
 		// We calculate this using weight, not a vSize field . This is accurate.
 		if (getvSize() == 0)
@@ -55,6 +58,7 @@ public class Transaction implements Feeable {
 		return (double) (fees.getBase()) / getvSize();
 	}
 
+	@JsonIgnore
 	public double getvSize() {
 		return weight / 4.0D;
 	}

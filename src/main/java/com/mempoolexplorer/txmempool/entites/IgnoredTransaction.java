@@ -10,7 +10,7 @@ import java.util.Map;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
-public class RepudiatedTransaction {
+public class IgnoredTransaction {
 
 	public enum State {
 		INMEMPOOL, MINED, DELETED
@@ -18,14 +18,14 @@ public class RepudiatedTransaction {
 
 	private Transaction tx;
 
-	private List<RepudiatingBlock> repudiatingBlockList = new ArrayList<>();
+	private List<IgnoringBlock> ignoringBlockList = new ArrayList<>();
 
 	private Map<Integer, Integer> positionInBlockHeightMap = new HashMap<>();
 
 	private State state = State.INMEMPOOL;
 
-	private Double totalSatvBytesLost = 0D; // Total Satoshis per byte lost due to repudiation (sum of
-											// (Tx.satByte-blockMinSatBytes) for each repudiating block)
+	private Double totalSatvBytesLost = 0D; // Total Satoshis per byte lost due to ignoration (sum of
+											// (Tx.satByte-blockMinSatBytes) for each ignoring block)
 	private Long totalFeesLost = 0l;// totalSatvBytesLost*tx.vSize
 
 	private Instant timeWhenShouldHaveBeenMined;// Mining time of the fist block in which the tx should have been mined
@@ -41,12 +41,12 @@ public class RepudiatedTransaction {
 		this.tx = tx;
 	}
 
-	public List<RepudiatingBlock> getRepudiatingBlockList() {
-		return repudiatingBlockList;
+	public List<IgnoringBlock> getIgnoringBlockList() {
+		return ignoringBlockList;
 	}
 
-	public void setRepudiatingBlockList(List<RepudiatingBlock> repudiatingBlockList) {
-		this.repudiatingBlockList = repudiatingBlockList;
+	public void setIgnoringBlockList(List<IgnoringBlock> ignoringBlockList) {
+		this.ignoringBlockList = ignoringBlockList;
 	}
 
 	public Map<Integer, Integer> getPositionInBlockHeightMap() {
@@ -101,7 +101,7 @@ public class RepudiatedTransaction {
 	public String toString() {
 		String nl = SysProps.NL;
 		StringBuilder builder = new StringBuilder();
-		builder.append("RepudiatedTransaction [txId=");
+		builder.append("IgnoredTransaction [txId=");
 		builder.append(tx.getTxId());
 		builder.append(nl);
 		builder.append("ancestor/descendantCount=(");
@@ -110,11 +110,11 @@ public class RepudiatedTransaction {
 		builder.append(tx.getTxAncestry().getDescendantCount());
 		builder.append(")");
 		builder.append(nl);
-		builder.append(", repudiatingBlockList=[");
+		builder.append(", ingnoringBlockList=[");
 
-		Iterator<RepudiatingBlock> it = repudiatingBlockList.iterator();
+		Iterator<IgnoringBlock> it = ignoringBlockList.iterator();
 		while (it.hasNext()) {
-			RepudiatingBlock rBlock = it.next();
+			IgnoringBlock rBlock = it.next();
 			builder.append("(bh: " + rBlock.getBlockHeight() + ",pos: "
 					+ positionInBlockHeightMap.get(rBlock.getBlockHeight()) + ")");
 			if (it.hasNext()) {

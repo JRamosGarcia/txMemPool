@@ -53,7 +53,7 @@ public class MisMinedTransactions {
 				SysProps.EXPECTED_NUM_TX_IN_BLOCK);
 		// In block and memPool but not in queuedBlock
 		MaxMinFeeTransactionMap<Transaction> minedInMempoolButNotInCandidateBlockMap = new MaxMinFeeTransactionMap<>(
-				SysProps.EXPECTED_MAX_REPUDIATED_TXS);
+				SysProps.EXPECTED_MAX_IGNORED_TXS);
 
 		block.getTxIds().stream().forEach(txId -> {
 			Optional<Transaction> optTx = txMemPool.getTx(txId);
@@ -88,7 +88,7 @@ public class MisMinedTransactions {
 			QueuedBlock queuedBlock, Map<String, Transaction> minedAndInMemPoolTxMap) {
 
 		MaxMinFeeTransactionMap<NotMinedTransaction> notMinedButInCandidateBlockMap = new MaxMinFeeTransactionMap<>(
-				SysProps.EXPECTED_MAX_REPUDIATED_TXS);
+				SysProps.EXPECTED_MAX_IGNORED_TXS);
 
 		queuedBlock.getEntriesStream().filter(e -> !minedAndInMemPoolTxMap.containsKey(e.getKey())).map(e -> {
 			return new NotMinedTransaction(e.getValue().getTx(), e.getValue().getPositionInBlock());

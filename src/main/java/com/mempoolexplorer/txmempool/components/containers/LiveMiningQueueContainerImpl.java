@@ -33,8 +33,8 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 	@Override
 	public void refreshIfNeeded(TxMemPool txMemPool) {
 		if (numRefreshedWatcher >= txMempoolProperties.getRefreshCountToCreateNewMiningQueue()) {
-			updateMiningQueue(txMemPool);
 			numRefreshedWatcher = 0;
+			updateMiningQueue(txMemPool);
 		}
 		numRefreshedWatcher++;
 	}

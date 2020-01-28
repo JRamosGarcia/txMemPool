@@ -1,13 +1,13 @@
 package com.mempoolexplorer.txmempool.entites;
 
-public class RepudiatingBlockStats {
+public class IgnoringBlockStats {
 
 	private MaxMinFeeTransactions maxMinFee;
 	private Integer numTxs;
 	private Long totalFees;
 	private Integer totalWeight;
 
-	public RepudiatingBlockStats(MaxMinFeeTransactions maxMinFee, Integer numTxs, Long totalFees, Integer totalWeight) {
+	public IgnoringBlockStats(MaxMinFeeTransactions maxMinFee, Integer numTxs, Long totalFees, Integer totalWeight) {
 		super();
 		this.maxMinFee = maxMinFee;
 		this.numTxs = numTxs;
@@ -34,7 +34,7 @@ public class RepudiatingBlockStats {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("RepudiatingBlockStats [maxMinFee=");
+		builder.append("IgnoringBlockStats [maxMinFee=");
 		builder.append(maxMinFee);
 		builder.append(", numTxs=");
 		builder.append(numTxs);

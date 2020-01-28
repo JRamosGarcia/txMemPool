@@ -10,5 +10,5 @@ public class SysProps {
 	public static final float HM_INITIAL_CAPACITY_MULTIPLIER = 1.25f;
 	public static final int MAX_BLOCK_WEIGHT = 4000000;// Segwit new size
 	public static final int EXPECTED_MAX_ANCESTRY_CHANGES = 200;
-	public static final int EXPECTED_MAX_REPUDIATED_TXS = 200;
+	public static final int EXPECTED_MAX_IGNORED_TXS = 200;
 }

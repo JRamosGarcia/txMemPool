@@ -3,6 +3,7 @@ package com.mempoolexplorer.txmempool.events.sinks;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -23,11 +24,12 @@ import org.springframework.kafka.event.ListenerContainerIdleEvent;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 
+import com.mempoolexplorer.txmempool.TxMemPoolApplication;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.NotInMemPoolTx;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.mempool.TxPoolChanges;
-import com.mempoolexplorer.txmempool.components.RepudiatedTransactionPool;
+import com.mempoolexplorer.txmempool.components.IgnoredTransactionPool;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
@@ -56,7 +58,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	private BitcoindAdapter bitcoindAdapter;
 
 	@Autowired
-	private RepudiatedTransactionPool repudiatedTransactionPool;
+	private IgnoredTransactionPool ignoredTransactionPool;
 
 	@Autowired
 	private LiveMiningQueueContainer liveMiningQueueContainer;
@@ -144,7 +146,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 		}
 		logger.info(misMinedTransactions.toString());
 		logger.info(strLogBlockNotInMemPoolData(block));
-		repudiatedTransactionPool.refresh(block, misMinedTransactions, txMemPool);
+		ignoredTransactionPool.refresh(block, misMinedTransactions, txMemPool);
 		alarmLogger.prettyPrint();
 	}
 
@@ -198,16 +200,17 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			txpc.setChangeCounter(0);// Force reset
 			txpc.setChangeTime(Instant.now());
 			txpc.setNewTxs(new ArrayList<>(fullMemPoolMap.values()));
+
 			txMemPool.refresh(txpc);
-		} catch (Exception e) {
-			logger.error(e.toString());
-			alarmLogger.addAlarm("Eror en MemPoolEventsHandler.run: " + e.toString());
-		} finally {
-			// If loading via REST has failed, we continue and wait for mempool convergence
-			// in the long run
+
 			initializing.set(false);
 			loadingFullMempool.set(false);
 			doResume.set(true);
+		} catch (Exception e) {
+			// When loading if there are no clients, shutdown.
+			logger.error(e.toString());
+			alarmLogger.addAlarm("Eror en MemPoolEventsHandler.run, stopping txMemPool service: " + e.toString());
+			TxMemPoolApplication.exit();
 		}
 	}
 

@@ -2,11 +2,11 @@ package com.mempoolexplorer.txmempool.entites;
 
 import java.util.HashMap;
 
-public class RepudiatedTransactionMap extends HashMap<String, RepudiatedTransaction> {
+public class IgnoredTransactionMap extends HashMap<String, IgnoredTransaction> {
 
 	private static final long serialVersionUID = -2763236361360478075L;
 
-	public RepudiatedTransactionMap(int initalCapacity) {
+	public IgnoredTransactionMap(int initalCapacity) {
 		super(initalCapacity);
 	}
 

@@ -5,7 +5,7 @@ import java.time.Instant;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.CoinBaseTx;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
-public class RepudiatingBlock {
+public class IgnoringBlock {
 
 	public static final String UNKNOWN = "Unknown";
 
@@ -14,9 +14,9 @@ public class RepudiatingBlock {
 	private Integer weight;// up to 4000000
 	private Instant blockChangeTime;// Mined time set by us, not mining operators.
 	private MaxMinFeeTransactions maxMinFeesInBlock;// Sat/vByte
-	private RepudiatingBlockStats minedAndInMemPoolStats;// ok txs
-	private RepudiatingBlockStats notMinedButInCandidateBlockStats;// shouldHaveBeenMined
-	private RepudiatingBlockStats minedInMempoolButNotInCandidateBlockStats;// shouldHaveNotBeenMined
+	private IgnoringBlockStats minedAndInMemPoolStats;// ok txs
+	private IgnoringBlockStats notMinedButInCandidateBlockStats;// shouldHaveBeenMined
+	private IgnoringBlockStats minedInMempoolButNotInCandidateBlockStats;// shouldHaveNotBeenMined
 
 	private Long lostReward;// In satoshis
 	private Integer minedButNotInMemPoolTxNum;// >=1 due to coinbase transaction
@@ -63,28 +63,28 @@ public class RepudiatingBlock {
 		this.maxMinFeesInBlock = maxMinFeesInBlock;
 	}
 
-	public RepudiatingBlockStats getMinedAndInMemPoolStats() {
+	public IgnoringBlockStats getMinedAndInMemPoolStats() {
 		return minedAndInMemPoolStats;
 	}
 
-	public void setMinedAndInMemPoolStats(RepudiatingBlockStats minedAndInMemPoolStats) {
+	public void setMinedAndInMemPoolStats(IgnoringBlockStats minedAndInMemPoolStats) {
 		this.minedAndInMemPoolStats = minedAndInMemPoolStats;
 	}
 
-	public RepudiatingBlockStats getNotMinedButInCandidateBlockStats() {
+	public IgnoringBlockStats getNotMinedButInCandidateBlockStats() {
 		return notMinedButInCandidateBlockStats;
 	}
 
-	public void setNotMinedButInCandidateBlockStats(RepudiatingBlockStats notMinedButInCandidateBlockStats) {
+	public void setNotMinedButInCandidateBlockStats(IgnoringBlockStats notMinedButInCandidateBlockStats) {
 		this.notMinedButInCandidateBlockStats = notMinedButInCandidateBlockStats;
 	}
 
-	public RepudiatingBlockStats getMinedInMempoolButNotInCandidateBlockStats() {
+	public IgnoringBlockStats getMinedInMempoolButNotInCandidateBlockStats() {
 		return minedInMempoolButNotInCandidateBlockStats;
 	}
 
 	public void setMinedInMempoolButNotInCandidateBlockStats(
-			RepudiatingBlockStats minedInMempoolButNotInCandidateBlockStats) {
+			IgnoringBlockStats minedInMempoolButNotInCandidateBlockStats) {
 		this.minedInMempoolButNotInCandidateBlockStats = minedInMempoolButNotInCandidateBlockStats;
 	}
 
@@ -128,7 +128,7 @@ public class RepudiatingBlock {
 	public String toString() {
 		String nl = SysProps.NL;
 		StringBuilder builder = new StringBuilder();
-		builder.append("RepudiatingBlock [blockHeight=");
+		builder.append("IgnoringBlock [blockHeight=");
 		builder.append(blockHeight);
 		builder.append(nl);
 		builder.append("numTxInMinedBlock=");

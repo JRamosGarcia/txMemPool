@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
@@ -92,6 +93,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			} else if (mempoolEvent.getEventType() == MempoolEvent.EventType.REFRESH_POOL) {
 				// OnRefreshPool
 				TxPoolChanges txpc = mempoolEvent.tryConstructTxPoolChanges().get();
+				validate(txpc);
 				// When initializing but bitcoindAdapter is not intitializing
 				if ((initializing.get()) && (txpc.getChangeCounter() != 0) && (!loadingFullMempool.get())) {
 					// We pause incoming messages, but several messages has been taken from kafka at
@@ -113,6 +115,48 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			logger.error("Exception: ", e);
 			alarmLogger.addAlarm("Exception in @StreamListener of txMemPoolEvents" + e.toString());
 		}
+	}
+
+	private void validate(TxPoolChanges txpc) {
+		txpc.getNewTxs().stream().forEach(tx -> validateTx(tx));
+	}
+
+	private void validateTx(Transaction tx) {
+		Validate.notNull(tx.getTxId(), "txId can't be null");
+		Validate.notNull(tx.getTxInputs(), "txInputs can't be null");
+		Validate.notNull(tx.getTxOutputs(), "txOutputs can't be null");
+		Validate.notNull(tx.getWeight(), "weight can't be null");
+		Validate.notNull(tx.getFees(), "Fees object can't be null");
+		Validate.notNull(tx.getFees().getBase(), "Fees.base can't be null");
+		Validate.notNull(tx.getFees().getModified(), "Fees.modified can't be null");
+		Validate.notNull(tx.getFees().getAncestor(), "Fees.ancestor can't be null");
+		Validate.notNull(tx.getFees().getDescendant(), "Fees.descendant can't be null");
+		Validate.notNull(tx.getTimeInSecs(), "timeInSecs can't be null");
+		Validate.notNull(tx.getTxAncestry(), "txAncestry can't be null");
+		Validate.notNull(tx.getTxAncestry().getDescendantCount(), "descendantCount can't be null");
+		Validate.notNull(tx.getTxAncestry().getDescendantSize(), "descendantSize can't be null");
+		Validate.notNull(tx.getTxAncestry().getAncestorCount(), "ancestorCount can't be null");
+		Validate.notNull(tx.getTxAncestry().getAncestorSize(), "ancestorSize can't be null");
+		Validate.notNull(tx.getTxAncestry().getDepends(), "depends can't be null");
+		Validate.notNull(tx.getBip125Replaceable(), "bip125Replaceable can't be null");
+		Validate.notEmpty(tx.getHex(), "Hex can't be empty");
+
+		tx.getTxInputs().forEach(input -> {
+			if (input.getCoinbase() == null) {
+				Validate.notNull(input.getTxId(), "input.txId can't be null");
+				Validate.notNull(input.getvOutIndex(), "input.voutIndex can't be null");
+				Validate.notNull(input.getAmount(), "input.amount can't be null");
+				// Input address could be null in case of unrecognized input scripts
+				// Validate.notNull(input.getAddressIds());
+			}
+		});
+
+		tx.getTxOutputs().forEach(output -> {
+			// addressIds can be null if script is not recognized.
+			Validate.notNull(output.getAmount(), "amount can't be null in a TxOutput");
+			Validate.notNull(output.getIndex(), "index can't be null in a TxOutput");
+		});
+
 	}
 
 	private void refreshMemPoolAndLiveMiningQueue(TxPoolChanges txpc) {

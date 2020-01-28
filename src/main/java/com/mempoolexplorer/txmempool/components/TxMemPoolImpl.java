@@ -28,6 +28,9 @@ public class TxMemPoolImpl implements TxMemPool {
 	// Strings, not TxKeys. :-(
 	private ConcurrentHashMap<String, TxKey> txKeyMap = new ConcurrentHashMap<>();
 
+	// Mapping between addressId and all txId where addressId appears
+	private ConcurrentHashMap<String, Set<String>> addressIdToTxIdMap = new ConcurrentHashMap<>();
+
 	private boolean updateFullTxMemPool = true;
 
 	@Override
@@ -64,10 +67,17 @@ public class TxMemPoolImpl implements TxMemPool {
 	}
 
 	@Override
-	public boolean containsKey(String txId) {
+	public boolean containsTxId(String txId) {
 		// return txKeyMap.contains(txId);//This is death!! it refers to the value not
 		// the key!!!
 		return txKeyMap.containsKey(txId);
+	}
+
+	@Override
+	public boolean containsAddrId(String addrId) {
+		// return addressIdToTxIdMap.contains(txId);//This is death!! it refers to the value not
+		// the key!!!
+		return addressIdToTxIdMap.containsKey(addrId);
 	}
 
 	@Override
@@ -95,6 +105,15 @@ public class TxMemPoolImpl implements TxMemPool {
 		return new HashSet<>();
 	}
 
+	@Override
+	public Set<String> getTxIdsOfAddress(String addrId) {
+		Set<String> txIdsSet = addressIdToTxIdMap.get(addrId);
+		if (txIdsSet != null) {
+			return txIdsSet;
+		}
+		return new HashSet<>();
+	}
+
 	private void drop() {
 		txMemPool = new ConcurrentSkipListMap<>();
 		txKeyMap = new ConcurrentHashMap<>();
@@ -105,11 +124,15 @@ public class TxMemPoolImpl implements TxMemPool {
 			TxKey txKey = new TxKey(tx.getTxId(), tx.getSatvByteIncludingAncestors(), tx.getTimeInSecs());
 			txKeyMap.put(tx.getTxId(), txKey);
 			txMemPool.put(txKey, tx);
+			addAddresses(tx);
 		});
 		txPoolChanges.getRemovedTxsId().stream().forEach(txId -> {
 			TxKey txKey = txKeyMap.remove(txId);
 			if (null != txKey) {
-				txMemPool.remove(txKey);
+				Transaction tx = txMemPool.remove(txKey);
+				if (tx != null) {
+					removeAddresses(tx);
+				}
 			} else {
 				logger.info("Removing non existing tx from mempool, txId: {}", txId);
 			}
@@ -135,6 +158,54 @@ public class TxMemPoolImpl implements TxMemPool {
 			oldTx.setTxAncestry(entry.getValue().getTxAncestry());
 		});
 
+	}
+
+	private Set<String> getAllAddressesOf(Transaction tx) {
+		Set<String> retSet = new HashSet<>();
+		// Carefull with null values in case of unrecognized scripts
+		if (tx.getTxInputs() != null) {
+			tx.getTxInputs().stream().forEach(txIn -> {
+				if (txIn.getAddressIds() != null) {
+					txIn.getAddressIds().stream().forEach(addrId -> retSet.add(addrId));
+				}
+			});
+		}
+		// Carefull with null values in case of unrecognized scripts
+		if (tx.getTxOutputs() != null) {
+			tx.getTxOutputs().stream().forEach(txOut -> {
+				if (txOut.getAddressIds() != null) {
+					txOut.getAddressIds().stream().forEach(addrId -> retSet.add(addrId));
+				}
+			});
+		}
+		return retSet;
+	}
+
+	private void addAddresses(Transaction tx) {
+		Set<String> allAddresses = getAllAddressesOf(tx);
+		for (String addrId : allAddresses) {
+			Set<String> txIdsSet = addressIdToTxIdMap.get(addrId);
+			if (txIdsSet == null) {
+				txIdsSet = new HashSet<>();
+			}
+			txIdsSet.add(tx.getTxId());
+			addressIdToTxIdMap.put(addrId, txIdsSet);
+		}
+	}
+
+	private void removeAddresses(Transaction tx) {
+		Set<String> allAddresses = getAllAddressesOf(tx);
+		for (String addrId : allAddresses) {
+			Set<String> txIdsSet = addressIdToTxIdMap.get(addrId);
+			if (txIdsSet == null) {
+				logger.error("No transactions found for addrId: {}", addrId);
+			} else {
+				txIdsSet.remove(tx.getTxId());
+				if (txIdsSet.isEmpty()) {
+					addressIdToTxIdMap.remove(addrId);
+				}
+			}
+		}
 	}
 
 	private void logTxPoolChanges(TxPoolChanges txpc) {

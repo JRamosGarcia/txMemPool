@@ -140,7 +140,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionPool {
 		// by Fee
 		for (IgnoredTransaction rTx : ignoredTransactionMap.values()) {
 			String rTxId = rTx.getTx().getTxId();
-			if (!txMemPool.containsKey(rTxId)) {
+			if (!txMemPool.containsTxId(rTxId)) {
 				txIdsToRemoveSet.add(rTxId);
 				rTx.setState(IgnoredTransaction.State.DELETED);
 				rTx.setFinallyMinedOnBlock(-1);

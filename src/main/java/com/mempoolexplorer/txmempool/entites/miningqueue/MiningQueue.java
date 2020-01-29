@@ -22,6 +22,10 @@ import com.mempoolexplorer.txmempool.components.TxMemPool;
  * sat/vByte INCLUDING TX'S ANCESTORS. (This is used for CPFP or Child Pays For
  * Parent)
  * 
+ * Ancestors of a paying tx (CPFP) are put before paying tx child. then paying
+ * tx child is inserted. This ensures an almost descending MiningQueue by
+ * satVByte
+ * 
  * Constructor uses a coinBaseVSizeList, which is a template of blocks with that
  * coinbaseVSize. More QueuedBlocks could be created up to maxNumBlocks.
  * 
@@ -77,15 +81,6 @@ public class MiningQueue {
 		return Optional.empty();
 	}
 
-	// returns last tx of last block
-	public Optional<TxToBeMined> getLastTx() {
-		if (blockList.isEmpty()) {
-			return Optional.empty();
-		} else {
-			QueuedBlock queuedBlock = blockList.get(blockList.size() - 1);
-			return queuedBlock.getLastTx();
-		}
-	}
 
 	// searches for a TxToBeMined
 	public Optional<TxToBeMined> getTxToBeMined(String txId) {
@@ -115,7 +110,8 @@ public class MiningQueue {
 	private void addTxWithNoParentsTx(Transaction noParentsTx) {
 		Optional<QueuedBlock> blockToFill = getQueuedBlockToFill(noParentsTx);
 		if (blockToFill.isPresent()) {
-			TxToBeMined txToBeMined = blockToFill.get().addTx(noParentsTx);// It's a simple tx, no parents.
+			TxToBeMined txToBeMined = blockToFill.get().addTx(noParentsTx, Optional.empty());// It's a simple tx, no
+																								// parents.
 			globalTxsMap.put(noParentsTx.getTxId(), txToBeMined);
 		}
 	}
@@ -130,11 +126,11 @@ public class MiningQueue {
 
 		if (blockToFill.isPresent()) {
 			notInAnyBlock.stream().forEach(trx -> {
-				TxToBeMined txToBeMined = blockToFill.get().addTx(trx);
+				TxToBeMined txToBeMined = blockToFill.get().addTx(trx, Optional.of(tx));
 				globalTxsMap.put(trx.getTxId(), txToBeMined);
 
 			});
-			TxToBeMined txToBeMined = blockToFill.get().addTx(tx);
+			TxToBeMined txToBeMined = blockToFill.get().addTx(tx, Optional.empty());
 			globalTxsMap.put(tx.getTxId(), txToBeMined);
 		}
 	}

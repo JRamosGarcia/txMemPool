@@ -1,17 +1,22 @@
 package com.mempoolexplorer.txmempool.entites.miningqueue;
 
+import java.util.Optional;
+
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 
 public class TxToBeMined {
 	private Transaction tx;
 	private QueuedBlock containingBlock;
 	private int positionInBlock;
+	private Optional<Transaction> payingChildTx;// Child paying for this tx in case of CPFP
 
-	public TxToBeMined(Transaction tx, QueuedBlock containedBlock, int positionInBlock) {
+	public TxToBeMined(Transaction tx, Optional<Transaction> payingChildTx, QueuedBlock containedBlock,
+			int positionInBlock) {
 		super();
 		this.tx = tx;
 		this.containingBlock = containedBlock;
 		this.positionInBlock = positionInBlock;
+		this.payingChildTx = payingChildTx;
 	}
 
 	public Transaction getTx() {
@@ -28,6 +33,14 @@ public class TxToBeMined {
 
 	public void setPositionInBlock(int positionInBlock) {
 		this.positionInBlock = positionInBlock;
+	}
+
+	public Optional<Transaction> getPayingChildTx() {
+		return payingChildTx;
+	}
+
+	public void setPayingChildTx(Optional<Transaction> payingChildTx) {
+		this.payingChildTx = payingChildTx;
 	}
 
 	@Override

@@ -29,9 +29,9 @@ public class QueuedBlock {
 	}
 
 	// Returns TxToBeMined created and added
-	public TxToBeMined addTx(Transaction tx) {
+	public TxToBeMined addTx(Transaction tx, Optional<Transaction> payingChildTx) {
 		weight += tx.getWeight();
-		TxToBeMined txToBeMined = new TxToBeMined(tx, this, nextTxPositionInBlock++);
+		TxToBeMined txToBeMined = new TxToBeMined(tx, payingChildTx, this, nextTxPositionInBlock++);
 		txMap.put(tx.getTxId(), txToBeMined);
 		txList.add(txToBeMined);
 		return txToBeMined;
@@ -52,6 +52,8 @@ public class QueuedBlock {
 		return txMap.entrySet().stream();
 	}
 
+	// Remember that all queuedBlocks stream disordered because of filling big tx's
+	// space with other smaller tx
 	public Stream<TxToBeMined> getOrderedStream() {
 		return txList.stream();
 	}
@@ -103,10 +105,13 @@ public class QueuedBlock {
 			builder.append(txToBeMined.getTx().getTxId());
 			builder.append(", pos: ");
 			builder.append(txToBeMined.getPositionInBlock());
-			builder.append(", satvByteIncAnces: ");
+			builder.append(", s/vBIncAn: ");
 			builder.append(txToBeMined.getTx().getSatvByteIncludingAncestors());
 			builder.append(", (" + txToBeMined.getTx().getTxAncestry().getAncestorCount() + ","
 					+ txToBeMined.getTx().getTxAncestry().getDescendantCount() + ")");
+			if (txToBeMined.getPayingChildTx().isPresent()) {
+				builder.append(", cp: " + txToBeMined.getPayingChildTx().get().getTxId());
+			}
 			builder.append(SysProps.NL);
 		}
 		builder.append("]");

@@ -61,7 +61,7 @@ public class MemPoolController {
 		return txMemPool.getDescendingTxStream().map(tx -> tx.getTxId()).collect(Collectors.toList());
 	}
 
-	@GetMapping("/parentsof/{txId}")
+	@GetMapping("/parentsOf/{txId}")
 	public Set<String> getParentsOfTxId(@PathVariable("txId") String txId)
 			throws TransactionNotFoundInMemPoolException {
 		Optional<Transaction> tx = txMemPool.getTx(txId);

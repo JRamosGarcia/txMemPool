@@ -3,21 +3,23 @@ package com.mempoolexplorer.txmempool.controllers.entities;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.mempoolexplorer.txmempool.entites.miningqueue.SatVByte_NumTXsList;
+import com.mempoolexplorer.txmempool.entites.miningqueue.SatVByte_NumTXs;
 
 public class LiveMiningQueueGraphData {
 
-	private SatVByte_NumTXsList satVByteNumTXsList = new SatVByte_NumTXsList(0);
+	// This list can be disordered because a small tx with low satVByte filling gaps
+	// of big tx with high satVByte
+	private List<SatVByte_NumTXs> satVByteNumTXsList = new ArrayList<>();
 
 	private List<Integer> blockPositionList = new ArrayList<>();
 
 	private int blocksAccurateUpToBlock = 0;
-	
-	public SatVByte_NumTXsList getSatVByteNumTXsList() {
+
+	public List<SatVByte_NumTXs> getSatVByteNumTXsList() {
 		return satVByteNumTXsList;
 	}
 
-	public void setSatVByteNumTXsList(SatVByte_NumTXsList satVByteNumTXsList) {
+	public void setSatVByteNumTXsList(List<SatVByte_NumTXs> satVByteNumTXsList) {
 		this.satVByteNumTXsList = satVByteNumTXsList;
 	}
 

@@ -34,6 +34,9 @@ dependencies {
 	implementation 'org.springframework.cloud:spring-cloud-stream-binder-kafka'
 	implementation 'org.springframework.kafka:spring-kafka'
 	
+	//Other dependencies
+	implementation 'org.apache.commons:commons-lang3:3.9'
+	
 	testImplementation('org.springframework.boot:spring-boot-starter-test') {
 		exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
 	}

@@ -15,8 +15,6 @@ public interface TxMemPool {
 
 	Stream<Transaction> getDescendingTxStream();
 
-	Stream<Transaction> getDescendingTxStreamFrom(String txId);
-
 	Set<String> getAllParentsOf(Transaction tx);
 
 	boolean containsTxId(String txId);

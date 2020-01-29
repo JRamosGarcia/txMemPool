@@ -3,7 +3,6 @@ package com.mempoolexplorer.txmempool.components.containers;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
@@ -16,8 +15,7 @@ import com.mempoolexplorer.txmempool.controllers.entities.LiveMiningQueueGraphDa
 import com.mempoolexplorer.txmempool.entites.miningqueue.LiveMiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.QueuedBlock;
-import com.mempoolexplorer.txmempool.entites.miningqueue.SatVByte_NumTXsList;
-import com.mempoolexplorer.txmempool.entites.miningqueue.TxToBeMined;
+import com.mempoolexplorer.txmempool.entites.miningqueue.SatVByte_NumTXs;
 import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
@@ -78,19 +76,13 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 	// Adds mempool transactions to LiveMiningQueue but not having into account CPFP
 	// or remaining size left by big transactions (Quicker)
 	private void addMemPoolTxsTo(LiveMiningQueueGraphData lmq, MiningQueue mq) {
-		Optional<TxToBeMined> lastTxInMQ = mq.getLastTx();
-		if (lastTxInMQ.isEmpty()) {
-			return;
-		}
-		String lastTxIdInMQ = lastTxInMQ.get().getTx().getTxId();
-
-		// Most complex iterator ever. note the call of satVByteNumTXsList.addTx while
-		// iterating. Iterator has side effects!
-		Iterator<Transaction> txIt = txMemPool.getDescendingTxStreamFrom(lastTxIdInMQ)
+		// Most complex iterator ever.
+		Iterator<Transaction> txIt = txMemPool.getDescendingTxStream()
 				.limit(txMempoolProperties.getLiveMiningQueueMaxTxs())
 				// pass if tx has no children or not in mining queue
-				.filter(tx -> tx.getTxAncestry().getSpentby().isEmpty() || (!mq.contains(tx.getTxId())))
-				.takeWhile(tx -> lmq.getSatVByteNumTXsList().addTx((int) tx.getSatvByteIncludingAncestors()))
+				.filter(tx -> !mq.contains(tx.getTxId()))
+				.takeWhile(tx -> lmq.getSatVByteNumTXsList().size() < txMempoolProperties
+						.getLiveMiningQueueMaxSatByteListSize())
 				.iterator();
 
 		List<Integer> blockPositionList = lmq.getBlockPositionList();
@@ -103,6 +95,9 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 
 		while (txIt.hasNext()) {
 			Transaction tx = txIt.next();
+
+			addTx((int) tx.getSatvByteIncludingAncestors(), lmq.getSatVByteNumTXsList());
+
 			int nextBlockSize = blockWeight + tx.getWeight();
 			if (nextBlockSize > SysProps.MAX_BLOCK_WEIGHT) {
 				blockPositionList.add(txPosition++);
@@ -126,16 +121,44 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		return blockPositionList;
 	}
 
-	private SatVByte_NumTXsList createSatVByteNumTXsList(MiningQueue mq) {
+	private List<SatVByte_NumTXs> createSatVByteNumTXsList(MiningQueue mq) {
 
-		SatVByte_NumTXsList satVByteNumTXsList = new SatVByte_NumTXsList(
-				txMempoolProperties.getLiveMiningQueueMaxSatByteListSize());
+		List<SatVByte_NumTXs> satVByteNumTXsList = new ArrayList<>();
 		IntStream.range(0, mq.getNumQueuedBlocks()).mapToObj(i -> mq.getQueuedBlock(i)).map(oqb -> oqb.get())
 				.flatMap(qb -> qb.getOrderedStream())
-				.takeWhile(txtbm -> satVByteNumTXsList.addTx((int) txtbm.getTx().getSatvByteIncludingAncestors()))
+				.takeWhile(
+						txtbm -> satVByteNumTXsList.size() < txMempoolProperties.getLiveMiningQueueMaxSatByteListSize())
 				.forEach(txtbm -> {
+					int satVByte = 0;
+					if (txtbm.getPayingChildTx().isEmpty()) {
+						satVByte = (int) txtbm.getTx().getSatvByteIncludingAncestors();
+					} else {
+						satVByte = (int) txtbm.getPayingChildTx().get().getSatvByteIncludingAncestors();
+					}
+					addTx(satVByte, satVByteNumTXsList);
 				});
 		return satVByteNumTXsList;
 	}
 
+	// AddTx to satVByteNumTXsList taking into account CPFP. if tx has a paying
+	// child, then tx.satvByte=child.satvByte
+	private void addTx(int satVByte, List<SatVByte_NumTXs> satVByteNumTXsList) {
+		int size = satVByteNumTXsList.size();
+		if (size == 0) {
+			addNewPair(satVByte, satVByteNumTXsList);
+		} else {
+			SatVByte_NumTXs pair = satVByteNumTXsList.get(satVByteNumTXsList.size() - 1);
+			if (pair.getSatVByte() == satVByte) {
+				pair.setNumTxs(pair.getNumTxs() + 1);
+			} else {
+				addNewPair(satVByte, satVByteNumTXsList);
+			}
+		}
+	}
+
+	private void addNewPair(int satVByte, List<SatVByte_NumTXs> satVByteNumTXsList) {
+		SatVByte_NumTXs pair = new SatVByte_NumTXs(satVByte, 1);
+		satVByteNumTXsList.add(pair);
+
+	}
 }

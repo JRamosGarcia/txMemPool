@@ -62,6 +62,15 @@ public class TxMemPoolImpl implements TxMemPool {
 	}
 
 	@Override
+	public Stream<Transaction> getDescendingTxStreamFrom(String txId) {
+		TxKey txKey = txKeyMap.get(txId);
+		if (txKey == null) {
+			return Stream.empty();
+		}
+		return txMemPool.descendingMap().headMap(txKey).entrySet().stream().map(e -> e.getValue());
+	}
+
+	@Override
 	public Stream<Transaction> getDescendingTxStream() {
 		return txMemPool.descendingMap().entrySet().stream().map(e -> e.getValue());
 	}
@@ -75,7 +84,8 @@ public class TxMemPoolImpl implements TxMemPool {
 
 	@Override
 	public boolean containsAddrId(String addrId) {
-		// return addressIdToTxIdMap.contains(txId);//This is death!! it refers to the value not
+		// return addressIdToTxIdMap.contains(txId);//This is death!! it refers to the
+		// value not
 		// the key!!!
 		return addressIdToTxIdMap.containsKey(addrId);
 	}

@@ -33,12 +33,12 @@ public class MemPoolController {
 	}
 
 	@GetMapping("exist/{txId}")
-	public Boolean existTxId(@PathVariable("txId") String txId) throws TransactionNotFoundInMemPoolException {
+	public Boolean existTxId(@PathVariable("txId") String txId) {
 		return txMemPool.containsTxId(txId);
 	}
 
 	@GetMapping("existAddr/{addrId}")
-	public Boolean existAddrId(@PathVariable("addrId") String addrId) throws AddressNotFoundInMemPoolException {
+	public Boolean existAddrId(@PathVariable("addrId") String addrId) {
 		return txMemPool.containsAddrId(addrId);
 	}
 
@@ -48,7 +48,7 @@ public class MemPoolController {
 		if (tx.isPresent()) {
 			return tx.get();
 		}
-		throw new TransactionNotFoundInMemPoolException();
+		throw new TransactionNotFoundInMemPoolException("txId: " + txId + " not found.");
 	}
 
 	@GetMapping("/fullRaw")
@@ -68,7 +68,7 @@ public class MemPoolController {
 		if (tx.isPresent()) {
 			return txMemPool.getAllParentsOf(tx.get());
 		}
-		throw new TransactionNotFoundInMemPoolException();
+		throw new TransactionNotFoundInMemPoolException("txId: " + txId + " not found.");
 	}
 
 	@GetMapping("/address/{addrId}")
@@ -76,7 +76,7 @@ public class MemPoolController {
 			throws AddressNotFoundInMemPoolException {
 		Set<String> txIdsOfAddress = txMemPool.getTxIdsOfAddress(addrId);
 		if (txIdsOfAddress.isEmpty()) {
-			throw new AddressNotFoundInMemPoolException();
+			throw new AddressNotFoundInMemPoolException("addrId: " + addrId + " not found.");
 		}
 		return txIdsOfAddress;
 	}

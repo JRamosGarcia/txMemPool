@@ -160,8 +160,9 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	}
 
 	private void refreshMemPoolAndLiveMiningQueue(TxPoolChanges txpc) {
+		// Order of this operations matters.
 		txMemPool.refresh(txpc);
-		liveMiningQueueContainer.refreshIfNeeded(txMemPool);
+		liveMiningQueueContainer.refreshIfNeeded();
 		coinBaseTxWeightList.clear();// If we have new txPoolChanges, we reset coinBaseVSizeList
 	}
 

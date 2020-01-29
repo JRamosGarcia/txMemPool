@@ -11,9 +11,10 @@ import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
 public class QueuedBlock {
-	private int position = 0;
+	private int position = 0;// Position of this block in queue
 	private int weight = 0;
 	private int coinBaseWeight = 0;
+	private int precedingTxsCount = 0; // Sum of all txs in preceding blocks
 
 	private Map<String, TxToBeMined> txMap = new HashMap<String, TxToBeMined>(SysProps.HM_INITIAL_CAPACITY_FOR_BLOCK);
 
@@ -27,15 +28,20 @@ public class QueuedBlock {
 		this.coinBaseWeight = coinBaseWeight;
 	}
 
-	public void addTx(Transaction tx) {
+	// Returns TxToBeMined created and added
+	public TxToBeMined addTx(Transaction tx) {
 		weight += tx.getWeight();
 		TxToBeMined txToBeMined = new TxToBeMined(tx, this, nextTxPositionInBlock++);
 		txMap.put(tx.getTxId(), txToBeMined);
 		txList.add(txToBeMined);
+		return txToBeMined;
 	}
 
-	public TxToBeMined getLastTx() {
-		return txList.getLast();
+	public Optional<TxToBeMined> getLastTx() {
+		if (txList.isEmpty()) {
+			return Optional.empty();
+		}
+		return Optional.of(txList.getLast());
 	}
 
 	public int getFreeSpace() {
@@ -46,12 +52,20 @@ public class QueuedBlock {
 		return txMap.entrySet().stream();
 	}
 
+	public Stream<TxToBeMined> getOrderedStream() {
+		return txList.stream();
+	}
+
 	public Optional<TxToBeMined> getTx(String txId) {
 		return Optional.ofNullable(txMap.get(txId));
 	}
 
 	public boolean containsKey(String txId) {
 		return txMap.containsKey(txId);
+	}
+
+	public int numTxs() {
+		return txList.size();
 	}
 
 	public int getPosition() {
@@ -64,6 +78,14 @@ public class QueuedBlock {
 
 	public int getCoinBaseWeight() {
 		return coinBaseWeight;
+	}
+
+	public int getPrecedingTxsCount() {
+		return precedingTxsCount;
+	}
+
+	public void setPrecedingTxsCount(int precedingTxsCount) {
+		this.precedingTxsCount = precedingTxsCount;
 	}
 
 	@Override

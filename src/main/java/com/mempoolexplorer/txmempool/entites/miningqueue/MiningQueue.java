@@ -1,8 +1,10 @@
 package com.mempoolexplorer.txmempool.entites.miningqueue;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -30,6 +32,9 @@ public class MiningQueue {
 	private ArrayList<QueuedBlock> blockList = new ArrayList<>();
 	private int maxNumBlocks = 0;
 
+	// This maps doubles this class size but enable fast lookups.
+	private Map<String, TxToBeMined> globalTxsMap = new HashMap<>();
+
 	private MiningQueue() {
 	}
 
@@ -44,12 +49,25 @@ public class MiningQueue {
 		txMemPool.getDescendingTxStream().limit(maxTransactionsNumber).forEach(tx -> {
 			mq.addTx(tx, txMemPool);
 		});
+		calculatePrecedingTxsCount(mq);
 		return mq;
+	}
+
+	private static void calculatePrecedingTxsCount(MiningQueue mq) {
+		int txCount = 0;
+		for (QueuedBlock block : mq.blockList) {
+			block.setPrecedingTxsCount(txCount);
+			txCount += block.numTxs();
+		}
 	}
 
 	public static MiningQueue empty() {
 		MiningQueue mq = new MiningQueue();
 		return mq;
+	}
+
+	public int getNumQueuedBlocks() {
+		return blockList.size();
 	}
 
 	public Optional<QueuedBlock> getQueuedBlock(int index) {
@@ -59,10 +77,29 @@ public class MiningQueue {
 		return Optional.empty();
 	}
 
+	// returns last tx of last block
+	public Optional<TxToBeMined> getLastTx() {
+		if (blockList.isEmpty()) {
+			return Optional.empty();
+		} else {
+			QueuedBlock queuedBlock = blockList.get(blockList.size() - 1);
+			return queuedBlock.getLastTx();
+		}
+	}
+
+	// searches for a TxToBeMined
+	public Optional<TxToBeMined> getTxToBeMined(String txId) {
+		return Optional.ofNullable(globalTxsMap.get(txId));
+	}
+
+	public boolean contains(String txId) {
+		return (globalTxsMap.get(txId) != null);
+	}
+
 	// tx comes ordered in descending Sat/vByte
 	private void addTx(Transaction tx, TxMemPool txMemPool) {
 
-		if (getTxToBeMined(tx.getTxId()).isPresent()) {
+		if (contains(tx.getTxId())) {
 			// This tx is another's parent that has been yet included in a block. Ignore it
 			return;
 		}
@@ -78,7 +115,8 @@ public class MiningQueue {
 	private void addTxWithNoParentsTx(Transaction noParentsTx) {
 		Optional<QueuedBlock> blockToFill = getQueuedBlockToFill(noParentsTx);
 		if (blockToFill.isPresent()) {
-			blockToFill.get().addTx(noParentsTx);// It's a simple tx, no parents.
+			TxToBeMined txToBeMined = blockToFill.get().addTx(noParentsTx);// It's a simple tx, no parents.
+			globalTxsMap.put(noParentsTx.getTxId(), txToBeMined);
 		}
 	}
 
@@ -92,9 +130,12 @@ public class MiningQueue {
 
 		if (blockToFill.isPresent()) {
 			notInAnyBlock.stream().forEach(trx -> {
-				blockToFill.get().addTx(trx);
+				TxToBeMined txToBeMined = blockToFill.get().addTx(trx);
+				globalTxsMap.put(trx.getTxId(), txToBeMined);
+
 			});
-			blockToFill.get().addTx(tx);
+			TxToBeMined txToBeMined = blockToFill.get().addTx(tx);
+			globalTxsMap.put(tx.getTxId(), txToBeMined);
 		}
 	}
 
@@ -147,7 +188,7 @@ public class MiningQueue {
 	// Returns the list of txs that are in {@value allParentsOfTx} but not are in
 	// any QueuedBlock
 	private List<Transaction> getNotInAnyQueuedBlockTxListOf(Set<String> allParentsOfTx, TxMemPool txMemPool) {
-		return allParentsOfTx.stream().filter(txId -> getTxToBeMined(txId).isEmpty()).map(txId -> txMemPool.getTx(txId))
+		return allParentsOfTx.stream().filter(txId -> !contains(txId)).map(txId -> txMemPool.getTx(txId))
 				.filter(Optional::isPresent).map(op -> op.get()).collect(Collectors.toList());
 	}
 
@@ -158,13 +199,4 @@ public class MiningQueue {
 				.collect(Collectors.toList());
 	}
 
-	private Optional<TxToBeMined> getTxToBeMined(String txId) {
-		for (QueuedBlock block : blockList) {
-			Optional<TxToBeMined> optTxToBeMined = block.getTx(txId);
-			if (optTxToBeMined.isPresent()) {
-				return optTxToBeMined;
-			}
-		}
-		return Optional.empty();
-	}
 }

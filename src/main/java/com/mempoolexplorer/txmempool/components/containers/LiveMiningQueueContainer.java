@@ -1,16 +1,14 @@
 package com.mempoolexplorer.txmempool.components.containers;
 
-import com.mempoolexplorer.txmempool.components.TxMemPool;
-import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
+import com.mempoolexplorer.txmempool.entites.miningqueue.LiveMiningQueue;
 
 public interface LiveMiningQueueContainer {
 
-	void atomicSet(MiningQueue mq);
+	// Can return null if service is not initialized yet
+	LiveMiningQueue atomicGet();
 
-	MiningQueue atomicGet();
+	void refreshIfNeeded();
 
-	void refreshIfNeeded(TxMemPool txMemPool);
-
-	void forceRefresh(TxMemPool txMemPool);
+	void forceRefresh();
 
 }

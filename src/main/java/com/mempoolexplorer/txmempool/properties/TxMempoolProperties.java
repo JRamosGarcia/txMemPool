@@ -10,6 +10,8 @@ public class TxMempoolProperties {
 	private Integer refreshCountToCreateNewMiningQueue;
 	private Integer miningQueueNumTxs;
 	private Integer miningQueueMaxNumBlocks;
+	private Integer liveMiningQueueMaxTxs;
+	private Integer liveMiningQueueMaxSatByteListSize;
 
 	public Integer getRefreshCountToCreateNewMiningQueue() {
 		return refreshCountToCreateNewMiningQueue;
@@ -33,6 +35,22 @@ public class TxMempoolProperties {
 
 	public void setMiningQueueMaxNumBlocks(Integer miningQueueMaxNumBlocks) {
 		this.miningQueueMaxNumBlocks = miningQueueMaxNumBlocks;
+	}
+
+	public Integer getLiveMiningQueueMaxTxs() {
+		return liveMiningQueueMaxTxs;
+	}
+
+	public void setLiveMiningQueueMaxTxs(Integer liveMiningQueueMaxTxs) {
+		this.liveMiningQueueMaxTxs = liveMiningQueueMaxTxs;
+	}
+
+	public Integer getLiveMiningQueueMaxSatByteListSize() {
+		return liveMiningQueueMaxSatByteListSize;
+	}
+
+	public void setLiveMiningQueueMaxSatByteListSize(Integer liveMiningQueueMaxSatByteListSize) {
+		this.liveMiningQueueMaxSatByteListSize = liveMiningQueueMaxSatByteListSize;
 	}
 
 }

@@ -80,6 +80,8 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 	private AtomicBoolean loadingFullMempool = new AtomicBoolean(false);
 
+	private boolean updateFullTxMemPool = true;
+
 	private List<Integer> coinBaseTxWeightList = new ArrayList<>();
 
 	@StreamListener("txMemPoolEvents")
@@ -161,9 +163,30 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 	private void refreshMemPoolAndLiveMiningQueue(TxPoolChanges txpc) {
 		// Order of this operations matters.
-		txMemPool.refresh(txpc);
-		liveMiningQueueContainer.refreshIfNeeded();
+		refreshMempool(txpc);
+		if (txpc.getChangeCounter() != 0) {
+			liveMiningQueueContainer.refreshIfNeeded();
+		}
 		coinBaseTxWeightList.clear();// If we have new txPoolChanges, we reset coinBaseVSizeList
+	}
+
+	public void refreshMempool(TxPoolChanges txPoolChanges) {
+		if (txPoolChanges.getChangeCounter() == 0) {
+			if (updateFullTxMemPool) {
+				logger.info("Receiving full txMemPool due to bitcoindAdapter/txMemPool (re)start. "
+						+ "Dropping last txMemPool (if any) It can take a while...");
+				txMemPool.drop();
+				updateFullTxMemPool = false;
+			}
+			txMemPool.refresh(txPoolChanges);
+		} else {
+			if (!updateFullTxMemPool) {
+				logger.info("Full txMemPool received!");
+			}
+			updateFullTxMemPool = true;// Needed if bitcoindAdapter restarts
+			txMemPool.refresh(txPoolChanges);
+			logger.info("{} transactions in txMemPool.", txMemPool.getTxNumber());
+		}
 	}
 
 	private void OnNewBlock(Block block, int numConsecutiveBlocks) {

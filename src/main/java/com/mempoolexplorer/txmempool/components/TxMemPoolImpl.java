@@ -31,29 +31,50 @@ public class TxMemPoolImpl implements TxMemPool {
 	// Mapping between addressId and all txId where addressId appears
 	private ConcurrentHashMap<String, Set<String>> addressIdToTxIdMap = new ConcurrentHashMap<>();
 
-	private boolean updateFullTxMemPool = true;
-
 	@Override
 	public void refresh(TxPoolChanges txPoolChanges) {
-		// We do no update mining queue if we are receiving the full txMemPool
-		if (txPoolChanges.getChangeCounter() == 0) {
-			if (updateFullTxMemPool) {
-				logger.info("Receiving full txMemPool due to bitcoindAdapter/txMemPool (re)start. "
-						+ "Dropping last txMemPool (if any) It can take a while...");
-				drop();
-				updateFullTxMemPool = false;
+		txPoolChanges.getNewTxs().stream().forEach(tx -> {
+			TxKey txKey = new TxKey(tx.getTxId(), tx.getSatvByteIncludingAncestors(), tx.getTimeInSecs());
+			txKeyMap.put(tx.getTxId(), txKey);
+			txMemPool.put(txKey, tx);
+			addAddresses(tx);
+		});
+		txPoolChanges.getRemovedTxsId().stream().forEach(txId -> {
+			TxKey txKey = txKeyMap.remove(txId);
+			if (null != txKey) {
+				Transaction tx = txMemPool.remove(txKey);
+				if (tx != null) {
+					removeAddresses(tx);
+				}
+			} else {
+				logger.info("Removing non existing tx from mempool, txId: {}", txId);
 			}
-			refreshTxMemPool(txPoolChanges);
-		} else {
-			if (!updateFullTxMemPool) {
-				logger.info("Full txMemPool received!");
+		});
+		txPoolChanges.getTxAncestryChangesMap().entrySet().stream().forEach(entry -> {
+			TxKey txKey = txKeyMap.remove(entry.getKey());
+			if (null == txKey) {
+				logger.info("Non existing txKey in txKeyMap for update, txId: {}", entry.getKey());
+				return;
 			}
-			updateFullTxMemPool = true;// Needed if bitcoindAdapter restarts
-			refreshTxMemPool(txPoolChanges);
-
-			logTxPoolChanges(txPoolChanges);
-			logger.info("{} transactions in txMemPool.", txKeyMap.size());
-		}
+			Transaction oldTx = txMemPool.remove(txKey);
+			if (null == oldTx) {
+				logger.info("Non existing tx in txMemPool for update, txId: {}", entry.getKey());
+				return;
+			}
+			// TODO: Review this comment when data available
+			// This is safe since tx.getSatvByte() is ALWAYS calculated through ancestor
+			// fee/vSize and it does not change between old and new Fee or TxAncestry
+			// classes.
+			// Be carefull because tx.getSatvByteIncludingAncestors could not be coherent
+			// with tx.getSatvByte since one is calculated using vSize(a rounded up integer)
+			// and the other using weight (accurate)
+			oldTx.setFees(entry.getValue().getFees());
+			oldTx.setTxAncestry(entry.getValue().getTxAncestry());
+			txKey = new TxKey(oldTx.getTxId(), oldTx.getSatvByteIncludingAncestors(), oldTx.getTimeInSecs());
+			txKeyMap.put(oldTx.getTxId(), txKey);
+			txMemPool.put(txKey, oldTx);
+		});
+		logTxPoolChanges(txPoolChanges);
 	}
 
 	@Override
@@ -115,50 +136,10 @@ public class TxMemPoolImpl implements TxMemPool {
 		return new HashSet<>();
 	}
 
-	private void drop() {
+	@Override
+	public void drop() {
 		txMemPool = new ConcurrentSkipListMap<>();
 		txKeyMap = new ConcurrentHashMap<>();
-	}
-
-	private void refreshTxMemPool(TxPoolChanges txPoolChanges) {
-		txPoolChanges.getNewTxs().stream().forEach(tx -> {
-			TxKey txKey = new TxKey(tx.getTxId(), tx.getSatvByteIncludingAncestors(), tx.getTimeInSecs());
-			txKeyMap.put(tx.getTxId(), txKey);
-			txMemPool.put(txKey, tx);
-			addAddresses(tx);
-		});
-		txPoolChanges.getRemovedTxsId().stream().forEach(txId -> {
-			TxKey txKey = txKeyMap.remove(txId);
-			if (null != txKey) {
-				Transaction tx = txMemPool.remove(txKey);
-				if (tx != null) {
-					removeAddresses(tx);
-				}
-			} else {
-				logger.info("Removing non existing tx from mempool, txId: {}", txId);
-			}
-		});
-		txPoolChanges.getTxAncestryChangesMap().entrySet().stream().forEach(entry -> {
-			TxKey txKey = txKeyMap.get(entry.getKey());
-			if (null == txKey) {
-				logger.info("Non existing txKey in txKeyMap for update, txId: {}", entry.getKey());
-				return;
-			}
-			Transaction oldTx = txMemPool.get(txKey);
-			if (null == oldTx) {
-				logger.info("Non existing tx in txMemPool for update, txId: {}", entry.getKey());
-				return;
-			}
-			// This is safe since tx.getSatvByte() is ALWAYS calculated through ancestor
-			// fee/vSize and it does not change between old and new Fee or TxAncestry
-			// classes.
-			// Be carefull because tx.getSatvByteIncludingAncestors could not be coherent
-			// with tx.getSatvByte since one is calculated using vSize(a rounded up integer)
-			// and the other using weight (accurate)
-			oldTx.setFees(entry.getValue().getFees());
-			oldTx.setTxAncestry(entry.getValue().getTxAncestry());
-		});
-
 	}
 
 	private Set<String> getAllAddressesOf(Transaction tx) {

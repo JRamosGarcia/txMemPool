@@ -25,4 +25,6 @@ public interface TxMemPool {
 
 	Set<String> getTxIdsOfAddress(String addrId);
 
+	void drop();
+
 }

@@ -9,6 +9,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 
@@ -31,10 +34,12 @@ import com.mempoolexplorer.txmempool.components.TxMemPool;
  * 
  */
 public class MiningQueue {
+	private static Logger logger = LoggerFactory.getLogger(MiningQueue.class);
 
 	// This is the block list.
 	private ArrayList<QueuedBlock> blockList = new ArrayList<>();
 	private int maxNumBlocks = 0;
+	private double lastSatVByte = Double.MAX_VALUE;
 
 	// This maps doubles this class size but enable fast lookups.
 	private Map<String, TxToBeMined> globalTxsMap = new HashMap<>();
@@ -44,6 +49,7 @@ public class MiningQueue {
 
 	public static MiningQueue buildFrom(List<Integer> coinBaseTxWeightList, TxMemPool txMemPool,
 			Integer maxTransactionsNumber, Integer maxNumBlocks) {
+		logger.info("Creating new MiningQueue...");
 		MiningQueue mq = new MiningQueue();
 		mq.maxNumBlocks = Math.max(coinBaseTxWeightList.size(), maxNumBlocks);
 		for (int index = 0; index < coinBaseTxWeightList.size(); index++) {
@@ -52,9 +58,19 @@ public class MiningQueue {
 
 		txMemPool.getDescendingTxStream().limit(maxTransactionsNumber).forEach(tx -> {
 			mq.addTx(tx, txMemPool);
+			checkIsDescending(tx, mq);
 		});
 		calculatePrecedingTxsCount(mq);
+		logger.info("New MiningQueue created.");
 		return mq;
+	}
+
+	private static void checkIsDescending(Transaction tx, MiningQueue mq) {
+		if (tx.getSatvByteIncludingAncestors() > mq.lastSatVByte) {
+			logger.error("TXMEMPOOL IS NOT DESCENDING!!!!!!");
+		} else {
+			mq.lastSatVByte = tx.getSatvByteIncludingAncestors();
+		}
 	}
 
 	private static void calculatePrecedingTxsCount(MiningQueue mq) {
@@ -80,7 +96,6 @@ public class MiningQueue {
 		}
 		return Optional.empty();
 	}
-
 
 	// searches for a TxToBeMined
 	public Optional<TxToBeMined> getTxToBeMined(String txId) {

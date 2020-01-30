@@ -18,6 +18,11 @@ public class AlarmLoggerImpl implements AlarmLogger {
 	private List<String> alarmList = new CopyOnWriteArrayList<>();
 
 	@Override
+	public List<String> getAlarmList() {
+		return alarmList;
+	}
+
+	@Override
 	public void addAlarm(String alarm) {
 		alarmList.add(alarm);
 	}

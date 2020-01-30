@@ -30,7 +30,8 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 
 	private AtomicReference<LiveMiningQueue> liveMiningQueueRef = new AtomicReference<>();
 
-	private int numRefreshedWatcher = 0;// Counter for not refreshing miningQueue all the time
+	private int numRefreshedWatcher = Integer.MAX_VALUE;// Counter for not refreshing miningQueue all the time, first
+														// time we refresh
 
 	@Override
 	public LiveMiningQueue atomicGet() {
@@ -80,9 +81,8 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		Iterator<Transaction> txIt = txMemPool.getDescendingTxStream()
 				.limit(txMempoolProperties.getLiveMiningQueueMaxTxs())
 				// pass if tx has no children or not in mining queue
-				.filter(tx -> !mq.contains(tx.getTxId()))
-				.takeWhile(tx -> lmq.getSatVByteNumTXsList().size() < txMempoolProperties
-						.getLiveMiningQueueMaxSatByteListSize())
+				.filter(tx -> !mq.contains(tx.getTxId())).takeWhile(tx -> lmq.getSatVByteNumTXsList()
+						.size() < txMempoolProperties.getLiveMiningQueueMaxSatByteListSize())
 				.iterator();
 
 		List<Integer> blockPositionList = lmq.getBlockPositionList();

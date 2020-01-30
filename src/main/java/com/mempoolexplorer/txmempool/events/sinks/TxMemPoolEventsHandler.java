@@ -29,7 +29,7 @@ import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.NotInMemPoolTx;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.mempool.TxPoolChanges;
-import com.mempoolexplorer.txmempool.components.IgnoredTransactionPool;
+import com.mempoolexplorer.txmempool.components.IgnoredTransactionsPool;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
@@ -58,7 +58,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	private BitcoindAdapter bitcoindAdapter;
 
 	@Autowired
-	private IgnoredTransactionPool ignoredTransactionPool;
+	private IgnoredTransactionsPool ignoredTransactionPool;
 
 	@Autowired
 	private LiveMiningQueueContainer liveMiningQueueContainer;
@@ -200,6 +200,10 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 		MiningQueue miningQueue = MiningQueue.buildFrom(coinBaseTxWeightList, txMemPool,
 				txMempoolProperties.getMiningQueueNumTxs(), coinBaseTxWeightList.size());
 
+		if (miningQueue.isHadErrors()) {
+			alarmLogger.addAlarm("Mining Queue had errors, in OnNewBlock");
+		}
+		
 		Optional<QueuedBlock> optQB = miningQueue.getQueuedBlock(coinBaseTxWeightList.size() - 1);
 		if (optQB.isEmpty()) {
 			alarmLogger.addAlarm("THIS SHOULD NOT BE HAPPENING: optQB.isEmpty()");

@@ -1,8 +1,10 @@
 package com.mempoolexplorer.txmempool.components;
 
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -14,36 +16,43 @@ import org.springframework.stereotype.Component;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
 import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
+import com.mempoolexplorer.txmempool.entites.IgnoredTransaction;
+import com.mempoolexplorer.txmempool.entites.IgnoredTxState;
+import com.mempoolexplorer.txmempool.entites.IgnoringBlock;
+import com.mempoolexplorer.txmempool.entites.IgnoringBlockStats;
 import com.mempoolexplorer.txmempool.entites.MaxMinFeeTransactionMap;
 import com.mempoolexplorer.txmempool.entites.MaxMinFeeTransactions;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.NotMinedTransaction;
-import com.mempoolexplorer.txmempool.entites.IgnoredTransaction;
-import com.mempoolexplorer.txmempool.entites.IgnoredTransactionMap;
-import com.mempoolexplorer.txmempool.entites.IgnoringBlock;
-import com.mempoolexplorer.txmempool.entites.IgnoringBlockStats;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
 @Component
-public class IgnoredTransactionsPoolImpl implements IgnoredTransactionPool {
+public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 
 	@Autowired
 	private AlarmLogger alarmLogger;
 
+	@Autowired
+	private IgnoringBlocksPool ignoringBlocksPool;
+
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
 	// Mutable version
-	private IgnoredTransactionMap ignoredTransactionMap = new IgnoredTransactionMap(
-			SysProps.EXPECTED_MAX_IGNORED_TXS);
+	private Map<String, IgnoredTransaction> ignoredTransactionMap = new HashMap<>(SysProps.EXPECTED_MAX_IGNORED_TXS);
 
 	// Inmmutable version
-	private AtomicReference<IgnoredTransactionMap> ignoredTransactionMapRef = new AtomicReference<>();
+	private AtomicReference<Map<String, IgnoredTransaction>> ignoredTransactionMapRef = new AtomicReference<>(ignoredTransactionMap);
 
 	long totalFeesLost = 0;// Just For fun
 
 	@Override
-	public IgnoredTransactionMap getInmutableMapView() {
-		return (IgnoredTransactionMap) Collections.unmodifiableMap(ignoredTransactionMapRef.get());
+	public Map<String, IgnoredTransaction> atomicGetIgnoredTransactionMap() {
+		return ignoredTransactionMapRef.get();
+	}
+
+	@Override
+	public Optional<IgnoredTransaction> getIgnoredTransaction(String txId) {
+		return Optional.ofNullable(ignoredTransactionMapRef.get().get(txId));
 	}
 
 	@Override
@@ -52,6 +61,8 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionPool {
 		clearIgnoredTransactionMap(block, txMemPool);// In case of mined or deleted txs
 
 		IgnoringBlock ignoringBlock = calculateIgnorigBlock(block, mmt);
+
+		ignoringBlocksPool.add(ignoringBlock);
 
 		long lostReward = ignoringBlock.getLostReward().longValue();
 
@@ -70,7 +81,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionPool {
 				rTx = new IgnoredTransaction();
 				newRtx = true;
 				rTx.setTx(nmTx.getTx());
-				rTx.setState(IgnoredTransaction.State.INMEMPOOL);
+				rTx.setState(IgnoredTxState.INMEMPOOL);
 			}
 			rTx.getPositionInBlockHeightMap().put(block.getHeight(), nmTx.getOrdinalpositionInBlock());
 
@@ -91,7 +102,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionPool {
 	}
 
 	private void copyMapToAtomicReference() {
-		IgnoredTransactionMap ignoredTransactionCopyMap = new IgnoredTransactionMap(
+		Map<String, IgnoredTransaction> ignoredTransactionCopyMap = new HashMap<>(
 				(int) (ignoredTransactionMap.size() * SysProps.HM_INITIAL_CAPACITY_MULTIPLIER));
 		ignoredTransactionCopyMap.putAll(ignoredTransactionMap);
 		ignoredTransactionMapRef.set(ignoredTransactionCopyMap);
@@ -132,7 +143,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionPool {
 			if (null != rt) {
 				txIdsToRemoveSet.add(bTxId);
 				rt.setFinallyMinedOnBlock(block.getHeight());
-				rt.setState(IgnoredTransaction.State.MINED);
+				rt.setState(IgnoredTxState.MINED);
 			}
 		}
 		// Delete deleted transactions
@@ -142,7 +153,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionPool {
 			String rTxId = rTx.getTx().getTxId();
 			if (!txMemPool.containsTxId(rTxId)) {
 				txIdsToRemoveSet.add(rTxId);
-				rTx.setState(IgnoredTransaction.State.DELETED);
+				rTx.setState(IgnoredTxState.DELETED);
 				rTx.setFinallyMinedOnBlock(-1);
 			}
 		}
@@ -219,4 +230,5 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionPool {
 		maxMinFeesInBlock.checkFees(new MaxMinFeeTransactions(block.getNotInMemPoolTransactions().values().stream()));
 		return maxMinFeesInBlock;
 	}
+
 }

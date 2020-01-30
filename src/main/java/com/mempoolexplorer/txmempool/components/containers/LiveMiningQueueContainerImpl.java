@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
+import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.controllers.entities.LiveMiningQueueGraphData;
 import com.mempoolexplorer.txmempool.entites.miningqueue.LiveMiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
@@ -27,6 +28,9 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 
 	@Autowired
 	private TxMemPool txMemPool;
+
+	@Autowired
+	private AlarmLogger alarmLogger;
 
 	private AtomicReference<LiveMiningQueue> liveMiningQueueRef = new AtomicReference<>();
 
@@ -60,7 +64,9 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 	private void updateLiveMiningQueue() {
 		MiningQueue newMiningQueue = MiningQueue.buildFrom(new ArrayList<>(), txMemPool,
 				txMempoolProperties.getMiningQueueNumTxs(), txMempoolProperties.getMiningQueueMaxNumBlocks());
-
+		if (newMiningQueue.isHadErrors()) {
+			alarmLogger.addAlarm("Mining Queue had errors, in updateLiveMiningQueue");
+		}
 		this.liveMiningQueueRef
 				.set(new LiveMiningQueue(buildLiveMiningQueueGraphDataFrom(newMiningQueue), newMiningQueue));
 	}

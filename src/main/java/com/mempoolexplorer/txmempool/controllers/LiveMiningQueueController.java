@@ -18,7 +18,7 @@ import com.mempoolexplorer.txmempool.controllers.entities.LiveMiningQueueGraphDa
 import com.mempoolexplorer.txmempool.controllers.entities.TxInQueue;
 import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
 import com.mempoolexplorer.txmempool.controllers.exceptions.ServiceNotReadyYetException;
-import com.mempoolexplorer.txmempool.controllers.exceptions.TransactionNotFoundInMemPoolException;
+import com.mempoolexplorer.txmempool.controllers.exceptions.TransactionNotFoundException;
 import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.QueuedBlock;
 import com.mempoolexplorer.txmempool.entites.miningqueue.TxToBeMined;
@@ -43,7 +43,7 @@ public class LiveMiningQueueController {
 
 	@GetMapping("/{txId}")
 	public TxInQueue getTxInQueue(@PathVariable("txId") String txId)
-			throws TransactionNotFoundInMemPoolException, ServiceNotReadyYetException {
+			throws TransactionNotFoundException, ServiceNotReadyYetException {
 		if (liveMiningQueueContainer.atomicGet() == null) {
 			throw new ServiceNotReadyYetException();
 		}
@@ -53,7 +53,7 @@ public class LiveMiningQueueController {
 		if (txToBeMined.isEmpty()) {
 			Optional<Transaction> tx = txMemPool.getTx(txId);
 			if (tx.isEmpty()) {
-				throw new TransactionNotFoundInMemPoolException("txId: " + txId + " not found.");
+				throw new TransactionNotFoundException("txId: " + txId + " not found.");
 			} else {
 				// Client must use satVByte to guess an aproximate position
 				return new TxInQueue(tx.get(), TxInQueue.UNKNOWN_POSITION);
@@ -65,8 +65,8 @@ public class LiveMiningQueueController {
 		}
 	}
 
-	@ExceptionHandler(TransactionNotFoundInMemPoolException.class)
-	public ResponseEntity<?> onTransactionNotFound(TransactionNotFoundInMemPoolException e) {
+	@ExceptionHandler(TransactionNotFoundException.class)
+	public ResponseEntity<?> onTransactionNotFound(TransactionNotFoundException e) {
 		ErrorDetails errorDetails = new ErrorDetails();
 		errorDetails.setErrorMessage(e.getMessage());
 		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());

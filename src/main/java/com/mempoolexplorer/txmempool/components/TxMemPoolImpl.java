@@ -61,13 +61,8 @@ public class TxMemPoolImpl implements TxMemPool {
 				logger.info("Non existing tx in txMemPool for update, txId: {}", entry.getKey());
 				return;
 			}
-			// TODO: Review this comment when data available
-			// This is safe since tx.getSatvByte() is ALWAYS calculated through ancestor
-			// fee/vSize and it does not change between old and new Fee or TxAncestry
-			// classes.
-			// Be carefull because tx.getSatvByteIncludingAncestors could not be coherent
-			// with tx.getSatvByte since one is calculated using vSize(a rounded up integer)
-			// and the other using weight (accurate)
+			// remove+put must be made each modification since tx modification while on map
+			// is pretty unsafe. (suffered in my own skin)
 			oldTx.setFees(entry.getValue().getFees());
 			oldTx.setTxAncestry(entry.getValue().getTxAncestry());
 			txKey = new TxKey(oldTx.getTxId(), oldTx.getSatvByteIncludingAncestors(), oldTx.getTimeInSecs());

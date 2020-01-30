@@ -12,17 +12,13 @@ import com.mempoolexplorer.txmempool.utils.SysProps;
 
 public class IgnoredTransaction {
 
-	public enum State {
-		INMEMPOOL, MINED, DELETED
-	};
-
 	private Transaction tx;
 
 	private List<IgnoringBlock> ignoringBlockList = new ArrayList<>();
 
 	private Map<Integer, Integer> positionInBlockHeightMap = new HashMap<>();
 
-	private State state = State.INMEMPOOL;
+	private IgnoredTxState state = IgnoredTxState.INMEMPOOL;
 
 	private Double totalSatvBytesLost = 0D; // Total Satoshis per byte lost due to ignoration (sum of
 											// (Tx.satByte-blockMinSatBytes) for each ignoring block)
@@ -57,11 +53,11 @@ public class IgnoredTransaction {
 		this.positionInBlockHeightMap = positionInBlockHeight;
 	}
 
-	public State getState() {
+	public IgnoredTxState getState() {
 		return state;
 	}
 
-	public void setState(State state) {
+	public void setState(IgnoredTxState state) {
 		this.state = state;
 	}
 

@@ -37,7 +37,9 @@ public class Transaction implements Feeable {
 	public String getTxId() {
 		return txId;
 	}
-
+	// Be carefull because tx.getSatvByteIncludingAncestors could not be coherent
+	// with tx.getSatvByte since one is calculated using vSize(a rounded up integer)
+	// and the other using weight (accurate)
 	@Override
 	@JsonIgnore
 	public double getSatvByteIncludingAncestors() {
@@ -49,6 +51,9 @@ public class Transaction implements Feeable {
 
 	}
 
+	// Be carefull because tx.getSatvByteIncludingAncestors could not be coherent
+	// with tx.getSatvByte since one is calculated using vSize(a rounded up integer)
+	// and the other using weight (accurate)
 	@Override
 	@JsonIgnore
 	public double getSatvByte() {

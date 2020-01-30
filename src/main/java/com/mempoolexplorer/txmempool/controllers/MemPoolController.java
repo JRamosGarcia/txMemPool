@@ -18,7 +18,7 @@ import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
 import com.mempoolexplorer.txmempool.controllers.exceptions.AddressNotFoundInMemPoolException;
-import com.mempoolexplorer.txmempool.controllers.exceptions.TransactionNotFoundInMemPoolException;
+import com.mempoolexplorer.txmempool.controllers.exceptions.TransactionNotFoundException;
 
 @RestController
 @RequestMapping("/memPool")
@@ -43,12 +43,12 @@ public class MemPoolController {
 	}
 
 	@GetMapping("/{txId}")
-	public Transaction getTxId(@PathVariable("txId") String txId) throws TransactionNotFoundInMemPoolException {
+	public Transaction getTxId(@PathVariable("txId") String txId) throws TransactionNotFoundException {
 		Optional<Transaction> tx = txMemPool.getTx(txId);
 		if (tx.isPresent()) {
 			return tx.get();
 		}
-		throw new TransactionNotFoundInMemPoolException("txId: " + txId + " not found.");
+		throw new TransactionNotFoundException("txId: " + txId + " not found.");
 	}
 
 	@GetMapping("/fullRaw")
@@ -63,12 +63,12 @@ public class MemPoolController {
 
 	@GetMapping("/parentsOf/{txId}")
 	public Set<String> getParentsOfTxId(@PathVariable("txId") String txId)
-			throws TransactionNotFoundInMemPoolException {
+			throws TransactionNotFoundException {
 		Optional<Transaction> tx = txMemPool.getTx(txId);
 		if (tx.isPresent()) {
 			return txMemPool.getAllParentsOf(tx.get());
 		}
-		throw new TransactionNotFoundInMemPoolException("txId: " + txId + " not found.");
+		throw new TransactionNotFoundException("txId: " + txId + " not found.");
 	}
 
 	@GetMapping("/address/{addrId}")
@@ -81,8 +81,8 @@ public class MemPoolController {
 		return txIdsOfAddress;
 	}
 
-	@ExceptionHandler(TransactionNotFoundInMemPoolException.class)
-	public ResponseEntity<?> onTransactionNotFound(TransactionNotFoundInMemPoolException e) {
+	@ExceptionHandler(TransactionNotFoundException.class)
+	public ResponseEntity<?> onTransactionNotFound(TransactionNotFoundException e) {
 		ErrorDetails errorDetails = new ErrorDetails();
 		errorDetails.setErrorMessage(e.getMessage());
 		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());

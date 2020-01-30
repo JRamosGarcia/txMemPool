@@ -40,7 +40,7 @@ public class MiningQueue {
 	private ArrayList<QueuedBlock> blockList = new ArrayList<>();
 	private int maxNumBlocks = 0;
 	private double lastSatVByte = Double.MAX_VALUE;
-
+	private boolean hadErrors = false;
 	// This maps doubles this class size but enable fast lookups.
 	private Map<String, TxToBeMined> globalTxsMap = new HashMap<>();
 
@@ -65,9 +65,14 @@ public class MiningQueue {
 		return mq;
 	}
 
+	public boolean isHadErrors() {
+		return hadErrors;
+	}
+
+	// Checks if txMemPool is giving txs in descending order
 	private static void checkIsDescending(Transaction tx, MiningQueue mq) {
 		if (tx.getSatvByteIncludingAncestors() > mq.lastSatVByte) {
-			logger.error("TXMEMPOOL IS NOT DESCENDING!!!!!!");
+			mq.hadErrors = true;
 		} else {
 			mq.lastSatVByte = tx.getSatvByteIncludingAncestors();
 		}

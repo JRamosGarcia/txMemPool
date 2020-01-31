@@ -15,7 +15,7 @@ import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.controllers.entities.LiveMiningQueueGraphData;
 import com.mempoolexplorer.txmempool.entites.miningqueue.LiveMiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
-import com.mempoolexplorer.txmempool.entites.miningqueue.QueuedBlock;
+import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 import com.mempoolexplorer.txmempool.entites.miningqueue.SatVByte_NumTXs;
 import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
 import com.mempoolexplorer.txmempool.utils.SysProps;
@@ -88,7 +88,7 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 				.limit(txMempoolProperties.getLiveMiningQueueMaxTxs())
 				// pass if tx has no children or not in mining queue
 				.filter(tx -> !mq.contains(tx.getTxId())).takeWhile(tx -> lmq.getSatVByteNumTXsList()
-						.size() < txMempoolProperties.getLiveMiningQueueMaxSatByteListSize())
+						.size() < txMempoolProperties.getLiveMiningQueueGraphSize())
 				.iterator();
 
 		List<Integer> blockPositionList = lmq.getBlockPositionList();
@@ -119,9 +119,9 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 	private List<Integer> createBlockPositionList(MiningQueue mq) {
 		List<Integer> blockPositionList = new ArrayList<>();
 		int lastBlockPos = 0;
-		for (int i = 0; i < mq.getNumQueuedBlocks(); i++) {
-			QueuedBlock queuedBlock = mq.getQueuedBlock(i).get();
-			lastBlockPos += queuedBlock.numTxs();
+		for (int i = 0; i < mq.getNumCandidateBlocks(); i++) {
+			CandidateBlock candidateBlock = mq.getCandidateBlock(i).get();
+			lastBlockPos += candidateBlock.numTxs();
 			blockPositionList.add(lastBlockPos);
 		}
 		return blockPositionList;
@@ -130,10 +130,10 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 	private List<SatVByte_NumTXs> createSatVByteNumTXsList(MiningQueue mq) {
 
 		List<SatVByte_NumTXs> satVByteNumTXsList = new ArrayList<>();
-		IntStream.range(0, mq.getNumQueuedBlocks()).mapToObj(i -> mq.getQueuedBlock(i)).map(oqb -> oqb.get())
-				.flatMap(qb -> qb.getOrderedStream())
+		IntStream.range(0, mq.getNumCandidateBlocks()).mapToObj(i -> mq.getCandidateBlock(i)).map(ocb -> ocb.get())
+				.flatMap(cb -> cb.getOrderedStream())
 				.takeWhile(
-						txtbm -> satVByteNumTXsList.size() < txMempoolProperties.getLiveMiningQueueMaxSatByteListSize())
+						txtbm -> satVByteNumTXsList.size() < txMempoolProperties.getLiveMiningQueueGraphSize())
 				.forEach(txtbm -> {
 					int satVByte = 0;
 					if (txtbm.getPayingChildTx().isEmpty()) {

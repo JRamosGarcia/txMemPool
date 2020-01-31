@@ -32,6 +32,17 @@ public class NotInMemPoolTx implements Feeable {
 		return ((double) fees / ((double) (weigth) / 4.0d));
 	}
 
+	@Override
+	public long getBaseFees() {
+		return fees;
+	}
+
+	// This has no information of ancestors
+	@Override
+	public long getAncestorFees() {
+		return fees;
+	}
+
 	public void setTxId(String txId) {
 		this.txId = txId;
 	}

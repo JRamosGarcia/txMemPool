@@ -110,7 +110,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 
 	private double calculateTotalSatvBytesLost(IgnoringBlock ignoringBlock, IgnoredTransaction rTx) {
 		double totalSatvBytesLost = rTx.getTotalSatvBytesLost();
-		double blockSatvBytesLost = ignoringBlock.getMaxMinFeesInBlock().getMinFee().orElse(0D);
+		double blockSatvBytesLost = ignoringBlock.getMaxMinFeesInBlock().getMinSatVByte().orElse(0D);
 		double diff = rTx.getTx().getSatvByte() - blockSatvBytesLost;
 		return totalSatvBytesLost + diff;
 	}

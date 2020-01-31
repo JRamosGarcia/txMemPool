@@ -43,4 +43,14 @@ public class NotMinedTransaction implements Feeable {
 		return tx.getSatvByte();
 	}
 
+	@Override
+	public long getBaseFees() {
+		return tx.getBaseFees();
+	}
+
+	@Override
+	public long getAncestorFees() {
+		return tx.getAncestorFees();
+	}
+
 }

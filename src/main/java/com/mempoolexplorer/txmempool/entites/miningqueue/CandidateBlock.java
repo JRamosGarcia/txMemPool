@@ -10,9 +10,10 @@ import java.util.stream.Stream;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
-public class QueuedBlock {
+public class CandidateBlock {
 	private int position = 0;// Position of this block in queue
 	private int weight = 0;
+	private int totalFees = 0;
 	private int coinBaseWeight = 0;
 	private int precedingTxsCount = 0; // Sum of all txs in preceding blocks
 
@@ -23,7 +24,7 @@ public class QueuedBlock {
 
 	private int nextTxPositionInBlock = 0;
 
-	public QueuedBlock(int position, int coinBaseWeight) {
+	public CandidateBlock(int position, int coinBaseWeight) {
 		this.position = position;
 		this.coinBaseWeight = coinBaseWeight;
 	}
@@ -31,6 +32,7 @@ public class QueuedBlock {
 	// Returns TxToBeMined created and added
 	public TxToBeMined addTx(Transaction tx, Optional<Transaction> payingChildTx) {
 		weight += tx.getWeight();
+		totalFees += tx.getFees().getBase();
 		TxToBeMined txToBeMined = new TxToBeMined(tx, payingChildTx, this, nextTxPositionInBlock++);
 		txMap.put(tx.getTxId(), txToBeMined);
 		txList.add(txToBeMined);
@@ -52,8 +54,8 @@ public class QueuedBlock {
 		return txMap.entrySet().stream();
 	}
 
-	// Remember that all queuedBlocks stream disordered because of filling big tx's
-	// space with other smaller tx
+	// Remember that all candidateBlocks stream is disordered because of filling big
+	// tx's space with other smaller tx
 	public Stream<TxToBeMined> getOrderedStream() {
 		return txList.stream();
 	}
@@ -78,6 +80,10 @@ public class QueuedBlock {
 		return weight;
 	}
 
+	public int getTotalFees() {
+		return totalFees;
+	}
+
 	public int getCoinBaseWeight() {
 		return coinBaseWeight;
 	}
@@ -93,10 +99,12 @@ public class QueuedBlock {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("QueuedBlock [position=");
+		builder.append("CandidateBlock [position=");
 		builder.append(position);
 		builder.append(", weight=");
 		builder.append(weight);
+		builder.append(", totalFees=");
+		builder.append(totalFees);
 		builder.append(", coinBaseWeight=");
 		builder.append(coinBaseWeight);
 		builder.append(", txList=");

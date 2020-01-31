@@ -20,7 +20,7 @@ import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
 import com.mempoolexplorer.txmempool.controllers.exceptions.ServiceNotReadyYetException;
 import com.mempoolexplorer.txmempool.controllers.exceptions.TransactionNotFoundException;
 import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
-import com.mempoolexplorer.txmempool.entites.miningqueue.QueuedBlock;
+import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 import com.mempoolexplorer.txmempool.entites.miningqueue.TxToBeMined;
 
 @RestController
@@ -59,7 +59,7 @@ public class LiveMiningQueueController {
 				return new TxInQueue(tx.get(), TxInQueue.UNKNOWN_POSITION);
 			}
 		} else {
-			QueuedBlock containingBlock = txToBeMined.get().getContainingBlock();
+			CandidateBlock containingBlock = txToBeMined.get().getContainingBlock();
 			int positionInQueue = containingBlock.getPrecedingTxsCount() + txToBeMined.get().getPositionInBlock();
 			return new TxInQueue(txToBeMined.get().getTx(), positionInQueue);
 		}

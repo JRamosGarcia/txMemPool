@@ -46,7 +46,7 @@ public class LiveIgnoredController {
 		return retList;
 	}
 
-	@GetMapping("/txs/{nTimes}")
+	@GetMapping("/txsNTimes/{nTimes}")
 	public List<LiveIgnoredTransaction> getLiveIgnoredNTimesTransactionList(@PathVariable("nTimes") Integer nTimes) {
 		Map<String, IgnoredTransaction> ignoredTransactionMap = ignoredTransactionPool.atomicGetIgnoredTransactionMap();
 

@@ -24,7 +24,7 @@ public class IgnoringBlocksPoolImpl implements IgnoringBlocksPool {
 		last = igBlock;
 		ignoringBlocksMap.put(igBlock.getBlockHeight(), igBlock);
 		// Kind of circular buffer
-		ignoringBlocksMap.remove(igBlock.getBlockHeight() - txMempoolProperties.getLiveMiningQueueMaxSatByteListSize());
+		ignoringBlocksMap.remove(igBlock.getBlockHeight() - txMempoolProperties.getLiveMiningQueueGraphSize());
 	}
 
 	@Override

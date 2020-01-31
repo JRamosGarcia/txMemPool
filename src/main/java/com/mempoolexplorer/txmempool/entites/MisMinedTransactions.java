@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
-import com.mempoolexplorer.txmempool.entites.miningqueue.QueuedBlock;
+import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
 /**
@@ -40,18 +40,18 @@ public class MisMinedTransactions {
 	// Ok
 	private MaxMinFeeTransactionMap<Transaction> minedAndInMemPool = new MaxMinFeeTransactionMap<Transaction>();
 
-	private QueuedBlock queuedBlock;
+	private CandidateBlock candidateBlock;
 	
 	private Boolean coherentSets = true;
 
-	public static MisMinedTransactions from(TxMemPool txMemPool, QueuedBlock queuedBlock, Block block) {
+	public static MisMinedTransactions from(TxMemPool txMemPool, CandidateBlock candidateBlock, Block block) {
 
-		// In block, but not in memPool nor queuedBlock
+		// In block, but not in memPool nor candidateBlock
 		Set<String> minedButNotInMemPool = new HashSet<>();
 		// In block and memPool
 		MaxMinFeeTransactionMap<Transaction> minedAndInMemPool = new MaxMinFeeTransactionMap<>(
 				SysProps.EXPECTED_NUM_TX_IN_BLOCK);
-		// In block and memPool but not in queuedBlock
+		// In block and memPool but not in candidateBlock
 		MaxMinFeeTransactionMap<Transaction> minedInMempoolButNotInCandidateBlockMap = new MaxMinFeeTransactionMap<>(
 				SysProps.EXPECTED_MAX_IGNORED_TXS);
 
@@ -59,7 +59,7 @@ public class MisMinedTransactions {
 			Optional<Transaction> optTx = txMemPool.getTx(txId);
 			if (optTx.isPresent()) {
 				minedAndInMemPool.put(optTx.get());
-				if (!queuedBlock.containsKey(txId)) {
+				if (!candidateBlock.containsKey(txId)) {
 					minedInMempoolButNotInCandidateBlockMap.put(optTx.get());
 				}
 			} else {
@@ -67,9 +67,9 @@ public class MisMinedTransactions {
 			}
 		});
 
-		// In mempool and queuedBlock but not in block
+		// In mempool and candidateBlock but not in block
 		MaxMinFeeTransactionMap<NotMinedTransaction> notMinedButInCandidateBlockMap = calculateNotMinedButInCandidateBlock(
-				queuedBlock, minedAndInMemPool.getTxMap());
+				candidateBlock, minedAndInMemPool.getTxMap());
 
 		MisMinedTransactions mmt = new MisMinedTransactions();
 		mmt.setCoherentSets(checkNotInMemPoolTxs(block, minedButNotInMemPool));
@@ -80,17 +80,17 @@ public class MisMinedTransactions {
 		mmt.setMinedAndInMemPool(minedAndInMemPool);
 		mmt.setNotMinedButInCandidateBlock(notMinedButInCandidateBlockMap);
 		mmt.setMinedInMempoolButNotInCandidateBlock(minedInMempoolButNotInCandidateBlockMap);
-		mmt.setQueuedBlock(queuedBlock);
+		mmt.setCandidateBlock(candidateBlock);
 		return mmt;
 	}
 
 	private static MaxMinFeeTransactionMap<NotMinedTransaction> calculateNotMinedButInCandidateBlock(
-			QueuedBlock queuedBlock, Map<String, Transaction> minedAndInMemPoolTxMap) {
+			CandidateBlock candidateBlock, Map<String, Transaction> minedAndInMemPoolTxMap) {
 
 		MaxMinFeeTransactionMap<NotMinedTransaction> notMinedButInCandidateBlockMap = new MaxMinFeeTransactionMap<>(
 				SysProps.EXPECTED_MAX_IGNORED_TXS);
 
-		queuedBlock.getEntriesStream().filter(e -> !minedAndInMemPoolTxMap.containsKey(e.getKey())).map(e -> {
+		candidateBlock.getEntriesStream().filter(e -> !minedAndInMemPoolTxMap.containsKey(e.getKey())).map(e -> {
 			return new NotMinedTransaction(e.getValue().getTx(), e.getValue().getPositionInBlock());
 		}).forEach(nmt -> notMinedButInCandidateBlockMap.put(nmt));
 
@@ -171,12 +171,12 @@ public class MisMinedTransactions {
 		this.minedAndInMemPool = minedAndInMemPool;
 	}
 
-	public QueuedBlock getQueuedBlock() {
-		return queuedBlock;
+	public CandidateBlock getCandidateBlock() {
+		return candidateBlock;
 	}
 
-	public void setQueuedBlock(QueuedBlock queuedBlock) {
-		this.queuedBlock = queuedBlock;
+	public void setCandidateBlock(CandidateBlock candidateBlock) {
+		this.candidateBlock = candidateBlock;
 	}
 
 	public Boolean getCoherentSets() {
@@ -219,8 +219,8 @@ public class MisMinedTransactions {
 						+ "wUnits)");
 		buildNotMinedTransactionLogStr(builder);
 		builder.append(nl);
-		builder.append("QueuedBlock: ");
-		builder.append(queuedBlock);
+		builder.append("CandidateBlock: ");
+		builder.append(candidateBlock);
 		builder.append(nl);
 		builder.append("minedInMempoolButNotInCandidateBlock: ("
 				+ minedInMempoolButNotInCandidateBlock.getTxMap().size() + "#tx, ");

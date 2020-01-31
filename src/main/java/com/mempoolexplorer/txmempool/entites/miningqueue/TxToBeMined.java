@@ -6,11 +6,11 @@ import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 
 public class TxToBeMined {
 	private Transaction tx;
-	private QueuedBlock containingBlock;
+	private CandidateBlock containingBlock;
 	private int positionInBlock;
 	private Optional<Transaction> payingChildTx;// Child paying for this tx in case of CPFP
 
-	public TxToBeMined(Transaction tx, Optional<Transaction> payingChildTx, QueuedBlock containedBlock,
+	public TxToBeMined(Transaction tx, Optional<Transaction> payingChildTx, CandidateBlock containedBlock,
 			int positionInBlock) {
 		super();
 		this.tx = tx;
@@ -23,7 +23,7 @@ public class TxToBeMined {
 		return tx;
 	}
 
-	public QueuedBlock getContainingBlock() {
+	public CandidateBlock getContainingBlock() {
 		return containingBlock;
 	}
 

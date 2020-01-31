@@ -4,15 +4,19 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
- * Class that keeps track of max and min fee and txIds using getSatvByteIncludingAncestors()
+ * Class that keeps track of max and min satVByte and txIds using
+ * getSatvByteIncludingAncestors() Also total fees in satoshis
  */
 public class MaxMinFeeTransactions {
 
-	private double maxFee = Double.MIN_VALUE;
-	private double minFee = Double.MAX_VALUE;
+	private double maxSatVByte = Double.MIN_VALUE;
+	private double minSatVByte = Double.MAX_VALUE;
 
-	private String maxFeeTxId;
-	private String minFeeTxId;
+	private long totalBaseFee = 0;
+	private long totalAncestorsFee = 0;
+
+	private String maxSatVByteTxId;
+	private String minSatVByteTxId;
 
 	public MaxMinFeeTransactions(Stream<? extends Feeable> fStream) {
 		super();
@@ -24,84 +28,44 @@ public class MaxMinFeeTransactions {
 	}
 
 	public boolean isValid() {
-		if ((maxFee == Double.MIN_VALUE) || (minFee == Double.MAX_VALUE))
+		if ((maxSatVByte == Double.MIN_VALUE) || (minSatVByte == Double.MAX_VALUE))
 			return false;
 		return true;
 	}
 
 	public void checkFees(Feeable feeable) {
-		if ((feeable.getSatvByteIncludingAncestors() == Double.MIN_VALUE) || (feeable.getSatvByteIncludingAncestors() == Double.MAX_VALUE))
+		totalBaseFee += feeable.getBaseFees();
+		totalAncestorsFee += feeable.getAncestorFees();
+
+		if ((feeable.getSatvByteIncludingAncestors() == Double.MIN_VALUE)
+				|| (feeable.getSatvByteIncludingAncestors() == Double.MAX_VALUE))
 			return;
-		if (feeable.getSatvByteIncludingAncestors() > maxFee) {
-			maxFee = feeable.getSatvByteIncludingAncestors();
-			maxFeeTxId = feeable.getTxId();
+		if (feeable.getSatvByteIncludingAncestors() > maxSatVByte) {
+			maxSatVByte = feeable.getSatvByteIncludingAncestors();
+			maxSatVByteTxId = feeable.getTxId();
 		}
-		if (feeable.getSatvByteIncludingAncestors() < minFee) {
-			minFee = feeable.getSatvByteIncludingAncestors();
-			minFeeTxId = feeable.getTxId();
+		if (feeable.getSatvByteIncludingAncestors() < minSatVByte) {
+			minSatVByte = feeable.getSatvByteIncludingAncestors();
+			minSatVByteTxId = feeable.getTxId();
 		}
-	}
-
-	public Optional<Feeable> getMaxFeeable() {
-		if (!isValid()) {
-			return Optional.empty();
-		}
-		return Optional.of(new Feeable() {
-			@Override
-			public String getTxId() {
-				return maxFeeTxId;
-			}
-
-			@Override
-			public double getSatvByteIncludingAncestors() {
-				return maxFee;
-			}
-			
-			@Override
-			public double getSatvByte() {
-				return maxFee;
-			}
-		});
-	}
-
-	public Optional<Feeable> getMinFeeable() {
-		if (!isValid()) {
-			return Optional.empty();
-		}
-		return Optional.of(new Feeable() {
-
-			@Override
-			public String getTxId() {
-				return minFeeTxId;
-			}
-
-			@Override
-			public double getSatvByteIncludingAncestors() {
-				return minFee;
-			}
-			@Override
-			public double getSatvByte() {
-				return minFee;
-			}
-		});
 	}
 
 	public void checkFees(MaxMinFeeTransactions other) {
-		if ((other.maxFee == Double.MIN_VALUE) || (other.minFee == Double.MAX_VALUE))
+		if ((other.maxSatVByte == Double.MIN_VALUE) || (other.minSatVByte == Double.MAX_VALUE))
 			return;
-		checkFees(other.maxFee, other.maxFeeTxId);
-		checkFees(other.minFee, other.minFeeTxId);
+		checkFees(other.maxSatVByte, other.maxSatVByteTxId);
+		checkFees(other.minSatVByte, other.minSatVByteTxId);
 	}
 
 	// fee and txId must be checked correct before calling this method.
 	private void checkFees(double fee, String txId) {
-		if (fee > maxFee) {
-			maxFee = fee;
-			maxFeeTxId = txId;
+		if (fee > maxSatVByte) {
+			maxSatVByte = fee;
+			maxSatVByteTxId = txId;
 		}
-		if (fee < minFee) {
-			minFee = fee;
-			minFeeTxId = txId;
+		if (fee < minSatVByte) {
+			minSatVByte = fee;
+			minSatVByteTxId = txId;
 		}
 	}
 
@@ -109,32 +73,46 @@ public class MaxMinFeeTransactions {
 		fStream.forEach(f -> checkFees(f));
 	}
 
-	public Optional<String> getMaxFeeTxId() {
+	public Optional<String> getMaxSatVByteTxId() {
 		if (!isValid()) {
 			return Optional.empty();
 		}
-		return Optional.of(maxFeeTxId);
+		return Optional.of(maxSatVByteTxId);
 	}
 
-	public Optional<String> getMinFeeTxId() {
+	public Optional<String> getMinSatVByteTxId() {
 		if (!isValid()) {
 			return Optional.empty();
 		}
-		return Optional.of(minFeeTxId);
+		return Optional.of(minSatVByteTxId);
 	}
 
-	public Optional<Double> getMaxFee() {
+	public Optional<Double> getMaxSatVByte() {
 		if (!isValid()) {
 			return Optional.empty();
 		}
-		return Optional.of(maxFee);
+		return Optional.of(maxSatVByte);
 	}
 
-	public Optional<Double> getMinFee() {
+	public Optional<Double> getMinSatVByte() {
 		if (!isValid()) {
 			return Optional.empty();
 		}
-		return Optional.of(minFee);
+		return Optional.of(minSatVByte);
+	}
+
+	public Optional<Long> getTotalBaseFee() {
+		if (!isValid()) {
+			return Optional.empty();
+		}
+		return Optional.of(totalBaseFee);
+	}
+
+	public Optional<Long> getTotalAncestorsFee() {
+		if (!isValid()) {
+			return Optional.empty();
+		}
+		return Optional.of(totalAncestorsFee);
 	}
 
 	@Override
@@ -142,14 +120,18 @@ public class MaxMinFeeTransactions {
 		StringBuilder builder = new StringBuilder();
 		builder.append("MaxMinFee [");
 		if (isValid()) {
-			builder.append("maxFee=");
-			builder.append(maxFee);
+			builder.append("totalBaseFee=");
+			builder.append(totalBaseFee);
+			builder.append(", totalAncestorsFee=");
+			builder.append(totalAncestorsFee);
+			builder.append(", maxFee=");
+			builder.append(maxSatVByte);
 			builder.append(", minFee=");
-			builder.append(minFee);
+			builder.append(minSatVByte);
 			builder.append(", maxFeeTxId=");
-			builder.append(maxFeeTxId);
+			builder.append(maxSatVByteTxId);
 			builder.append(", minFeeTxId=");
-			builder.append(minFeeTxId);
+			builder.append(minSatVByteTxId);
 		} else {
 			builder.append("Not A Value");
 		}

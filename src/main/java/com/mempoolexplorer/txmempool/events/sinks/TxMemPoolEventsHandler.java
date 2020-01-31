@@ -35,7 +35,7 @@ import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
-import com.mempoolexplorer.txmempool.entites.miningqueue.QueuedBlock;
+import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 import com.mempoolexplorer.txmempool.events.CustomChannels;
 import com.mempoolexplorer.txmempool.events.MempoolEvent;
 import com.mempoolexplorer.txmempool.feingintefaces.BitcoindAdapter;
@@ -82,12 +82,15 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 	private boolean updateFullTxMemPool = true;
 
+	private boolean forceMiningQueueRefresh = false;
+
 	private List<Integer> coinBaseTxWeightList = new ArrayList<>();
 
 	@StreamListener("txMemPoolEvents")
 	public void blockSink(MempoolEvent mempoolEvent, @Header(KafkaHeaders.CONSUMER) Consumer<?, ?> consumer) {
 		try {
 			if ((mempoolEvent.getEventType() == MempoolEvent.EventType.NEW_BLOCK) && (!initializing.get())) {
+				forceMiningQueueRefresh = true;
 				Block block = mempoolEvent.tryConstructBlock().get();
 				logger.info("New Block with {} transactions", block.getTxIds().size());
 				OnNewBlock(block, numConsecutiveBlocks++);
@@ -167,6 +170,11 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 		if (txpc.getChangeCounter() != 0) {
 			liveMiningQueueContainer.refreshIfNeeded();
 		}
+		if (forceMiningQueueRefresh) {
+			logger.info("LiveMiningQueue refresh forced.");
+			liveMiningQueueContainer.forceRefresh();
+			forceMiningQueueRefresh = false;
+		}
 		coinBaseTxWeightList.clear();// If we have new txPoolChanges, we reset coinBaseVSizeList
 	}
 
@@ -182,6 +190,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 		} else {
 			if (!updateFullTxMemPool) {
 				logger.info("Full txMemPool received!");
+				forceMiningQueueRefresh = true;
 			}
 			updateFullTxMemPool = true;// Needed if bitcoindAdapter restarts
 			txMemPool.refresh(txPoolChanges);
@@ -203,14 +212,14 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 		if (miningQueue.isHadErrors()) {
 			alarmLogger.addAlarm("Mining Queue had errors, in OnNewBlock");
 		}
-		
-		Optional<QueuedBlock> optQB = miningQueue.getQueuedBlock(coinBaseTxWeightList.size() - 1);
-		if (optQB.isEmpty()) {
-			alarmLogger.addAlarm("THIS SHOULD NOT BE HAPPENING: optQB.isEmpty()");
-			logger.warn("THIS SHOULD NOT BE HAPPENING: optQB.isEmpty()");
+
+		Optional<CandidateBlock> optCB = miningQueue.getCandidateBlock(coinBaseTxWeightList.size() - 1);
+		if (optCB.isEmpty()) {
+			alarmLogger.addAlarm("THIS SHOULD NOT BE HAPPENING: optCB.isEmpty()");
+			logger.warn("THIS SHOULD NOT BE HAPPENING: optCB.isEmpty()");
 			return;
 		}
-		MisMinedTransactions misMinedTransactions = MisMinedTransactions.from(txMemPool, optQB.get(), block);
+		MisMinedTransactions misMinedTransactions = MisMinedTransactions.from(txMemPool, optCB.get(), block);
 		if (!misMinedTransactions.getCoherentSets()) {
 			alarmLogger.addAlarm(
 					"!misMinedTransactions.getCoherentSets() on block: " + misMinedTransactions.getBlockHeight());
@@ -218,7 +227,6 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 		logger.info(misMinedTransactions.toString());
 		logger.info(strLogBlockNotInMemPoolData(block));
 		ignoredTransactionPool.refresh(block, misMinedTransactions, txMemPool);
-		alarmLogger.prettyPrint();
 	}
 
 	private String strLogBlockNotInMemPoolData(Block block) {
@@ -273,6 +281,8 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			txpc.setNewTxs(new ArrayList<>(fullMemPoolMap.values()));
 
 			txMemPool.refresh(txpc);
+			logger.info("LiveMiningQueue refresh forced.");
+			liveMiningQueueContainer.forceRefresh();
 
 			initializing.set(false);
 			loadingFullMempool.set(false);

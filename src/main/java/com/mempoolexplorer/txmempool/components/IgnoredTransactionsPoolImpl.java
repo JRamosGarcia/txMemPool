@@ -35,13 +35,17 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 	@Autowired
 	private IgnoringBlocksPool ignoringBlocksPool;
 
+	@Autowired
+	private RepudiatedTransactionsPool repudiatedTransactionsPool;
+
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
 	// Mutable version
 	private Map<String, IgnoredTransaction> ignoredTransactionMap = new HashMap<>(SysProps.EXPECTED_MAX_IGNORED_TXS);
 
 	// Inmmutable version
-	private AtomicReference<Map<String, IgnoredTransaction>> ignoredTransactionMapRef = new AtomicReference<>(ignoredTransactionMap);
+	private AtomicReference<Map<String, IgnoredTransaction>> ignoredTransactionMapRef = new AtomicReference<>(
+			ignoredTransactionMap);
 
 	long totalFeesLost = 0;// Just For fun
 
@@ -75,26 +79,29 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 		Iterator<NotMinedTransaction> it = mmt.getNotMinedButInCandidateBlock().getTxMap().values().iterator();
 		while (it.hasNext()) {
 			NotMinedTransaction nmTx = it.next();
-			boolean newRtx = false;
-			IgnoredTransaction rTx = ignoredTransactionMap.get(nmTx.getTx().getTxId());
-			if (null == rTx) {
-				rTx = new IgnoredTransaction();
-				newRtx = true;
-				rTx.setTx(nmTx.getTx());
-				rTx.setState(IgnoredTxState.INMEMPOOL);
+			boolean newIgTx = false;
+			IgnoredTransaction igTx = ignoredTransactionMap.get(nmTx.getTx().getTxId());
+			if (null == igTx) {
+				igTx = new IgnoredTransaction();
+				newIgTx = true;
+				igTx.setTx(nmTx.getTx());
+				igTx.setState(IgnoredTxState.INMEMPOOL);
 			}
-			rTx.getPositionInBlockHeightMap().put(block.getHeight(), nmTx.getOrdinalpositionInBlock());
+			igTx.getPositionInBlockHeightMap().put(block.getHeight(), nmTx.getOrdinalpositionInBlock());
 
-			rTx.getIgnoringBlockList().add(ignoringBlock);
-			if (rTx.getIgnoringBlockList().size() == 1) {
-				rTx.setTimeWhenShouldHaveBeenMined(block.getChangeTime());
+			igTx.getIgnoringBlockList().add(ignoringBlock);
+			if (igTx.getIgnoringBlockList().size() == 1) {
+				igTx.setTimeWhenShouldHaveBeenMined(block.getChangeTime());
 			}
 
-			rTx.setTotalSatvBytesLost(calculateTotalSatvBytesLost(ignoringBlock, rTx));
-			rTx.setTotalFeesLost(calculateTotalFeesLost(rTx));
-			if (newRtx) {
-				ignoredTransactionMap.put(rTx.getTx().getTxId(), rTx);
+			igTx.setTotalSatvBytesLost(calculateTotalSatvBytesLost(ignoringBlock, igTx));
+			igTx.setTotalFeesLost(calculateTotalFeesLost(igTx));
+			if (newIgTx) {
+				ignoredTransactionMap.put(igTx.getTx().getTxId(), igTx);
+			} else {// ignored twice or more. it's repudiated
+				repudiatedTransactionsPool.put(igTx);
 			}
+
 		}
 
 		logIt();
@@ -108,15 +115,15 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 		ignoredTransactionMapRef.set(ignoredTransactionCopyMap);
 	}
 
-	private double calculateTotalSatvBytesLost(IgnoringBlock ignoringBlock, IgnoredTransaction rTx) {
-		double totalSatvBytesLost = rTx.getTotalSatvBytesLost();
+	private double calculateTotalSatvBytesLost(IgnoringBlock ignoringBlock, IgnoredTransaction igTx) {
+		double totalSatvBytesLost = igTx.getTotalSatvBytesLost();
 		double blockSatvBytesLost = ignoringBlock.getMaxMinFeesInBlock().getMinSatVByte().orElse(0D);
-		double diff = rTx.getTx().getSatvByte() - blockSatvBytesLost;
+		double diff = igTx.getTx().getSatvByte() - blockSatvBytesLost;
 		return totalSatvBytesLost + diff;
 	}
 
-	private long calculateTotalFeesLost(IgnoredTransaction rTx) {
-		return (long) (rTx.getTotalSatvBytesLost() * rTx.getTx().getFees().getBase());
+	private long calculateTotalFeesLost(IgnoredTransaction igTx) {
+		return (long) (igTx.getTotalSatvBytesLost() * igTx.getTx().getFees().getBase());
 	}
 
 	private void logIt() {
@@ -149,12 +156,12 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 		// Delete deleted transactions
 		// TODO: It would be nice if we track new txs replacing old ones using Replace
 		// by Fee
-		for (IgnoredTransaction rTx : ignoredTransactionMap.values()) {
-			String rTxId = rTx.getTx().getTxId();
+		for (IgnoredTransaction igTx : ignoredTransactionMap.values()) {
+			String rTxId = igTx.getTx().getTxId();
 			if (!txMemPool.containsTxId(rTxId)) {
 				txIdsToRemoveSet.add(rTxId);
-				rTx.setState(IgnoredTxState.DELETED);
-				rTx.setFinallyMinedOnBlock(-1);
+				igTx.setState(IgnoredTxState.DELETED);
+				igTx.setFinallyMinedOnBlock(-1);
 			}
 		}
 
@@ -170,9 +177,9 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 		Iterator<String> it = txIds.iterator();
 		while (it.hasNext()) {
 			String txId = it.next();
-			IgnoredTransaction rTx = ignoredTransactionMap.get(txId);
+			IgnoredTransaction igTx = ignoredTransactionMap.get(txId);
 			sb.append(nl);
-			sb.append(rTx.toString());
+			sb.append(igTx.toString());
 		}
 		logger.info(sb.toString());
 	}

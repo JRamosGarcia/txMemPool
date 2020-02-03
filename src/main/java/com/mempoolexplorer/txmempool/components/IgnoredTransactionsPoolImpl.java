@@ -96,10 +96,11 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 
 			igTx.setTotalSatvBytesLost(calculateTotalSatvBytesLost(ignoringBlock, igTx));
 			igTx.setTotalFeesLost(calculateTotalFeesLost(igTx));
-			if (newIgTx) {
-				ignoredTransactionMap.put(igTx.getTx().getTxId(), igTx);
-			} else {// ignored twice or more. it's repudiated
+			ignoredTransactionMap.put(igTx.getTx().getTxId(), igTx);
+			if (!newIgTx) {// ignored twice or more. it's repudiated
 				repudiatedTransactionsPool.put(igTx);
+				alarmLogger.addAlarm("Repudiated transaction txId:" + igTx + ". Has been repudiated "
+						+ igTx.getIgnoringBlockList().size() + " times.");
 			}
 
 		}

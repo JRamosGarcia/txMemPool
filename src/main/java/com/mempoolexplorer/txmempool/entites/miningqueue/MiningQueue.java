@@ -29,6 +29,9 @@ import com.mempoolexplorer.txmempool.components.TxMemPool;
  * tx child is inserted. This ensures an almost descending MiningQueue by
  * satVByte
  * 
+ * TODO: This Mining queue does not take into account the case when parents are
+ * in block but children does not pay enough fees!!
+ * 
  * Constructor uses a coinBaseVSizeList, which is a template of blocks with that
  * coinbaseVSize. More CandidateBlocks could be created up to maxNumBlocks.
  * 

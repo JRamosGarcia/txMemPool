@@ -29,6 +29,10 @@ import com.mempoolexplorer.txmempool.components.TxMemPool;
  * tx child is inserted. This ensures an almost descending MiningQueue by
  * satVByte
  * 
+ * Childrens of an already inserted parent tx must have reduced sat/vByte
+ * INCLUDING TX'S ANCESTORS since some of them are already included. We use the
+ * class ModifiedMempool to store that fees reduction since tx in mempool must
+ * not be mutated.
  * 
  * Constructor uses a coinBaseVSizeList, which is a template of blocks with that
  * coinbaseVSize. More CandidateBlocks could be created up to maxNumBlocks.

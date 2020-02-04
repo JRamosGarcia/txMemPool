@@ -29,8 +29,6 @@ import com.mempoolexplorer.txmempool.components.TxMemPool;
  * tx child is inserted. This ensures an almost descending MiningQueue by
  * satVByte
  * 
- * TODO: This Mining queue does not take into account the case when parents are
- * in block but children does not pay enough fees!!
  * 
  * Constructor uses a coinBaseVSizeList, which is a template of blocks with that
  * coinbaseVSize. More CandidateBlocks could be created up to maxNumBlocks.
@@ -47,6 +45,10 @@ public class MiningQueue {
 	// This maps doubles this class size but enable fast lookups.
 	private Map<String, TxToBeMined> globalTxsMap = new HashMap<>();
 
+	private ModifiedMempool modifiedMempool = new ModifiedMempool();
+
+	private TxMemPool txMemPool;
+
 	private MiningQueue() {
 	}
 
@@ -54,13 +56,14 @@ public class MiningQueue {
 			Integer maxTransactionsNumber, Integer maxNumBlocks) {
 		logger.info("Creating new MiningQueue...");
 		MiningQueue mq = new MiningQueue();
+		mq.txMemPool = txMemPool;
 		mq.maxNumBlocks = Math.max(coinBaseTxWeightList.size(), maxNumBlocks);
 		for (int index = 0; index < coinBaseTxWeightList.size(); index++) {
 			mq.blockList.add(new CandidateBlock(index, coinBaseTxWeightList.get(index)));
 		}
 
 		txMemPool.getDescendingTxStream().limit(maxTransactionsNumber).forEach(tx -> {
-			mq.addTx(tx, txMemPool);
+			mq.addTx(tx);
 			checkIsDescending(tx, mq);
 		});
 		calculatePrecedingTxsCount(mq);
@@ -114,59 +117,57 @@ public class MiningQueue {
 		return (globalTxsMap.get(txId) != null);
 	}
 
-	// tx comes ordered in descending Sat/vByte
-	private void addTx(Transaction tx, TxMemPool txMemPool) {
+	// tx comes ordered in descending Sat/vByte including ancestors
+	private void addTx(Transaction tx) {
 
 		if (contains(tx.getTxId())) {
 			// This tx is another's parent that has been yet included in a block. Ignore it
 			return;
 		}
+		Optional<ModifiedTx> bestThan = modifiedMempool.getBestThan(tx);
+		while (bestThan.isPresent()) {
+			addTxWithParents(bestThan.get().getTx());
+			modifiedMempool.remove(bestThan.get().getTx().getTxId());
+			bestThan = modifiedMempool.getBestThan(tx);
+		}
+		addTxWithParents(tx);
+	}
+
+	private void addTxWithParents(Transaction tx) {
 
 		Set<String> allParentsOfTx = txMemPool.getAllParentsOf(tx);// Excluding itself
-		if (allParentsOfTx.isEmpty()) {
-			addTxWithNoParentsTx(tx);
-		} else {
-			addTxWithParents(tx, txMemPool, allParentsOfTx);
-		}
-	}
+		Set<String> childrenSet = txMemPool.getAllChildrenOf(tx);// Excluding itself
 
-	private void addTxWithNoParentsTx(Transaction noParentsTx) {
-		Optional<CandidateBlock> blockToFill = getCandidateBlockToFill(noParentsTx);
-		if (blockToFill.isPresent()) {
-			TxToBeMined txToBeMined = blockToFill.get().addTx(noParentsTx, Optional.empty());// It's a simple tx, no
-																								// parents.
-			globalTxsMap.put(noParentsTx.getTxId(), txToBeMined);
-		}
-	}
+		List<Transaction> notInAnyBlockParents = getNotInAnyCandidateBlockTxListOf(allParentsOfTx);
+		List<Transaction> notInAnyBlockChildrens = getNotInAnyCandidateBlockTxListOf(childrenSet);
 
-	private void addTxWithParents(Transaction tx, TxMemPool txMemPool, Set<String> allParentsOfTx) {
-		List<Transaction> notInAnyBlock = getNotInAnyCandidateBlockTxListOf(allParentsOfTx, txMemPool);
-		int notInAnyBlockWeight = notInAnyBlock.stream().mapToInt(trx -> trx.getWeight()).sum();
+		int notInAnyBlockParentsSumWeight = notInAnyBlockParents.stream().mapToInt(trx -> trx.getWeight()).sum();
+		long notInAnyBlockParentsSumFee = notInAnyBlockParents.stream().mapToLong(trx -> trx.getBaseFees()).sum();
 
-		int txEffectiveWeightInCurrentBlock = tx.getWeight() + notInAnyBlockWeight;
+		modifiedMempool.substractFeesTo(notInAnyBlockChildrens, tx.getBaseFees() + notInAnyBlockParentsSumFee);
+
+		int txEffectiveWeightInCurrentBlock = tx.getWeight() + notInAnyBlockParentsSumWeight;
 
 		Optional<CandidateBlock> blockToFill = getCandidateBlockToFill(txEffectiveWeightInCurrentBlock, allParentsOfTx);
 
 		if (blockToFill.isPresent()) {
-			notInAnyBlock.stream().forEach(trx -> {
-				TxToBeMined txToBeMined = blockToFill.get().addTx(trx, Optional.of(tx));
+			notInAnyBlockParents.stream().forEach(trx -> {
+				TxToBeMined txToBeMined = blockToFill.get().addTx(trx, Optional.of(tx),
+						optionalList(notInAnyBlockChildrens));
 				globalTxsMap.put(trx.getTxId(), txToBeMined);
 
 			});
-			TxToBeMined txToBeMined = blockToFill.get().addTx(tx, Optional.empty());
+			TxToBeMined txToBeMined = blockToFill.get().addTx(tx, Optional.empty(),
+					optionalList(notInAnyBlockChildrens));
 			globalTxsMap.put(tx.getTxId(), txToBeMined);
 		}
 	}
 
-	private Optional<CandidateBlock> getCandidateBlockToFill(Transaction noParentsTx) {
-		Iterator<CandidateBlock> it = blockList.iterator();
-		while (it.hasNext()) {
-			CandidateBlock block = it.next();
-			if (block.getFreeSpace() >= noParentsTx.getWeight()) {// tx with no parents!
-				return Optional.of(block);
-			}
+	private Optional<List<Transaction>> optionalList(List<Transaction> txList) {
+		if (txList == null || txList.isEmpty()) {
+			return Optional.empty();
 		}
-		return createOrEmpty();
+		return Optional.of(txList);
 	}
 
 	private Optional<CandidateBlock> getCandidateBlockToFill(int effectiveWeight, Set<String> allParentsOfTx) {
@@ -204,10 +205,10 @@ public class MiningQueue {
 		return true;
 	}
 
-	// Returns the list of txs that are in {@value allParentsOfTx} but not are in
+	// Returns the list of txs that are in {@value txIdSet} but not are in
 	// any CandidateBlock
-	private List<Transaction> getNotInAnyCandidateBlockTxListOf(Set<String> allParentsOfTx, TxMemPool txMemPool) {
-		return allParentsOfTx.stream().filter(txId -> !contains(txId)).map(txId -> txMemPool.getTx(txId))
+	private List<Transaction> getNotInAnyCandidateBlockTxListOf(Set<String> txIdSet) {
+		return txIdSet.stream().filter(txId -> !contains(txId)).map(txId -> txMemPool.getTx(txId))
 				.filter(Optional::isPresent).map(op -> op.get()).collect(Collectors.toList());
 	}
 

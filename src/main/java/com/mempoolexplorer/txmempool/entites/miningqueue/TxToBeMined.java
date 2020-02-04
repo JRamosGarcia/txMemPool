@@ -1,5 +1,6 @@
 package com.mempoolexplorer.txmempool.entites.miningqueue;
 
+import java.util.List;
 import java.util.Optional;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
@@ -9,14 +10,16 @@ public class TxToBeMined {
 	private CandidateBlock containingBlock;
 	private int positionInBlock;
 	private Optional<Transaction> payingChildTx;// Child paying for this tx in case of CPFP
+	private Optional<List<Transaction>> reducedBy;// parents Already in block who reduces satVByte
 
-	public TxToBeMined(Transaction tx, Optional<Transaction> payingChildTx, CandidateBlock containedBlock,
-			int positionInBlock) {
+	public TxToBeMined(Transaction tx, Optional<Transaction> payingChildTx, Optional<List<Transaction>> reducedBy,
+			CandidateBlock containedBlock, int positionInBlock) {
 		super();
 		this.tx = tx;
 		this.containingBlock = containedBlock;
 		this.positionInBlock = positionInBlock;
 		this.payingChildTx = payingChildTx;
+		this.reducedBy = reducedBy;
 	}
 
 	public Transaction getTx() {
@@ -31,16 +34,12 @@ public class TxToBeMined {
 		return positionInBlock;
 	}
 
-	public void setPositionInBlock(int positionInBlock) {
-		this.positionInBlock = positionInBlock;
-	}
-
 	public Optional<Transaction> getPayingChildTx() {
 		return payingChildTx;
 	}
 
-	public void setPayingChildTx(Optional<Transaction> payingChildTx) {
-		this.payingChildTx = payingChildTx;
+	public Optional<List<Transaction>> getReducedBy() {
+		return reducedBy;
 	}
 
 	@Override

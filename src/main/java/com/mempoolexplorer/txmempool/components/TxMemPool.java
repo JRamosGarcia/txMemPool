@@ -17,6 +17,8 @@ public interface TxMemPool {
 
 	Set<String> getAllParentsOf(Transaction tx);
 
+	Set<String> getAllChildrenOf(Transaction tx);
+
 	boolean containsTxId(String txId);
 
 	boolean containsAddrId(String addrId);
@@ -26,5 +28,6 @@ public interface TxMemPool {
 	Set<String> getTxIdsOfAddress(String addrId);
 
 	void drop();
+
 
 }

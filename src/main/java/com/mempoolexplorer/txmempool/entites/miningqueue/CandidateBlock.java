@@ -1,7 +1,9 @@
 package com.mempoolexplorer.txmempool.entites.miningqueue;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -30,10 +32,11 @@ public class CandidateBlock {
 	}
 
 	// Returns TxToBeMined created and added
-	public TxToBeMined addTx(Transaction tx, Optional<Transaction> payingChildTx) {
+	public TxToBeMined addTx(Transaction tx, Optional<Transaction> payingChildTx,
+			Optional<List<Transaction>> reducedBy) {
 		weight += tx.getWeight();
 		totalFees += tx.getFees().getBase();
-		TxToBeMined txToBeMined = new TxToBeMined(tx, payingChildTx, this, nextTxPositionInBlock++);
+		TxToBeMined txToBeMined = new TxToBeMined(tx, payingChildTx, reducedBy, this, nextTxPositionInBlock++);
 		txMap.put(tx.getTxId(), txToBeMined);
 		txList.add(txToBeMined);
 		return txToBeMined;
@@ -119,6 +122,17 @@ public class CandidateBlock {
 					+ txToBeMined.getTx().getTxAncestry().getDescendantCount() + ")");
 			if (txToBeMined.getPayingChildTx().isPresent()) {
 				builder.append(", cp: " + txToBeMined.getPayingChildTx().get().getTxId());
+			}
+			if (txToBeMined.getReducedBy().isPresent()) {
+				builder.append(", rb: ");
+				Iterator<Transaction> it = txToBeMined.getReducedBy().get().iterator();
+				while (it.hasNext()) {
+					Transaction nextTx = it.next();
+					builder.append(nextTx.getTxId());
+					if (it.hasNext()) {
+						builder.append(", ");
+					}
+				}
 			}
 			builder.append(SysProps.NL);
 		}

@@ -55,10 +55,14 @@ public class MaxMinFeeTransactions {
 			return;
 		checkFees(other.maxSatVByte, other.maxSatVByteTxId);
 		checkFees(other.minSatVByte, other.minSatVByteTxId);
+		totalBaseFee += other.totalBaseFee;
+		totalAncestorsFee += other.totalAncestorsFee;
+
 	}
 
 	// fee and txId must be checked correct before calling this method.
 	private void checkFees(double fee, String txId) {
+
 		if (fee > maxSatVByte) {
 			maxSatVByte = fee;
 			maxSatVByteTxId = txId;
@@ -124,13 +128,13 @@ public class MaxMinFeeTransactions {
 			builder.append(totalBaseFee);
 			builder.append(", totalAncestorsFee=");
 			builder.append(totalAncestorsFee);
-			builder.append(", maxFee=");
+			builder.append(", maxSatVByte=");
 			builder.append(maxSatVByte);
-			builder.append(", minFee=");
+			builder.append(", minSatVByte=");
 			builder.append(minSatVByte);
-			builder.append(", maxFeeTxId=");
+			builder.append(", maxSatVByteTxId=");
 			builder.append(maxSatVByteTxId);
-			builder.append(", minFeeTxId=");
+			builder.append(", minSatVByteTxId=");
 			builder.append(minSatVByteTxId);
 		} else {
 			builder.append("Not A Value");

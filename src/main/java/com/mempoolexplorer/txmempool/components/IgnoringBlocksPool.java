@@ -1,5 +1,6 @@
 package com.mempoolexplorer.txmempool.components;
 
+import java.util.Map;
 import java.util.Optional;
 
 import com.mempoolexplorer.txmempool.entites.IgnoringBlock;
@@ -11,5 +12,7 @@ public interface IgnoringBlocksPool {
 	Optional<IgnoringBlock> getIgnoringBlock(Integer height);
 
 	Optional<IgnoringBlock> getLast();
+
+	Map<Integer, IgnoringBlock> getIgnoringBlocksMap();
 
 }

@@ -15,7 +15,7 @@ import com.mempoolexplorer.txmempool.utils.SysProps;
 public class CandidateBlock {
 	private int position = 0;// Position of this block in queue
 	private int weight = 0;
-	private int totalFees = 0;
+	private long totalFees = 0;
 	private int coinBaseWeight = 0;
 	private int precedingTxsCount = 0; // Sum of all txs in preceding blocks
 
@@ -83,7 +83,7 @@ public class CandidateBlock {
 		return weight;
 	}
 
-	public int getTotalFees() {
+	public long getTotalFees() {
 		return totalFees;
 	}
 
@@ -121,10 +121,12 @@ public class CandidateBlock {
 			builder.append(", (" + txToBeMined.getTx().getTxAncestry().getAncestorCount() + ","
 					+ txToBeMined.getTx().getTxAncestry().getDescendantCount() + ")");
 			if (txToBeMined.getPayingChildTx().isPresent()) {
+				// cp stands for "child paying"
 				builder.append(", cp: " + txToBeMined.getPayingChildTx().get().getTxId());
 			}
 			if (txToBeMined.getReducedBy().isPresent()) {
-				builder.append(", rb: ");
+				// red stands for "reducing fee of"
+				builder.append(", rfo: ");
 				Iterator<Transaction> it = txToBeMined.getReducedBy().get().iterator();
 				while (it.hasNext()) {
 					Transaction nextTx = it.next();

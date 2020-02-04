@@ -14,6 +14,7 @@ public class IgnoringBlock {
 	private Integer weight;// up to 4000000
 	private Instant blockChangeTime;// Mined time set by us, not mining operators.
 	private MaxMinFeeTransactions maxMinFeesInBlock;// Sat/vByte
+	private IgnoringBlockStats candidateBlockStats;
 	private IgnoringBlockStats minedAndInMemPoolStats;// ok txs
 	private IgnoringBlockStats notMinedButInCandidateBlockStats;// shouldHaveBeenMined
 	private IgnoringBlockStats minedInMempoolButNotInCandidateBlockStats;// shouldHaveNotBeenMined
@@ -22,6 +23,7 @@ public class IgnoringBlock {
 	private Integer minedButNotInMemPoolTxNum;// >=1 due to coinbase transaction
 	private CoinBaseTx coinBaseTx;
 	private String minerName = UNKNOWN;// If not known, "Unknown"
+	private String ascciCoinBaseField;
 
 	public Integer getBlockHeight() {
 		return blockHeight;
@@ -61,6 +63,14 @@ public class IgnoringBlock {
 
 	public void setMaxMinFeesInBlock(MaxMinFeeTransactions maxMinFeesInBlock) {
 		this.maxMinFeesInBlock = maxMinFeesInBlock;
+	}
+
+	public IgnoringBlockStats getCandidateBlockStats() {
+		return candidateBlockStats;
+	}
+
+	public void setCandidateBlockStats(IgnoringBlockStats candidateBlockStats) {
+		this.candidateBlockStats = candidateBlockStats;
 	}
 
 	public IgnoringBlockStats getMinedAndInMemPoolStats() {
@@ -120,8 +130,12 @@ public class IgnoringBlock {
 		this.minerName = minerName;
 	}
 
-	public static String getUnknown() {
-		return UNKNOWN;
+	public String getAscciCoinBaseField() {
+		return ascciCoinBaseField;
+	}
+
+	public void setAscciCoinBaseField(String ascciCoinBaseField) {
+		this.ascciCoinBaseField = ascciCoinBaseField;
 	}
 
 	@Override
@@ -143,6 +157,9 @@ public class IgnoringBlock {
 		builder.append("maxMinFeesInBlock=");
 		builder.append(maxMinFeesInBlock);
 		builder.append(nl);
+		builder.append("candidateBlockStats=");
+		builder.append(candidateBlockStats);
+		builder.append(nl);
 		builder.append("minedAndInMemPoolStats=");
 		builder.append(minedAndInMemPoolStats);
 		builder.append(nl);
@@ -163,6 +180,9 @@ public class IgnoringBlock {
 		builder.append(nl);
 		builder.append("minerName=");
 		builder.append(minerName);
+		builder.append(nl);
+		builder.append("ascciCoinBaseField=");
+		builder.append(ascciCoinBaseField);
 		builder.append(nl);
 		builder.append("]");
 		return builder.toString();

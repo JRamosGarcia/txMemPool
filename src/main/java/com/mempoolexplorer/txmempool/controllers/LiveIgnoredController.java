@@ -86,6 +86,11 @@ public class LiveIgnoredController {
 		return ignoredTransaction.get();
 	}
 
+	@GetMapping("/blocks")
+	public Map<Integer, IgnoringBlock> getIgnoringBlockMap() {
+		return ignoringBlocksPool.getIgnoringBlocksMap();
+	}
+
 	@GetMapping("/blocks/{height}")
 	public IgnoringBlock getIgnoringBlock(@PathVariable("height") Integer height)
 			throws IgnoringBlockNotFoundException {

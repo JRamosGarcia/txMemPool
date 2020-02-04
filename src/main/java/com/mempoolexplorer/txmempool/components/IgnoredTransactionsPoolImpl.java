@@ -24,6 +24,7 @@ import com.mempoolexplorer.txmempool.entites.MaxMinFeeTransactionMap;
 import com.mempoolexplorer.txmempool.entites.MaxMinFeeTransactions;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.NotMinedTransaction;
+import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
 @Component
@@ -47,7 +48,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 	private AtomicReference<Map<String, IgnoredTransaction>> ignoredTransactionMapRef = new AtomicReference<>(
 			ignoredTransactionMap);
 
-	long totalFeesLost = 0;// Just For fun
+	long totalGlobalFeesLost = 0;// Just For fun
 
 	@Override
 	public Map<String, IgnoredTransaction> atomicGetIgnoredTransactionMap() {
@@ -74,7 +75,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 			alarmLogger.addAlarm("Lost Reward: " + lostReward + ", in block: " + ignoringBlock.getBlockHeight());
 		}
 
-		totalFeesLost += lostReward;
+		totalGlobalFeesLost += lostReward;
 		logger.info(ignoringBlock.toString());
 		Iterator<NotMinedTransaction> it = mmt.getNotMinedButInCandidateBlock().getTxMap().values().iterator();
 		while (it.hasNext()) {
@@ -137,7 +138,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 			sb.append(nl);
 		});
 		logger.info(sb.toString());
-		logger.info("TotalFeesLost: {}", totalFeesLost);
+		logger.info("TotalGlobalFeesLost: {}", totalGlobalFeesLost);
 
 	}
 
@@ -186,22 +187,36 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 	}
 
 	private IgnoringBlock calculateIgnorigBlock(Block block, MisMinedTransactions mmt) {
-		IgnoringBlock repBlock = new IgnoringBlock();
-		repBlock.setBlockChangeTime(block.getChangeTime());
-		repBlock.setBlockHeight(block.getHeight());
-		repBlock.setCoinBaseTx(block.getCoinBaseTx());
-		repBlock.setLostReward(calculateLostReward(block, mmt));
-		repBlock.setMaxMinFeesInBlock(calculateMaxMinFeesInBlock(block, mmt));
-		repBlock.setMinedAndInMemPoolStats(calculateStats(mmt.getMinedAndInMemPool()));
-		repBlock.setMinedButNotInMemPoolTxNum(mmt.getMinedButNotInMemPool().size());
-		repBlock.setMinedInMempoolButNotInCandidateBlockStats(
+		IgnoringBlock igBlock = new IgnoringBlock();
+		igBlock.setBlockChangeTime(block.getChangeTime());
+		igBlock.setBlockHeight(block.getHeight());
+		igBlock.setCoinBaseTx(block.getCoinBaseTx());
+		igBlock.setLostReward(calculateLostReward(block, mmt));
+		igBlock.setMaxMinFeesInBlock(calculateMaxMinFeesInBlock(block, mmt));
+
+		igBlock.setCandidateBlockStats(calculateStats(mmt.getCandidateBlock()));
+
+		igBlock.setMinedAndInMemPoolStats(calculateStats(mmt.getMinedAndInMemPool()));
+		igBlock.setMinedButNotInMemPoolTxNum(mmt.getMinedButNotInMemPoolSet().size());
+		igBlock.setMinedInMempoolButNotInCandidateBlockStats(
 				calculateStats(mmt.getMinedInMempoolButNotInCandidateBlock()));
-		repBlock.setMinerName(IgnoringBlock.UNKNOWN);
-		repBlock.setNotMinedButInCandidateBlockStats(
+		igBlock.setMinerName(IgnoringBlock.UNKNOWN);
+		igBlock.setNotMinedButInCandidateBlockStats(
 				calculateNotMinedTransactionStats(mmt.getNotMinedButInCandidateBlock()));
-		repBlock.setNumTxInMinedBlock(block.getTxIds().size());
-		repBlock.setWeight(block.getWeight());
-		return repBlock;
+		igBlock.setNumTxInMinedBlock(block.getTxIds().size());
+		igBlock.setWeight(block.getWeight());
+		return igBlock;
+	}
+
+	private IgnoringBlockStats calculateStats(CandidateBlock candidateBlock) {
+		MaxMinFeeTransactions mmft = new MaxMinFeeTransactions();
+
+		candidateBlock.getEntriesStream().map(entry -> entry.getValue()).forEach(txtbm -> {
+			mmft.checkFees(txtbm.getTx());
+		});
+		IgnoringBlockStats candidateBlockStats = new IgnoringBlockStats(mmft, candidateBlock.numTxs(),
+				candidateBlock.getTotalFees(), candidateBlock.getWeight());
+		return candidateBlockStats;
 	}
 
 	private IgnoringBlockStats calculateStats(MaxMinFeeTransactionMap<Transaction> mmftm) {

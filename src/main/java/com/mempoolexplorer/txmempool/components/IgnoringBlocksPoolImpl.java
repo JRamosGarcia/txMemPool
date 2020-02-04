@@ -31,9 +31,14 @@ public class IgnoringBlocksPoolImpl implements IgnoringBlocksPool {
 	public Optional<IgnoringBlock> getIgnoringBlock(Integer height) {
 		return Optional.ofNullable(ignoringBlocksMap.get(height));
 	}
-	
+
 	@Override
 	public Optional<IgnoringBlock> getLast() {
 		return Optional.ofNullable(last);
+	}
+
+	@Override
+	public Map<Integer, IgnoringBlock> getIgnoringBlocksMap() {
+		return ignoringBlocksMap;
 	}
 }

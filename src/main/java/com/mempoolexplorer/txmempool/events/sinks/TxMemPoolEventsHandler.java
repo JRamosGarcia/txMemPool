@@ -3,7 +3,6 @@ package com.mempoolexplorer.txmempool.events.sinks;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,21 +26,18 @@ import org.springframework.messaging.handler.annotation.Header;
 import com.mempoolexplorer.txmempool.TxMemPoolApplication;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
-import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.NotInMemPoolTx;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.mempool.TxPoolChanges;
 import com.mempoolexplorer.txmempool.components.IgnoredTransactionsPool;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
-import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
+import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
 import com.mempoolexplorer.txmempool.events.CustomChannels;
 import com.mempoolexplorer.txmempool.events.MempoolEvent;
 import com.mempoolexplorer.txmempool.feingintefaces.BitcoindAdapter;
 import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
-import com.mempoolexplorer.txmempool.utils.AsciiUtils;
-import com.mempoolexplorer.txmempool.utils.SysProps;
 
 @EnableBinding(CustomChannels.class)
 public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<ListenerContainerIdleEvent> {
@@ -225,33 +221,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 					"!misMinedTransactions.getCoherentSets() on block: " + misMinedTransactions.getBlockHeight());
 		}
 		logger.info(misMinedTransactions.toString());
-		logger.info(strLogBlockNotInMemPoolData(block));
 		ignoredTransactionPool.refresh(block, misMinedTransactions, txMemPool);
-	}
-
-	private String strLogBlockNotInMemPoolData(Block block) {
-		String nl = SysProps.NL;
-		StringBuilder sb = new StringBuilder();
-		sb.append("CoinbaseTxId: " + block.getCoinBaseTx().getTxId());
-		sb.append(nl);
-		sb.append("CoinbaseField: " + block.getCoinBaseTx().getvInField());
-		sb.append(nl);
-		sb.append("CoinbaseWeight: " + block.getCoinBaseTx().getWeight());
-		sb.append(nl);
-
-		sb.append("Ascci: " + AsciiUtils.hexToAscii(block.getCoinBaseTx().getvInField()));
-		sb.append(nl);
-		sb.append("block.notInmempool: [");
-
-		Iterator<NotInMemPoolTx> it = block.getNotInMemPoolTransactions().values().iterator();
-		while (it.hasNext()) {
-			NotInMemPoolTx tx = it.next();
-			sb.append(nl);
-			sb.append(tx.toString());
-		}
-		sb.append(nl);
-		sb.append("]");
-		return sb.toString();
 	}
 
 	private void doFullLoadAsync() {

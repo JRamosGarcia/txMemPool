@@ -12,8 +12,10 @@ import java.util.stream.Stream;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
+import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.NotInMemPoolTx;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
+import com.mempoolexplorer.txmempool.utils.AsciiUtils;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
 /**
@@ -35,19 +37,24 @@ public class MisMinedTransactions {
 	private MaxMinFeeTransactionMap<Transaction> minedInMempoolButNotInCandidateBlock = new MaxMinFeeTransactionMap<>();
 
 	// Suspicious transactions of not been broadcasted
-	private Set<String> minedButNotInMemPool = new HashSet<>();
+	private Set<String> minedButNotInMemPoolSet = new HashSet<>();
+
+	// Suspicious transactions of not been broadcasted statistics
+	private MaxMinFeeTransactionMap<NotInMemPoolTx> minedButNotInMemPoolMap = new MaxMinFeeTransactionMap<>();
 
 	// Ok
 	private MaxMinFeeTransactionMap<Transaction> minedAndInMemPool = new MaxMinFeeTransactionMap<Transaction>();
 
-	private CandidateBlock candidateBlock;
-	
+	private CandidateBlock candidateBlock;// our Candidate
+
+	private Block block;// Really mined
+
 	private Boolean coherentSets = true;
 
 	public static MisMinedTransactions from(TxMemPool txMemPool, CandidateBlock candidateBlock, Block block) {
 
 		// In block, but not in memPool nor candidateBlock
-		Set<String> minedButNotInMemPool = new HashSet<>();
+		Set<String> minedButNotInMemPoolSet = new HashSet<>();
 		// In block and memPool
 		MaxMinFeeTransactionMap<Transaction> minedAndInMemPool = new MaxMinFeeTransactionMap<>(
 				SysProps.EXPECTED_NUM_TX_IN_BLOCK);
@@ -63,7 +70,7 @@ public class MisMinedTransactions {
 					minedInMempoolButNotInCandidateBlockMap.put(optTx.get());
 				}
 			} else {
-				minedButNotInMemPool.add(txId);
+				minedButNotInMemPoolSet.add(txId);
 			}
 		});
 
@@ -71,16 +78,22 @@ public class MisMinedTransactions {
 		MaxMinFeeTransactionMap<NotMinedTransaction> notMinedButInCandidateBlockMap = calculateNotMinedButInCandidateBlock(
 				candidateBlock, minedAndInMemPool.getTxMap());
 
+		// Mined but not in mempool
+		MaxMinFeeTransactionMap<NotInMemPoolTx> minedButNotInMemPoolMap = new MaxMinFeeTransactionMap<>();
+		block.getNotInMemPoolTransactions().values().forEach(nimTx -> minedButNotInMemPoolMap.put(nimTx));
+
 		MisMinedTransactions mmt = new MisMinedTransactions();
-		mmt.setCoherentSets(checkNotInMemPoolTxs(block, minedButNotInMemPool));
+		mmt.setCoherentSets(checkNotInMemPoolTxs(block, minedButNotInMemPoolSet));
 		mmt.setBlockChangeTime(block.getChangeTime());
 		mmt.setBlockHeight(block.getHeight());
 		mmt.setNumTxInMinedBlock(block.getTxIds().size());
-		mmt.setMinedButNotInMemPool(minedButNotInMemPool);
+		mmt.setMinedButNotInMemPoolSet(minedButNotInMemPoolSet);
+		mmt.setMinedButNotInMemPoolMap(minedButNotInMemPoolMap);
 		mmt.setMinedAndInMemPool(minedAndInMemPool);
 		mmt.setNotMinedButInCandidateBlock(notMinedButInCandidateBlockMap);
 		mmt.setMinedInMempoolButNotInCandidateBlock(minedInMempoolButNotInCandidateBlockMap);
 		mmt.setCandidateBlock(candidateBlock);
+		mmt.setBlock(block);
 		return mmt;
 	}
 
@@ -155,12 +168,20 @@ public class MisMinedTransactions {
 		this.minedInMempoolButNotInCandidateBlock = minedInMempoolButNotInCandidateBlock;
 	}
 
-	public Set<String> getMinedButNotInMemPool() {
-		return minedButNotInMemPool;
+	public Set<String> getMinedButNotInMemPoolSet() {
+		return minedButNotInMemPoolSet;
 	}
 
-	public void setMinedButNotInMemPool(Set<String> minedButNotInMemPool) {
-		this.minedButNotInMemPool = minedButNotInMemPool;
+	public void setMinedButNotInMemPoolSet(Set<String> minedButNotInMemPoolSet) {
+		this.minedButNotInMemPoolSet = minedButNotInMemPoolSet;
+	}
+
+	public MaxMinFeeTransactionMap<NotInMemPoolTx> getMinedButNotInMemPoolMap() {
+		return minedButNotInMemPoolMap;
+	}
+
+	public void setMinedButNotInMemPoolMap(MaxMinFeeTransactionMap<NotInMemPoolTx> minedButNotInMemPoolMap) {
+		this.minedButNotInMemPoolMap = minedButNotInMemPoolMap;
 	}
 
 	public MaxMinFeeTransactionMap<Transaction> getMinedAndInMemPool() {
@@ -177,6 +198,14 @@ public class MisMinedTransactions {
 
 	public void setCandidateBlock(CandidateBlock candidateBlock) {
 		this.candidateBlock = candidateBlock;
+	}
+
+	public Block getBlock() {
+		return block;
+	}
+
+	public void setBlock(Block block) {
+		this.block = block;
 	}
 
 	public Boolean getCoherentSets() {
@@ -226,11 +255,31 @@ public class MisMinedTransactions {
 				+ minedInMempoolButNotInCandidateBlock.getTxMap().size() + "#tx, ");
 		builder.append(calculateWUnits(minedInMempoolButNotInCandidateBlock.getTxMap().values().stream()) + "wUnits)");
 		buildTransactionLogStr(builder, minedInMempoolButNotInCandidateBlock, true);
-		builder.append("minedButNotInMemPool: (#" + minedButNotInMemPool.size() + ")");
+		builder.append("minedButNotInMemPoolSet: (#" + minedButNotInMemPoolSet.size() + ")");
 		builder.append(nl + "[" + nl);
-		builder.append(String.join(nl, minedButNotInMemPool.stream().collect(Collectors.toList())));
+		builder.append(String.join(nl, minedButNotInMemPoolSet.stream().collect(Collectors.toList())));
 		builder.append(nl + "]");
 		builder.append(nl);
+		builder.append("CoinbaseTxId: " + block.getCoinBaseTx().getTxId());
+		builder.append(nl);
+		builder.append("CoinbaseField: " + block.getCoinBaseTx().getvInField());
+		builder.append(nl);
+		builder.append("CoinbaseWeight: " + block.getCoinBaseTx().getWeight());
+		builder.append(nl);
+
+		builder.append("Ascci: " + AsciiUtils.hexToAscii(block.getCoinBaseTx().getvInField()));
+		builder.append(nl);
+		builder.append("block.notInmempool: [");
+		Iterator<NotInMemPoolTx> it = block.getNotInMemPoolTransactions().values().iterator();
+		while (it.hasNext()) {
+			NotInMemPoolTx tx = it.next();
+			builder.append(nl);
+			builder.append(tx.toString());
+		}
+		builder.append(nl);
+		builder.append("]");
+		builder.append("block.notInMempool.maxMinFee: ");
+		builder.append(minedButNotInMemPoolMap.getMaxMinFee().toString());
 		builder.append("COHERENTSETS: ");
 		builder.append(coherentSets);
 		return builder.toString();

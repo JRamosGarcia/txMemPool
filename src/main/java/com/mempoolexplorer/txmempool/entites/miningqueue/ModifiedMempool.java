@@ -42,11 +42,11 @@ public class ModifiedMempool {
 	}
 
 	public Optional<ModifiedTx> getBestThan(Transaction tx) {
-		// Get lastKey, if not present return empty.
-		TxKey lastKey = txMemPool.lastKey();
-		if (lastKey == null) {
+		if(txMemPool.isEmpty()) {
 			return Optional.empty();
 		}
+		// Get lastKey, if not present throws NotSuchElementException!!!
+		TxKey lastKey = txMemPool.lastKey();
 		// if tx is already in our map, return lastKey, it will be better because this
 		// map is ordered
 		if (txKeyMap.containsKey(tx.getTxId())) {

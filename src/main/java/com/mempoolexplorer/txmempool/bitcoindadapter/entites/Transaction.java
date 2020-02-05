@@ -76,6 +76,11 @@ public class Transaction implements Feeable {
 		return fees.getAncestor();
 	}
 
+	@Override
+	public int getWeight() {
+		return weight;
+	}
+
 	@JsonIgnore
 	public double getvSize() {
 		return weight / 4.0D;
@@ -99,10 +104,6 @@ public class Transaction implements Feeable {
 
 	public void setTxOutputs(List<TxOutput> txOutputs) {
 		this.txOutputs = txOutputs;
-	}
-
-	public Integer getWeight() {
-		return weight;
 	}
 
 	public void setWeight(Integer weight) {

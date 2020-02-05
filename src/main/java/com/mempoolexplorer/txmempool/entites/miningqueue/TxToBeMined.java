@@ -4,8 +4,9 @@ import java.util.List;
 import java.util.Optional;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
+import com.mempoolexplorer.txmempool.entites.Feeable;
 
-public class TxToBeMined {
+public class TxToBeMined implements Feeable{
 	private Transaction tx;
 	private CandidateBlock containingBlock;
 	private int positionInBlock;
@@ -65,6 +66,36 @@ public class TxToBeMined {
 		} else if (!tx.equals(other.tx))
 			return false;
 		return true;
+	}
+
+	@Override
+	public String getTxId() {
+		return tx.getTxId();
+	}
+
+	@Override
+	public double getSatvByte() {
+		return tx.getSatvByte();
+	}
+
+	@Override
+	public double getSatvByteIncludingAncestors() {
+		return tx.getSatvByteIncludingAncestors();
+	}
+
+	@Override
+	public long getBaseFees() {
+		return tx.getBaseFees();
+	}
+
+	@Override
+	public long getAncestorFees() {
+		return tx.getAncestorFees();
+	}
+
+	@Override
+	public int getWeight() {
+		return tx.getWeight();
 	}
 
 }

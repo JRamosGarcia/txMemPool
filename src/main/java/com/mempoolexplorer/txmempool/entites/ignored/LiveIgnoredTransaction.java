@@ -31,9 +31,6 @@ public class LiveIgnoredTransaction {
 
 	}
 
-
-
-
 	public static LiveIgnoredTransaction from(IgnoredTransaction igTx) {
 		var liTx = new LiveIgnoredTransaction();
 
@@ -41,8 +38,8 @@ public class LiveIgnoredTransaction {
 		var smallIBList = new ArrayList<SmallIgnoringBlock>();
 		for (IgnoringBlock ib : igTx.getIgnoringBlockList()) {
 			var sib = new SmallIgnoringBlock();
-			sib.setHeight(ib.getBlockHeight());
-			sib.setPostitionInQueue(igTx.getPositionInBlockHeightMap().get(ib.getBlockHeight()));
+			sib.setHeight(ib.getMinedBlockData().getHeight());
+			sib.setPostitionInQueue(igTx.getPositionInBlockHeightMap().get(ib.getMinedBlockData().getHeight()));
 			smallIBList.add(sib);
 		}
 		liTx.setSmallIgnoringBlockList(smallIBList);

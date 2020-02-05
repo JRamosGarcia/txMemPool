@@ -215,11 +215,17 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			logger.warn("THIS SHOULD NOT BE HAPPENING: optCB.isEmpty()");
 			return;
 		}
-		MisMinedTransactions misMinedTransactions = MisMinedTransactions.from(txMemPool, optCB.get(), block);
+		MisMinedTransactions misMinedTransactions = new MisMinedTransactions(txMemPool, optCB.get(), block);
 		if (!misMinedTransactions.getCoherentSets()) {
-			alarmLogger.addAlarm(
-					"!misMinedTransactions.getCoherentSets() on block: " + misMinedTransactions.getBlockHeight());
+			alarmLogger.addAlarm("!misMinedTransactions.getCoherentSets() on block: "
+					+ misMinedTransactions.getMinedBlockData().getHeight());
 		}
+
+		if (misMinedTransactions.getLostReward() < 0L) {
+			alarmLogger.addAlarm("Lost Reward: " + misMinedTransactions.getLostReward() + ", in block: "
+					+ misMinedTransactions.getMinedBlockData().getHeight());
+		}
+
 		logger.info(misMinedTransactions.toString());
 		ignoredTransactionPool.refresh(block, misMinedTransactions, txMemPool);
 	}

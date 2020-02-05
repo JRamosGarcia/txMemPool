@@ -15,5 +15,7 @@ public interface Feeable {
 	long getBaseFees();// This does not include ancestors.
 
 	long getAncestorFees();// This includes ancestors if any.
+	
+	int getWeight();// This does not include ancestors
 
 }

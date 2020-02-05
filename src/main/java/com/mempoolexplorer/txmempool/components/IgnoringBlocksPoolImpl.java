@@ -22,9 +22,9 @@ public class IgnoringBlocksPoolImpl implements IgnoringBlocksPool {
 	@Override
 	public void add(IgnoringBlock igBlock) {
 		last = igBlock;
-		ignoringBlocksMap.put(igBlock.getBlockHeight(), igBlock);
+		ignoringBlocksMap.put(igBlock.getMinedBlockData().getHeight(), igBlock);
 		// Kind of circular buffer
-		ignoringBlocksMap.remove(igBlock.getBlockHeight() - txMempoolProperties.getLiveMiningQueueGraphSize());
+		ignoringBlocksMap.remove(igBlock.getMinedBlockData().getHeight() - txMempoolProperties.getLiveMiningQueueGraphSize());
 	}
 
 	@Override

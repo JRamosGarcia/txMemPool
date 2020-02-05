@@ -110,9 +110,9 @@ public class IgnoredTransaction {
 
 		Iterator<IgnoringBlock> it = ignoringBlockList.iterator();
 		while (it.hasNext()) {
-			IgnoringBlock rBlock = it.next();
-			builder.append("(bh: " + rBlock.getBlockHeight() + ",pos: "
-					+ positionInBlockHeightMap.get(rBlock.getBlockHeight()) + ")");
+			IgnoringBlock igBlock = it.next();
+			builder.append("(bh: " + igBlock.getMinedBlockData().getHeight() + ",pos: "
+					+ positionInBlockHeightMap.get(igBlock.getMinedBlockData().getHeight()) + ")");
 			if (it.hasNext()) {
 				builder.append(", ");
 			}

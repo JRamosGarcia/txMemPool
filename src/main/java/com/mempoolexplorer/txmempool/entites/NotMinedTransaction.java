@@ -53,4 +53,9 @@ public class NotMinedTransaction implements Feeable {
 		return tx.getAncestorFees();
 	}
 
+	@Override
+	public int getWeight() {
+		return tx.getWeight();
+	}
+
 }

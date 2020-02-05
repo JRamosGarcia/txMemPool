@@ -6,13 +6,13 @@ public class NotInMemPoolTx implements Feeable {
 
 	private String txId;
 	private Long fees;// in Satoshis. Sadly this does not take into account Ancestors
-	private Integer weigth;// Sadly this does not take into account Ancestors
+	private Integer weight;// Sadly this does not take into account Ancestors
 
-	public NotInMemPoolTx(String txId, Long fees, Integer weigth) {
+	public NotInMemPoolTx(String txId, Long fees, Integer weight) {
 		super();
 		this.txId = txId;
 		this.fees = fees;
-		this.weigth = weigth;
+		this.weight = weight;
 	}
 
 	@Override
@@ -24,12 +24,12 @@ public class NotInMemPoolTx implements Feeable {
 	// information
 	@Override
 	public double getSatvByteIncludingAncestors() {
-		return ((double) fees / ((double) (weigth) / 4.0d));
+		return ((double) fees / ((double) (weight) / 4.0d));
 	}
 
 	@Override
 	public double getSatvByte() {
-		return ((double) fees / ((double) (weigth) / 4.0d));
+		return ((double) fees / ((double) (weight) / 4.0d));
 	}
 
 	@Override
@@ -41,6 +41,11 @@ public class NotInMemPoolTx implements Feeable {
 	@Override
 	public long getAncestorFees() {
 		return fees;
+	}
+
+	@Override
+	public int getWeight() {
+		return weight;
 	}
 
 	public void setTxId(String txId) {
@@ -55,12 +60,8 @@ public class NotInMemPoolTx implements Feeable {
 		this.fees = fees;
 	}
 
-	public Integer getWeigth() {
-		return weigth;
-	}
-
 	public void setWeigth(Integer weigth) {
-		this.weigth = weigth;
+		this.weight = weigth;
 	}
 
 	@Override
@@ -70,8 +71,8 @@ public class NotInMemPoolTx implements Feeable {
 		builder.append(txId);
 		builder.append(", fees=");
 		builder.append(fees);
-		builder.append(", weigth=");
-		builder.append(weigth);
+		builder.append(", weight=");
+		builder.append(weight);
 		builder.append("]");
 		return builder.toString();
 	}

@@ -25,6 +25,7 @@ import com.mempoolexplorer.txmempool.entites.MaxMinFeeTransactions;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.NotMinedTransaction;
 import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
+import com.mempoolexplorer.txmempool.utils.AsciiUtils;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
 @Component
@@ -201,6 +202,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 		igBlock.setMinedInMempoolButNotInCandidateBlockStats(
 				calculateStats(mmt.getMinedInMempoolButNotInCandidateBlock()));
 		igBlock.setMinerName(IgnoringBlock.UNKNOWN);
+		igBlock.setAscciCoinBaseField(AsciiUtils.hexToAscii(block.getCoinBaseTx().getvInField()));
 		igBlock.setNotMinedButInCandidateBlockStats(
 				calculateNotMinedTransactionStats(mmt.getNotMinedButInCandidateBlock()));
 		igBlock.setNumTxInMinedBlock(block.getTxIds().size());

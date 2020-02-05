@@ -62,7 +62,10 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 
 		ignoringBlocksPool.add(ignoringBlock);
 
-		logger.info(ignoringBlock.toString());
+		if (logger.isDebugEnabled()) {
+			logger.debug(ignoringBlock.toString());
+		}
+
 		Iterator<NotMinedTransaction> it = mmt.getNotMinedButInCandidateBlockMapWD().getFeeableMap().values()
 				.iterator();
 		while (it.hasNext()) {
@@ -117,15 +120,18 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 	}
 
 	private void logIt() {
-		String nl = SysProps.NL;
-		StringBuilder sb = new StringBuilder();
-		sb.append("ignoredTransactionMap (#" + ignoredTransactionMap.size() + "):");
-		sb.append(nl);
-		ignoredTransactionMap.values().stream().forEach(rtx -> {
-			sb.append(rtx.toString());
+		if (logger.isDebugEnabled()) {
+
+			String nl = SysProps.NL;
+			StringBuilder sb = new StringBuilder();
+			sb.append("ignoredTransactionMap (#" + ignoredTransactionMap.size() + "):");
 			sb.append(nl);
-		});
-		logger.info(sb.toString());
+			ignoredTransactionMap.values().stream().forEach(rtx -> {
+				sb.append(rtx.toString());
+				sb.append(nl);
+			});
+			logger.debug(sb.toString());
+		}
 	}
 
 	private void clearIgnoredTransactionMap(Block block, TxMemPool txMemPool) {
@@ -159,17 +165,20 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 	}
 
 	private void logClearedIgnoredTransactionMap(Set<String> txIds) {
-		String nl = SysProps.NL;
-		StringBuilder sb = new StringBuilder();
-		sb.append("DeletedIgnoredTransactions (#" + txIds.size() + "):");
-		Iterator<String> it = txIds.iterator();
-		while (it.hasNext()) {
-			String txId = it.next();
-			IgnoredTransaction igTx = ignoredTransactionMap.get(txId);
-			sb.append(nl);
-			sb.append(igTx.toString());
+		if (logger.isDebugEnabled()) {
+
+			String nl = SysProps.NL;
+			StringBuilder sb = new StringBuilder();
+			sb.append("DeletedIgnoredTransactions (#" + txIds.size() + "):");
+			Iterator<String> it = txIds.iterator();
+			while (it.hasNext()) {
+				String txId = it.next();
+				IgnoredTransaction igTx = ignoredTransactionMap.get(txId);
+				sb.append(nl);
+				sb.append(igTx.toString());
+			}
+			logger.debug(sb.toString());
 		}
-		logger.info(sb.toString());
 	}
 
 }

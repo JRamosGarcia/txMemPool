@@ -1,5 +1,7 @@
 package com.mempoolexplorer.txmempool.entites;
 
+import java.util.List;
+
 public class IgnoringBlock {
 
 	public static final String UNKNOWN = "Unknown";
@@ -10,15 +12,15 @@ public class IgnoringBlock {
 	private FeeableData notMinedButInCandidateBlockData;
 	private FeeableData minedInMempoolButNotInCandidateBlockData;
 	private FeeableData minedButNotInMemPoolData;
-	private Boolean coherentSets = true;
+	private List<String> consistencyErrors;
 	private String minerName = UNKNOWN;// If not known, "Unknown"
 	private long lostReward;
 	private long lostRewardExcludingNotInMempoolTx;
 
 	public IgnoringBlock() {
-		
+
 	}
-	
+
 	public IgnoringBlock(MisMinedTransactions mmt) {
 		this.minedBlockData = mmt.getMinedBlockData();
 		this.candidateBlockData = mmt.getCandidateBlockData();
@@ -27,9 +29,9 @@ public class IgnoringBlock {
 		this.minedInMempoolButNotInCandidateBlockData = mmt.getMinedInMempoolButNotInCandidateBlockMapWD()
 				.getFeeableData();
 		this.minedButNotInMemPoolData = mmt.getMinedButNotInMemPoolMapWD().getFeeableData();
-		this.coherentSets = mmt.getCoherentSets();
-		this.lostReward=mmt.getLostReward();
-		this.lostRewardExcludingNotInMempoolTx= mmt.getLostRewardExcludingNotInMempoolTx();
+		this.consistencyErrors = mmt.getConsistencyErrors();
+		this.lostReward = mmt.getLostReward();
+		this.lostRewardExcludingNotInMempoolTx = mmt.getLostRewardExcludingNotInMempoolTx();
 	}
 
 	public MinedBlockData getMinedBlockData() {
@@ -56,8 +58,8 @@ public class IgnoringBlock {
 		return minedButNotInMemPoolData;
 	}
 
-	public Boolean getCoherentSets() {
-		return coherentSets;
+	public List<String> getConsistencyErrors() {
+		return consistencyErrors;
 	}
 
 	public String getMinerName() {

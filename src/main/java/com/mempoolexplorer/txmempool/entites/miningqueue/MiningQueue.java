@@ -124,10 +124,6 @@ public class MiningQueue {
 	// tx comes ordered in descending Sat/vByte including ancestors
 	private void addTx(Transaction tx) {
 
-		if (contains(tx.getTxId())) {
-			// This tx is another's parent that has been yet included in a block. Ignore it
-			return;
-		}
 		Optional<ModifiedTx> bestThan = modifiedMempool.getBestThan(tx);
 		while (bestThan.isPresent()) {
 			addTxWithParents(bestThan.get().getTx());
@@ -138,6 +134,11 @@ public class MiningQueue {
 	}
 
 	private void addTxWithParents(Transaction tx) {
+
+		if (contains(tx.getTxId())) {
+			// This tx is another's parent that has been yet included in a block. Ignore it
+			return;
+		}
 
 		Set<String> allParentsOfTx = txMemPool.getAllParentsOf(tx);// Excluding itself
 		Set<String> childrenSet = txMemPool.getAllChildrenOf(tx);// Excluding itself

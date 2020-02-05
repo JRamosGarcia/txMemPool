@@ -37,16 +37,16 @@ public class CandidateBlock {
 		weight += tx.getWeight();
 		totalFees += tx.getFees().getBase();
 		TxToBeMined txToBeMined = new TxToBeMined(tx, payingChildTx, reducedBy, this, nextTxPositionInBlock++);
-		txMap.put(tx.getTxId(), txToBeMined);
+		if(null!=txMap.put(tx.getTxId(), txToBeMined)) {
+			//TODO: See what to do here. Uncatched exception
+			throw new IllegalStateException();
+		}
 		txList.add(txToBeMined);
 		return txToBeMined;
 	}
 
-	public Optional<TxToBeMined> getLastTx() {
-		if (txList.isEmpty()) {
-			return Optional.empty();
-		}
-		return Optional.of(txList.getLast());
+	public Optional<TxToBeMined> peekLastTx() {
+		return Optional.ofNullable(txList.peekLast());
 	}
 
 	public int getFreeSpace() {

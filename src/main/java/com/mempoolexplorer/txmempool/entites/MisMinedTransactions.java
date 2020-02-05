@@ -1,6 +1,8 @@
 package com.mempoolexplorer.txmempool.entites;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -44,7 +46,7 @@ public class MisMinedTransactions {
 	private FeeableMapWithData<NotInMemPoolTx> minedButNotInMemPoolMapWD = new FeeableMapWithData<>(
 			SysProps.EXPECTED_MISMINED);
 
-	private Boolean coherentSets = true;
+	private List<String> consistencyErrors = new ArrayList<>();
 
 	private long lostReward;
 	private long lostRewardExcludingNotInMempoolTx;
@@ -78,6 +80,35 @@ public class MisMinedTransactions {
 		calculateMinedBlockData();
 		calculateCandidateBlockData();
 		calculateLostReward();
+
+		checkMinedBlockData();
+		checkCandidateBlockData();
+	}
+
+	private void checkCandidateBlockData() {
+		long candidateTotalFees = candidateBlockData.getFeeableData().getTotalBaseFee().orElse(0L);
+		if (candidateBlock.getTotalFees() != candidateTotalFees) {
+			consistencyErrors.add("candidateBlock.getTotalFees()!=candidateTotalFees");
+		}
+		int numTx = candidateBlockData.getFeeableData().getNumTxs().orElse(0);
+		if (candidateBlock.numTxs() != numTx) {
+			consistencyErrors.add("candidateBlock.numTxs() != numTx");
+		}
+		int totalWeight = candidateBlockData.getFeeableData().getTotalWeight().orElse(0);
+		if (candidateBlockData.getWeight() != totalWeight) {
+			consistencyErrors.add("candidateBlockData.getWeight()!=totalWeight");
+		}
+	}
+
+	private void checkMinedBlockData() {
+
+		long minedWeight = minedBlockData.getFeeableData().getTotalBaseFee().orElse(0L);
+		int coinbaseWeight = minedBlockData.getCoinBaseTx().getWeight();
+
+		if (block.getWeight() != (minedWeight + coinbaseWeight)) {
+			consistencyErrors.add("block.getWeight() != (minedWeight + coinbaseWeight)");
+		}
+
 	}
 
 	private void calculateLostReward() {
@@ -90,14 +121,14 @@ public class MisMinedTransactions {
 
 	private void calculateCandidateBlockData() {
 		FeeableData feeableData = new FeeableData();
-		feeableData.checkOther(minedAndInMemPoolMapWD.getFeeableData());
-		feeableData.checkOther(minedButNotInMemPoolMapWD.getFeeableData());
+		feeableData.checkFees(candidateBlock.getEntriesStream().map(entry -> entry.getValue()));
 		candidateBlockData = new CandidateBlockData(candidateBlock, feeableData);
 	}
 
 	private void calculateMinedBlockData() {
 		FeeableData feeableData = new FeeableData();
-		feeableData.checkFees(candidateBlock.getEntriesStream().map(entry -> entry.getValue()));
+		feeableData.checkOther(minedAndInMemPoolMapWD.getFeeableData());
+		feeableData.checkOther(minedButNotInMemPoolMapWD.getFeeableData());
 		minedBlockData = new MinedBlockData(block, feeableData);
 	}
 
@@ -116,17 +147,16 @@ public class MisMinedTransactions {
 		blockSet.addAll(block.getNotInMemPoolTransactions().keySet());
 		blockSet.add(block.getCoinBaseTx().getTxId());
 		if (blockSet.size() != minedButNotInMemPoolSet.size()) {
-			coherentSets = false;
+			consistencyErrors.add("blockSet.size() != minedButNotInMemPoolSet.size()");
 			return;
 		}
 		if (!blockSet.stream().filter(txId -> !minedButNotInMemPoolSet.contains(txId)).collect(Collectors.toList())
 				.isEmpty()
 				|| !minedButNotInMemPoolSet.stream().filter(txId -> !blockSet.contains(txId))
 						.collect(Collectors.toList()).isEmpty()) {
-			coherentSets = false;
+			consistencyErrors.add("blockSet and minedButNotInMemPoolSet are not equals");
 			return;
 		}
-		coherentSets = true;
 	}
 
 	public MinedBlockData getMinedBlockData() {
@@ -157,8 +187,8 @@ public class MisMinedTransactions {
 		return minedButNotInMemPoolMapWD;
 	}
 
-	public Boolean getCoherentSets() {
-		return coherentSets;
+	public List<String> getConsistencyErrors() {
+		return consistencyErrors;
 	}
 
 	public long getLostReward() {
@@ -180,9 +210,9 @@ public class MisMinedTransactions {
 				+ "minedBlockData=");
 		builder.append(minedBlockData);
 		builder.append(SysProps.NL);
-		//builder.append(", candidateBlock=");
-		//builder.append(candidateBlock);
-		//builder.append(SysProps.NL);
+		// builder.append(", candidateBlock=");
+		// builder.append(candidateBlock);
+		// builder.append(SysProps.NL);
 		builder.append(", candidateBlockData=");
 		builder.append(candidateBlockData);
 		builder.append(SysProps.NL);
@@ -201,8 +231,8 @@ public class MisMinedTransactions {
 		builder.append(", minedButNotInMemPoolMapWD=");
 		builder.append(minedButNotInMemPoolMapWD);
 		builder.append(SysProps.NL);
-		builder.append(", coherentSets=");
-		builder.append(coherentSets);
+		builder.append(", consistencyErrors=");
+		builder.append(consistencyErrors);
 		builder.append(SysProps.NL);
 		builder.append(", lostReward=");
 		builder.append(lostReward);

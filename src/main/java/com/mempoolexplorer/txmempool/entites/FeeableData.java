@@ -15,8 +15,8 @@ public class FeeableData {
 	private long totalBaseFee = 0;
 	private long totalAncestorsFee = 0;
 
-	private Integer numTxs = 0;
-	private Integer totalWeight = 0;
+	private int numTxs = 0;
+	private int totalWeight = 0;
 
 	private String maxSatVByteIncAncTxId;
 	private String minSatVByteIncAncTxId;
@@ -124,6 +124,18 @@ public class FeeableData {
 		}
 		return Optional.of(totalAncestorsFee);
 	}
+	public Optional<Integer> getNumTxs(){
+		if(!isValid()) {
+			return Optional.empty();
+		}
+		return Optional.of(numTxs);
+	}
+	public Optional<Integer> getTotalWeight(){
+		if(!isValid()) {
+			return Optional.empty();
+		}
+		return Optional.of(totalWeight);
+	}
 
 	@Override
 	public String toString() {
@@ -134,6 +146,10 @@ public class FeeableData {
 			builder.append(totalBaseFee);
 			builder.append(", totalAncestorsFee=");
 			builder.append(totalAncestorsFee);
+			builder.append(", numTxs=");
+			builder.append(numTxs);
+			builder.append(", totalWeight=");
+			builder.append(totalWeight);
 			builder.append(", maxSatVByteIncAnc=");
 			builder.append(maxSatVByteIncAnc);
 			builder.append(", minSatVByteIncAnc=");

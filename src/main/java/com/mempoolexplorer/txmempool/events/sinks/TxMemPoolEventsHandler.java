@@ -216,8 +216,8 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			return;
 		}
 		MisMinedTransactions misMinedTransactions = new MisMinedTransactions(txMemPool, optCB.get(), block);
-		if (!misMinedTransactions.getCoherentSets()) {
-			alarmLogger.addAlarm("!misMinedTransactions.getCoherentSets() on block: "
+		if (!misMinedTransactions.getConsistencyErrors().isEmpty()) {
+			alarmLogger.addAlarm("!misMinedTransactions.getConsistencyErrors().isEmpty() on block: "
 					+ misMinedTransactions.getMinedBlockData().getHeight());
 		}
 

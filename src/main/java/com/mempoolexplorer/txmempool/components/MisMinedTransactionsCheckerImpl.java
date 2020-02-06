@@ -41,12 +41,13 @@ public class MisMinedTransactionsCheckerImpl implements MisMinedTransactionsChec
 
 	// Checks if block.weight = sum of tx weight+coinbase+blockHeaderWeight
 	private void checkMinedBlockData(MisMinedTransactions mmt) {
-		int minedWeight = mmt.getMinedBlockData().getFeeableData().getTotalWeight().orElse(0);
+		int sumMinedWeight = mmt.getMinedBlockData().getFeeableData().getTotalWeight().orElse(0);
 		int coinbaseWeight = mmt.getMinedBlockData().getCoinBaseTx().getWeight();
-		if (mmt.getMinedBlockData().getWeight() != (minedWeight + coinbaseWeight + SysProps.BLOCK_HEADER_WEIGHT)) {
+		if (mmt.getMinedBlockData().getWeight() != (sumMinedWeight + coinbaseWeight + SysProps.BLOCK_HEADER_WEIGHT)) {
 			alarmLogger.addAlarm(
 					"mmt.getMinedBlockData().getWeight() != (minedWeight + coinbaseWeight + SysProps.BLOCK_HEADER_WEIGHT)");
 		}
+		int minedWeight = mmt.getMinedBlockData().getWeight();
 		int minedAndInMemPoolWeight = mmt.getMinedAndInMemPoolMapWD().getFeeableData().getTotalWeight().orElse(0);
 		int minedBotNotInMemPoolWeight = mmt.getMinedButNotInMemPoolMapWD().getFeeableData().getTotalWeight().orElse(0);
 		if (minedWeight != (minedAndInMemPoolWeight + minedBotNotInMemPoolWeight + coinbaseWeight
@@ -89,7 +90,8 @@ public class MisMinedTransactionsCheckerImpl implements MisMinedTransactionsChec
 
 		long candidateBlockFees = mmt.getCandidateBlockData().getTotalFees();
 		long minedAndInMemPoolFees = mmt.getMinedAndInMemPoolMapWD().getFeeableData().getTotalBaseFee().orElse(0L);
-		long notMinedButInCandidateBlockFees = mmt.getNotMinedButInCandidateBlockMapWD().getFeeableData().getTotalBaseFee().orElse(0L);
+		long notMinedButInCandidateBlockFees = mmt.getNotMinedButInCandidateBlockMapWD().getFeeableData()
+				.getTotalBaseFee().orElse(0L);
 		long minedInMempoolButNotInCandidateBlockFees = mmt.getMinedInMempoolButNotInCandidateBlockMapWD()
 				.getFeeableData().getTotalBaseFee().orElse(0L);
 

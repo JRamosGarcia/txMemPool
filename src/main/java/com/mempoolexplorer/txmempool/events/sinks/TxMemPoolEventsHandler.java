@@ -28,6 +28,7 @@ import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.mempool.TxPoolChanges;
 import com.mempoolexplorer.txmempool.components.IgnoredTransactionsPool;
+import com.mempoolexplorer.txmempool.components.MisMinedTransactionsChecker;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
@@ -64,6 +65,9 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 	@Autowired
 	private AlarmLogger alarmLogger;
+
+	@Autowired
+	private MisMinedTransactionsChecker misMinedTransactionsChecker;
 
 	@Value("${spring.cloud.stream.bindings.txMemPoolEvents.destination}")
 	private String topic;
@@ -216,15 +220,9 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			return;
 		}
 		MisMinedTransactions misMinedTransactions = new MisMinedTransactions(txMemPool, optCB.get(), block);
-		if (!misMinedTransactions.getConsistencyErrors().isEmpty()) {
-			alarmLogger.addAlarm("!misMinedTransactions.getConsistencyErrors().isEmpty() on block: "
-					+ misMinedTransactions.getMinedBlockData().getHeight());
-		}
 
-		if (misMinedTransactions.getLostReward() < 0L) {
-			alarmLogger.addAlarm("Lost Reward: " + misMinedTransactions.getLostReward() + ", in block: "
-					+ misMinedTransactions.getMinedBlockData().getHeight());
-		}
+		//Check for alarms or inconsistencies
+		misMinedTransactionsChecker.check(misMinedTransactions);
 
 		logger.info(misMinedTransactions.toString());
 		ignoredTransactionPool.refresh(block, misMinedTransactions, txMemPool);

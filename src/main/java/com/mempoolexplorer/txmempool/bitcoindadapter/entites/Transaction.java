@@ -14,7 +14,8 @@ public class Transaction implements Feeable {
 	private Integer weight;// for SegWit
 	// BE CAREFUL: THIS FIELD MUST KEPT UPDATED, COULD CHANGE ONCE RECEIVED!!!!
 	private Fees fees;
-	private Long timeInSecs;// Epoch time in seconds since the transaction entered.
+	private Long timeInSecs;// Epoch time in seconds since the transaction entered in mempool (set by
+	// bitcoind).
 	// BE CAREFUL: THIS FIELD MUST KEPT UPDATED, COULD CHANGE ONCE RECEIVED!!!!
 	private TxAncestry txAncestry;
 	private Boolean bip125Replaceable;

@@ -20,6 +20,7 @@ import com.mempoolexplorer.txmempool.entites.IgnoredTxState;
 import com.mempoolexplorer.txmempool.entites.IgnoringBlock;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.NotMinedTransaction;
+import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
 @Component
@@ -33,6 +34,9 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 
 	@Autowired
 	private RepudiatedTransactionsPool repudiatedTransactionsPool;
+
+	@Autowired
+	private TxMempoolProperties txMempoolProperties;
 
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -70,11 +74,9 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 				.iterator();
 		while (it.hasNext()) {
 			NotMinedTransaction nmTx = it.next();
-			boolean newIgTx = false;
 			IgnoredTransaction igTx = ignoredTransactionMap.get(nmTx.getTx().getTxId());
 			if (null == igTx) {
 				igTx = new IgnoredTransaction();
-				newIgTx = true;
 				igTx.setTx(nmTx.getTx());
 				igTx.setState(IgnoredTxState.INMEMPOOL);
 			}
@@ -88,12 +90,13 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 			igTx.setTotalSatvBytesLost(calculateTotalSatvBytesLost(ignoringBlock, igTx));
 			igTx.setTotalFeesLost(calculateTotalFeesLost(igTx));
 			ignoredTransactionMap.put(igTx.getTx().getTxId(), igTx);
-			if (!newIgTx) {// ignored twice or more. it's repudiated
+			
+			//Consider repudiated if needed
+			if (igTx.getIgnoringBlockList().size() >= txMempoolProperties.getNumTimesTxIgnoredToRaiseAlarm()) {
 				repudiatedTransactionsPool.put(igTx);
-				alarmLogger.addAlarm("Repudiated transaction txId:" + igTx + ". Has been repudiated "
+				alarmLogger.addAlarm("Repudiated transaction txId:" + igTx + ". Has been ignored "
 						+ igTx.getIgnoringBlockList().size() + " times.");
 			}
-
 		}
 
 		logIt();

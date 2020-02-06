@@ -12,4 +12,5 @@ public class SysProps {
 	public static final int MAX_BLOCK_WEIGHT = 4000000;// Segwit new size
 	public static final int EXPECTED_MAX_ANCESTRY_CHANGES = 200;
 	public static final int EXPECTED_MAX_IGNORED_TXS = 200;
+	public static final int BLOCK_HEADER_WEIGHT = 332;//In Weight units = 83 bytes
 }

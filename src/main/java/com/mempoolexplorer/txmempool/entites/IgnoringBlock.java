@@ -1,7 +1,5 @@
 package com.mempoolexplorer.txmempool.entites;
 
-import java.util.List;
-
 public class IgnoringBlock {
 
 	public static final String UNKNOWN = "Unknown";
@@ -10,12 +8,13 @@ public class IgnoringBlock {
 	private CandidateBlockData candidateBlockData;
 	private FeeableData minedAndInMemPoolData;
 	private FeeableData notMinedButInCandidateBlockData;
+	private TimeSinceEnteredStatistics notMinedButInCandidateBlockMPTStatistics;
 	private FeeableData minedInMempoolButNotInCandidateBlockData;
 	private FeeableData minedButNotInMemPoolData;
-	private List<String> consistencyErrors;
 	private String minerName = UNKNOWN;// If not known, "Unknown"
 	private long lostReward;
 	private long lostRewardExcludingNotInMempoolTx;
+	private int numTxInMempool;
 
 	public IgnoringBlock() {
 
@@ -26,12 +25,13 @@ public class IgnoringBlock {
 		this.candidateBlockData = mmt.getCandidateBlockData();
 		this.minedAndInMemPoolData = mmt.getMinedAndInMemPoolMapWD().getFeeableData();
 		this.notMinedButInCandidateBlockData = mmt.getNotMinedButInCandidateBlockMapWD().getFeeableData();
+		this.notMinedButInCandidateBlockMPTStatistics = mmt.getNotMinedButInCandidateBlockMPTStatistics();
 		this.minedInMempoolButNotInCandidateBlockData = mmt.getMinedInMempoolButNotInCandidateBlockMapWD()
 				.getFeeableData();
 		this.minedButNotInMemPoolData = mmt.getMinedButNotInMemPoolMapWD().getFeeableData();
-		this.consistencyErrors = mmt.getConsistencyErrors();
 		this.lostReward = mmt.getLostReward();
 		this.lostRewardExcludingNotInMempoolTx = mmt.getLostRewardExcludingNotInMempoolTx();
+		this.numTxInMempool = mmt.getNumTxInMempool();
 	}
 
 	public MinedBlockData getMinedBlockData() {
@@ -50,16 +50,16 @@ public class IgnoringBlock {
 		return notMinedButInCandidateBlockData;
 	}
 
+	public TimeSinceEnteredStatistics getNotMinedButInCandidateBlockMPTStatistics() {
+		return notMinedButInCandidateBlockMPTStatistics;
+	}
+
 	public FeeableData getMinedInMempoolButNotInCandidateBlockData() {
 		return minedInMempoolButNotInCandidateBlockData;
 	}
 
 	public FeeableData getMinedButNotInMemPoolData() {
 		return minedButNotInMemPoolData;
-	}
-
-	public List<String> getConsistencyErrors() {
-		return consistencyErrors;
 	}
 
 	public String getMinerName() {
@@ -72,6 +72,10 @@ public class IgnoringBlock {
 
 	public long getLostRewardExcludingNotInMempoolTx() {
 		return lostRewardExcludingNotInMempoolTx;
+	}
+
+	public int getNumTxInMempool() {
+		return numTxInMempool;
 	}
 
 }

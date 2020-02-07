@@ -45,7 +45,8 @@ public class MisMinedTransactionsCheckerImpl implements MisMinedTransactionsChec
 		int coinbaseWeight = mmt.getMinedBlockData().getCoinBaseTx().getWeight();
 		if (mmt.getMinedBlockData().getWeight() != (sumMinedWeight + coinbaseWeight + SysProps.BLOCK_HEADER_WEIGHT)) {
 			alarmLogger.addAlarm(
-					"mmt.getMinedBlockData().getWeight() != (minedWeight + coinbaseWeight + SysProps.BLOCK_HEADER_WEIGHT)");
+					"mmt.getMinedBlockData().getWeight() != (minedWeight + coinbaseWeight + SysProps.BLOCK_HEADER_WEIGHT)"
+							+ " in block: " + mmt.getMinedBlockData().getHeight());
 		}
 		int minedWeight = mmt.getMinedBlockData().getWeight();
 		int minedAndInMemPoolWeight = mmt.getMinedAndInMemPoolMapWD().getFeeableData().getTotalWeight().orElse(0);
@@ -53,7 +54,8 @@ public class MisMinedTransactionsCheckerImpl implements MisMinedTransactionsChec
 		if (minedWeight != (minedAndInMemPoolWeight + minedBotNotInMemPoolWeight + coinbaseWeight
 				+ SysProps.BLOCK_HEADER_WEIGHT)) {
 			alarmLogger.addAlarm(
-					"minedWeight!=(minedAndInMemPoolWeight+minedBotNotInMemPoolWeight+coinbaseWeight+SysProps.BLOCK_HEADER_WEIGHT)");
+					"minedWeight!=(minedAndInMemPoolWeight+minedBotNotInMemPoolWeight+coinbaseWeight+SysProps.BLOCK_HEADER_WEIGHT)"
+							+ " in block: " + mmt.getMinedBlockData().getHeight());
 		}
 	}
 
@@ -62,15 +64,21 @@ public class MisMinedTransactionsCheckerImpl implements MisMinedTransactionsChec
 	private void checkCandidateBlockData(MisMinedTransactions mmt) {
 		long candidateTotalFees = mmt.getCandidateBlockData().getFeeableData().getTotalBaseFee().orElse(0L);
 		if (mmt.getCandidateBlockData().getTotalFees() != candidateTotalFees) {
-			alarmLogger.addAlarm("mmt.getCandidateBlockData().getTotalFees() != candidateTotalFees");
+			alarmLogger.addAlarm("mmt.getCandidateBlockData().getTotalFees() != candidateTotalFees" + " in block: "
+					+ mmt.getMinedBlockData().getHeight());
+
 		}
 		int numTx = mmt.getCandidateBlockData().getFeeableData().getNumTxs().orElse(0);
 		if (mmt.getCandidateBlockData().getNumTxs() != numTx) {
-			alarmLogger.addAlarm("mmt.getCandidateBlockData().getNumTxs() != numTx");
+			alarmLogger.addAlarm("mmt.getCandidateBlockData().getNumTxs() != numTx" + " in block: "
+					+ mmt.getMinedBlockData().getHeight());
+
 		}
 		int totalWeight = mmt.getCandidateBlockData().getFeeableData().getTotalWeight().orElse(0);
 		if (mmt.getCandidateBlockData().getWeight() != totalWeight) {
-			alarmLogger.addAlarm("mmt.getCandidateBlockData().getWeight() != totalWeight");
+			alarmLogger.addAlarm("mmt.getCandidateBlockData().getWeight() != totalWeight" + " in block: "
+					+ mmt.getMinedBlockData().getHeight());
+
 		}
 	}
 
@@ -85,7 +93,9 @@ public class MisMinedTransactionsCheckerImpl implements MisMinedTransactionsChec
 		if ((candidateBlockWeight - minedAndInMemPoolWeight) != (notMinedButInCandidateBlockWeight
 				- minedInMempoolButNotInCandidateBlockWeight)) {
 			alarmLogger.addAlarm(
-					"(candidateBlockWeight- minedAndInMemPoolWeight ) != (notMinedButInCandidateBlockWeight-minedInMempoolButNotInCandidateBlockWeight)");
+					"(candidateBlockWeight- minedAndInMemPoolWeight ) != (notMinedButInCandidateBlockWeight-minedInMempoolButNotInCandidateBlockWeight)"
+							+ " in block: " + mmt.getMinedBlockData().getHeight());
+
 		}
 
 		long candidateBlockFees = mmt.getCandidateBlockData().getTotalFees();
@@ -98,7 +108,9 @@ public class MisMinedTransactionsCheckerImpl implements MisMinedTransactionsChec
 		if ((candidateBlockFees - minedAndInMemPoolFees) != (notMinedButInCandidateBlockFees
 				- minedInMempoolButNotInCandidateBlockFees)) {
 			alarmLogger.addAlarm(
-					"(candidateBlockFees- minedAndInMemPoolFees ) != (notMinedButInCandidateBlockFees-minedInMempoolButNotInCandidateBlockFees)");
+					"(candidateBlockFees- minedAndInMemPoolFees ) != (notMinedButInCandidateBlockFees-minedInMempoolButNotInCandidateBlockFees)"
+							+ " in block: " + mmt.getMinedBlockData().getHeight());
+
 		}
 	}
 
@@ -116,7 +128,9 @@ public class MisMinedTransactionsCheckerImpl implements MisMinedTransactionsChec
 				.collect(Collectors.toList()).isEmpty()
 				|| !mmt.getMinedButNotInMemPoolSet().stream().filter(txId -> !blockSet.contains(txId))
 						.collect(Collectors.toList()).isEmpty()) {
-			alarmLogger.addAlarm("blockSet and minedButNotInMemPoolSet are not equals");
+			alarmLogger.addAlarm("blockSet and minedButNotInMemPoolSet are not equals" + " in block: "
+					+ mmt.getMinedBlockData().getHeight());
+
 		}
 	}
 

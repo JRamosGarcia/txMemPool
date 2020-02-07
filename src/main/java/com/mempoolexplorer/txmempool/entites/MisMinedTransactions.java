@@ -25,11 +25,11 @@ public class MisMinedTransactions {
 
 	// Ok
 	private FeeableMapWithData<Transaction> minedAndInMemPoolMapWD = new FeeableMapWithData<>(
-			SysProps.EXPECTED_NUM_TX_IN_BLOCK);
+			SysProps.HM_INITIAL_CAPACITY_FOR_BLOCK);
 
 	// Suspicious transactions of not been mined
 	private FeeableMapWithData<NotMinedTransaction> notMinedButInCandidateBlockMapWD = new FeeableMapWithData<>(
-			SysProps.EXPECTED_MISMINED);
+			SysProps.HM_INITIAL_CAPACITY_FOR_EXPECTED_MISMINED);
 
 	//Statistics about the time since notMinedButInCandidateBlockMapWD txs entered in mempool.
 	// This is helpful to find miners with connectivity issues (as the great
@@ -38,15 +38,15 @@ public class MisMinedTransactions {
 
 	// Suspicious transactions of replacing others that should be mined
 	private FeeableMapWithData<Transaction> minedInMempoolButNotInCandidateBlockMapWD = new FeeableMapWithData<>(
-			SysProps.EXPECTED_MISMINED);
+			SysProps.HM_INITIAL_CAPACITY_FOR_EXPECTED_MISMINED);
 
 	// Suspicious transactions of not been broadcasted, only for check mempool
 	// coherence
-	private Set<String> minedButNotInMemPoolSet = new HashSet<>(SysProps.EXPECTED_MISMINED);
+	private Set<String> minedButNotInMemPoolSet = new HashSet<>(SysProps.HM_INITIAL_CAPACITY_FOR_EXPECTED_MISMINED);
 
 	// Suspicious transactions of not been broadcasted statistics
 	private FeeableMapWithData<NotInMemPoolTx> minedButNotInMemPoolMapWD = new FeeableMapWithData<>(
-			SysProps.EXPECTED_MISMINED);
+			SysProps.HM_INITIAL_CAPACITY_FOR_EXPECTED_MISMINED);
 
 	private long lostReward;
 	private long lostRewardExcludingNotInMempoolTx;

@@ -12,8 +12,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.mempoolexplorer.txmempool.components.RepudiatedTransactionsPool;
+import com.mempoolexplorer.txmempool.components.containers.PoolFactory;
 import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
+import com.mempoolexplorer.txmempool.controllers.exceptions.AlgorithmTypeNotFoundException;
 import com.mempoolexplorer.txmempool.controllers.exceptions.TransactionNotFoundException;
 import com.mempoolexplorer.txmempool.entites.IgnoredTransaction;
 
@@ -22,17 +23,20 @@ import com.mempoolexplorer.txmempool.entites.IgnoredTransaction;
 public class LiveRepudiatedController {
 
 	@Autowired
-	private RepudiatedTransactionsPool repudiatedTransactionsPool;
+	private PoolFactory poolFactory;
 
-	@GetMapping("/txs")
-	public List<IgnoredTransaction> getLiveRepudiatedTransactionList() {
-		return repudiatedTransactionsPool.getRepudiatedTransactionList();
+	@GetMapping("/{algo}/txs")
+	public List<IgnoredTransaction> getLiveRepudiatedTransactionList(@PathVariable("algo") String algo)
+			throws AlgorithmTypeNotFoundException {
+		return poolFactory.getRepudiatedTransactionsPool(algo).getRepudiatedTransactionList();
 	}
 
-	@GetMapping("/txs/{txId}")
-	public IgnoredTransaction getLiveRepudiatedTransactionById(@PathVariable("txId") String txId)
-			throws TransactionNotFoundException {
-		Optional<IgnoredTransaction> rTx = repudiatedTransactionsPool.getRepudiatedTransaction(txId);
+	@GetMapping("/{algo}/txs/{txId}")
+	public IgnoredTransaction getLiveRepudiatedTransactionById(@PathVariable("algo") String algo,
+			@PathVariable("txId") String txId) throws TransactionNotFoundException, AlgorithmTypeNotFoundException {
+
+		Optional<IgnoredTransaction> rTx = poolFactory.getRepudiatedTransactionsPool(algo)
+				.getRepudiatedTransaction(txId);
 		if (rTx.isEmpty()) {
 			throw new TransactionNotFoundException("Repudiated Transaction id:" + txId + " not found");
 		}
@@ -41,6 +45,14 @@ public class LiveRepudiatedController {
 
 	@ExceptionHandler(TransactionNotFoundException.class)
 	public ResponseEntity<?> onTransactionNotFound(TransactionNotFoundException e) {
+		ErrorDetails errorDetails = new ErrorDetails();
+		errorDetails.setErrorMessage(e.getMessage());
+		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());
+		return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
+	}
+
+	@ExceptionHandler(AlgorithmTypeNotFoundException.class)
+	public ResponseEntity<?> onAlgorithmTypeNotFoundException(AlgorithmTypeNotFoundException e) {
 		ErrorDetails errorDetails = new ErrorDetails();
 		errorDetails.setErrorMessage(e.getMessage());
 		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());

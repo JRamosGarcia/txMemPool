@@ -1,9 +1,14 @@
 package com.mempoolexplorer.txmempool.entites;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class IgnoringBlock {
 
 	public static final String UNKNOWN = "Unknown";
 
+	private AlgorithmType algorithmUsed;
+	private Set<String> inCandidateBlockButNotInMemPool = new HashSet<>();
 	private MinedBlockData minedBlockData;
 	private CandidateBlockData candidateBlockData;
 	private FeeableData minedAndInMemPoolData;
@@ -21,6 +26,8 @@ public class IgnoringBlock {
 	}
 
 	public IgnoringBlock(MisMinedTransactions mmt) {
+		this.algorithmUsed = mmt.getAlgorithmUsed();
+		this.inCandidateBlockButNotInMemPool = mmt.getInCandidateBlockButNotInMemPool();
 		this.minedBlockData = mmt.getMinedBlockData();
 		this.candidateBlockData = mmt.getCandidateBlockData();
 		this.minedAndInMemPoolData = mmt.getMinedAndInMemPoolMapWD().getFeeableData();
@@ -32,6 +39,14 @@ public class IgnoringBlock {
 		this.lostReward = mmt.getLostReward();
 		this.lostRewardExcludingNotInMempoolTx = mmt.getLostRewardExcludingNotInMempoolTx();
 		this.numTxInMempool = mmt.getNumTxInMempool();
+	}
+
+	public AlgorithmType getAlgorithmUsed() {
+		return algorithmUsed;
+	}
+
+	public Set<String> getInCandidateBlockButNotInMemPool() {
+		return inCandidateBlockButNotInMemPool;
 	}
 
 	public MinedBlockData getMinedBlockData() {

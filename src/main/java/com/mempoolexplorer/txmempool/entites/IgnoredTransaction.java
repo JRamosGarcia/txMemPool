@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.utils.SysProps;
@@ -16,7 +17,7 @@ public class IgnoredTransaction {
 
 	private List<IgnoringBlock> ignoringBlockList = new ArrayList<>();
 
-	private Map<Integer, Integer> positionInBlockHeightMap = new HashMap<>();
+	private Map<Integer, Optional<Integer>> positionInBlockHeightMap = new HashMap<>();
 
 	private IgnoredTxState state = IgnoredTxState.INMEMPOOL;
 
@@ -45,11 +46,11 @@ public class IgnoredTransaction {
 		this.ignoringBlockList = ignoringBlockList;
 	}
 
-	public Map<Integer, Integer> getPositionInBlockHeightMap() {
+	public Map<Integer, Optional<Integer>> getPositionInBlockHeightMap() {
 		return positionInBlockHeightMap;
 	}
 
-	public void setPositionInBlockHeightMap(Map<Integer, Integer> positionInBlockHeight) {
+	public void setPositionInBlockHeightMap(Map<Integer, Optional<Integer>> positionInBlockHeight) {
 		this.positionInBlockHeightMap = positionInBlockHeight;
 	}
 

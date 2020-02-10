@@ -1,4 +1,4 @@
-package com.mempoolexplorer.txmempool.components;
+package com.mempoolexplorer.txmempool.entites.pools;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,10 +10,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
+import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.entites.IgnoredTransaction;
 import com.mempoolexplorer.txmempool.entites.IgnoredTxState;
@@ -23,19 +22,14 @@ import com.mempoolexplorer.txmempool.entites.NotMinedTransaction;
 import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
-@Component
 public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 
-	@Autowired
 	private AlarmLogger alarmLogger;
 
-	@Autowired
 	private IgnoringBlocksPool ignoringBlocksPool;
 
-	@Autowired
 	private RepudiatedTransactionsPool repudiatedTransactionsPool;
 
-	@Autowired
 	private TxMempoolProperties txMempoolProperties;
 
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -46,6 +40,15 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 	// Inmmutable version
 	private AtomicReference<Map<String, IgnoredTransaction>> ignoredTransactionMapRef = new AtomicReference<>(
 			ignoredTransactionMap);
+
+	public IgnoredTransactionsPoolImpl(AlarmLogger alarmLogger, IgnoringBlocksPool ignoringBlocksPool,
+			RepudiatedTransactionsPool repudiatedTransactionsPool, TxMempoolProperties txMempoolProperties) {
+		super();
+		this.alarmLogger = alarmLogger;
+		this.ignoringBlocksPool = ignoringBlocksPool;
+		this.repudiatedTransactionsPool = repudiatedTransactionsPool;
+		this.txMempoolProperties = txMempoolProperties;
+	}
 
 	@Override
 	public Map<String, IgnoredTransaction> atomicGetIgnoredTransactionMap() {
@@ -90,8 +93,8 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 			igTx.setTotalSatvBytesLost(calculateTotalSatvBytesLost(ignoringBlock, igTx));
 			igTx.setTotalFeesLost(calculateTotalFeesLost(igTx));
 			ignoredTransactionMap.put(igTx.getTx().getTxId(), igTx);
-			
-			//Consider repudiated if needed
+
+			// Consider repudiated if needed
 			if (igTx.getIgnoringBlockList().size() >= txMempoolProperties.getNumTimesTxIgnoredToRaiseAlarm()) {
 				repudiatedTransactionsPool.put(igTx);
 				alarmLogger.addAlarm("Repudiated transaction txId:" + igTx + ". Has been ignored "
@@ -138,7 +141,6 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 	}
 
 	private void clearIgnoredTransactionMap(Block block, TxMemPool txMemPool) {
-		logger.info("MemPool size on clearIgnoredTransactionMap: {}", txMemPool.getTxNumber());
 		Set<String> txIdsToRemoveSet = new HashSet<>(SysProps.EXPECTED_MAX_IGNORED_TXS);// txIds to remove.
 
 		// Delete mined transactions

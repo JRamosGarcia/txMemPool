@@ -1,4 +1,4 @@
-package com.mempoolexplorer.txmempool.components;
+package com.mempoolexplorer.txmempool.entites.pools;
 
 import java.util.List;
 import java.util.Map;
@@ -6,11 +6,8 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import org.springframework.stereotype.Component;
-
 import com.mempoolexplorer.txmempool.entites.IgnoredTransaction;
 
-@Component
 public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionsPool {
 
 	// This map never gets garbage collected. But won't be a problem

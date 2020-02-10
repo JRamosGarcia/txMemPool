@@ -12,6 +12,10 @@ public class CandidateBlockData {
 
 	private FeeableData feeableData = new FeeableData();
 
+	public CandidateBlockData() {
+		
+	}
+	
 	public CandidateBlockData(CandidateBlock candidateBlock, FeeableData feeableData) {
 		this.position = candidateBlock.getPosition();
 		this.numTxs = candidateBlock.numTxs();
@@ -48,6 +52,34 @@ public class CandidateBlockData {
 
 	public FeeableData getFeeableData() {
 		return feeableData;
+	}
+
+	public void setPosition(int position) {
+		this.position = position;
+	}
+
+	public void setNumTxs(int numTxs) {
+		this.numTxs = numTxs;
+	}
+
+	public void setWeight(int weight) {
+		this.weight = weight;
+	}
+
+	public void setTotalFees(long totalFees) {
+		this.totalFees = totalFees;
+	}
+
+	public void setCoinBaseWeight(int coinBaseWeight) {
+		this.coinBaseWeight = coinBaseWeight;
+	}
+
+	public void setPrecedingTxsCount(int precedingTxsCount) {
+		this.precedingTxsCount = precedingTxsCount;
+	}
+
+	public void setFeeableData(FeeableData feeableData) {
+		this.feeableData = feeableData;
 	}
 
 	@Override

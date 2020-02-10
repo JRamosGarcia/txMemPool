@@ -1,5 +1,7 @@
 package com.mempoolexplorer.txmempool.entites;
 
+import java.util.Optional;
+
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 
 /**
@@ -12,15 +14,15 @@ public class NotMinedTransaction implements Feeable {
 	 * This is the ordinal position of the transaction in the blockQueue.
 	 */
 	private Transaction tx;
-	private Integer ordinalpositionInBlock;
+	private Optional<Integer> ordinalpositionInBlock;
 
-	public NotMinedTransaction(Transaction transaction, Integer ordinalpositionInBlock) {
+	public NotMinedTransaction(Transaction transaction, Optional<Integer> ordinalpositionInBlock) {
 		super();
 		this.tx = transaction;
 		this.ordinalpositionInBlock = ordinalpositionInBlock;
 	}
 
-	public Integer getOrdinalpositionInBlock() {
+	public Optional<Integer> getOrdinalpositionInBlock() {
 		return ordinalpositionInBlock;
 	}
 

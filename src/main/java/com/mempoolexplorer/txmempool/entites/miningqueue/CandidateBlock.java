@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
-public class CandidateBlock {
+public class CandidateBlock implements TxContainer {
 	private int position = 0;// Position of this block in queue
 	private int weight = 0;
 	private long totalFees = 0;
@@ -67,6 +67,7 @@ public class CandidateBlock {
 		return Optional.ofNullable(txMap.get(txId));
 	}
 
+	@Override
 	public boolean containsKey(String txId) {
 		return txMap.containsKey(txId);
 	}

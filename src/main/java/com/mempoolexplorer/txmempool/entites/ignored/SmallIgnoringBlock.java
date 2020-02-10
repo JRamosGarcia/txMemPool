@@ -1,15 +1,17 @@
 package com.mempoolexplorer.txmempool.entites.ignored;
 
+import java.util.Optional;
+
 public class SmallIgnoringBlock {
 
 	private Integer height;
-	private Integer postitionInQueue;
+	private Optional<Integer> postitionInQueue;
 
 	public SmallIgnoringBlock() {
 
 	}
 
-	public SmallIgnoringBlock(Integer height, Integer postitionInQueue) {
+	public SmallIgnoringBlock(Integer height, Optional<Integer> postitionInQueue) {
 		super();
 		this.height = height;
 		this.postitionInQueue = postitionInQueue;
@@ -23,11 +25,11 @@ public class SmallIgnoringBlock {
 		this.height = height;
 	}
 
-	public Integer getPostitionInQueue() {
+	public Optional<Integer> getPostitionInQueue() {
 		return postitionInQueue;
 	}
 
-	public void setPostitionInQueue(Integer postitionInQueue) {
+	public void setPostitionInQueue(Optional<Integer> postitionInQueue) {
 		this.postitionInQueue = postitionInQueue;
 	}
 

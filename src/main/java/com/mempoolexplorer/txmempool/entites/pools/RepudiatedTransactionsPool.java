@@ -1,4 +1,4 @@
-package com.mempoolexplorer.txmempool.components;
+package com.mempoolexplorer.txmempool.entites.pools;
 
 import java.util.List;
 import java.util.Optional;

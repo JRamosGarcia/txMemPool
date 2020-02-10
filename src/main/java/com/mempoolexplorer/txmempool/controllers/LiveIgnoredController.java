@@ -15,10 +15,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.mempoolexplorer.txmempool.components.IgnoredTransactionsPool;
-import com.mempoolexplorer.txmempool.components.IgnoringBlocksPool;
+import com.mempoolexplorer.txmempool.components.containers.PoolFactory;
 import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
-import com.mempoolexplorer.txmempool.controllers.exceptions.IgnoringBlockNotFoundException;
+import com.mempoolexplorer.txmempool.controllers.exceptions.AlgorithmTypeNotFoundException;
+import com.mempoolexplorer.txmempool.controllers.exceptions.BlockNotFoundException;
 import com.mempoolexplorer.txmempool.controllers.exceptions.TransactionNotFoundException;
 import com.mempoolexplorer.txmempool.entites.IgnoredTransaction;
 import com.mempoolexplorer.txmempool.entites.IgnoringBlock;
@@ -29,14 +29,14 @@ import com.mempoolexplorer.txmempool.entites.ignored.LiveIgnoredTransaction;
 public class LiveIgnoredController {
 
 	@Autowired
-	private IgnoredTransactionsPool ignoredTransactionPool;
+	private PoolFactory poolFactory;
 
-	@Autowired
-	private IgnoringBlocksPool ignoringBlocksPool;
+	@GetMapping("/{algo}/txs")
+	public List<LiveIgnoredTransaction> getLiveIgnoredTransactionList(@PathVariable("algo") String algo)
+			throws AlgorithmTypeNotFoundException {
 
-	@GetMapping("/txs")
-	public List<LiveIgnoredTransaction> getLiveIgnoredTransactionList() {
-		Map<String, IgnoredTransaction> ignoredTransactionMap = ignoredTransactionPool.atomicGetIgnoredTransactionMap();
+		Map<String, IgnoredTransaction> ignoredTransactionMap = poolFactory.getIgnoredTransactionsPool(algo)
+				.atomicGetIgnoredTransactionMap();
 
 		var retList = new ArrayList<LiveIgnoredTransaction>();
 		ignoredTransactionMap.forEach((txId, iTx) -> {
@@ -46,9 +46,11 @@ public class LiveIgnoredController {
 		return retList;
 	}
 
-	@GetMapping("/txsNTimes/{nTimes}")
-	public List<LiveIgnoredTransaction> getLiveIgnoredNTimesTransactionList(@PathVariable("nTimes") Integer nTimes) {
-		Map<String, IgnoredTransaction> ignoredTransactionMap = ignoredTransactionPool.atomicGetIgnoredTransactionMap();
+	@GetMapping("/{algo}/txsNTimes/{nTimes}")
+	public List<LiveIgnoredTransaction> getLiveIgnoredNTimesTransactionList(@PathVariable("algo") String algo,
+			@PathVariable("nTimes") Integer nTimes) throws AlgorithmTypeNotFoundException {
+		Map<String, IgnoredTransaction> ignoredTransactionMap = poolFactory.getIgnoredTransactionsPool(algo)
+				.atomicGetIgnoredTransactionMap();
 
 		var retList = new ArrayList<LiveIgnoredTransaction>();
 		ignoredTransactionMap.forEach((txId, iTx) -> {
@@ -60,10 +62,11 @@ public class LiveIgnoredController {
 		return retList;
 	}
 
-	@GetMapping("/txs/{txId}")
-	public LiveIgnoredTransaction getLiveIgnoredTransactionById(@PathVariable("txId") String txId)
-			throws TransactionNotFoundException {
-		Optional<IgnoredTransaction> ignoredTransaction = ignoredTransactionPool.getIgnoredTransaction(txId);
+	@GetMapping("/{algo}/txs/{txId}")
+	public LiveIgnoredTransaction getLiveIgnoredTransactionById(@PathVariable("algo") String algo,
+			@PathVariable("txId") String txId) throws TransactionNotFoundException, AlgorithmTypeNotFoundException {
+		Optional<IgnoredTransaction> ignoredTransaction = poolFactory.getIgnoredTransactionsPool(algo)
+				.getIgnoredTransaction(txId);
 		if (ignoredTransaction.isEmpty()) {
 			throw new TransactionNotFoundException("Transaction txId: " + txId + " not found in ignoredTxPool");
 		}
@@ -71,47 +74,65 @@ public class LiveIgnoredController {
 	}
 
 	// Heavy weight!!
-	@GetMapping("/fullTxs")
-	public List<IgnoredTransaction> getIgnoredTransactionList() {
-		return ignoredTransactionPool.atomicGetIgnoredTransactionMap().values().stream().collect(Collectors.toList());
+	@GetMapping("/{algo}/fullTxs")
+	public List<IgnoredTransaction> getIgnoredTransactionList(@PathVariable("algo") String algo) throws AlgorithmTypeNotFoundException {
+		return poolFactory.getIgnoredTransactionsPool(algo).atomicGetIgnoredTransactionMap().values().stream()
+				.collect(Collectors.toList());
 	}
 
-	@GetMapping("/fullTxs/{txId}")
-	public IgnoredTransaction getIgnoredTransactionById(@PathVariable("txId") String txId)
-			throws TransactionNotFoundException {
-		Optional<IgnoredTransaction> ignoredTransaction = ignoredTransactionPool.getIgnoredTransaction(txId);
+	@GetMapping("/{algo}/fullTxs/{txId}")
+	public IgnoredTransaction getIgnoredTransactionById(@PathVariable("algo") String algo,
+			@PathVariable("txId") String txId) throws TransactionNotFoundException, AlgorithmTypeNotFoundException {
+		Optional<IgnoredTransaction> ignoredTransaction = poolFactory.getIgnoredTransactionsPool(algo)
+				.getIgnoredTransaction(txId);
 		if (ignoredTransaction.isEmpty()) {
 			throw new TransactionNotFoundException("Transaction txId: " + txId + " not found in ignoredTxPool");
 		}
 		return ignoredTransaction.get();
 	}
 
-	@GetMapping("/blocks")
-	public Map<Integer, IgnoringBlock> getIgnoringBlockMap() {
-		return ignoringBlocksPool.getIgnoringBlocksMap();
+	@GetMapping("/{algo}/blocks")
+	public Map<Integer, IgnoringBlock> getIgnoringBlockMap(@PathVariable("algo") String algo) throws AlgorithmTypeNotFoundException {
+		return poolFactory.getIgnoringBlocksPool(algo).getIgnoringBlocksMap();
 	}
 
-	@GetMapping("/blocks/{height}")
-	public IgnoringBlock getIgnoringBlock(@PathVariable("height") Integer height)
-			throws IgnoringBlockNotFoundException {
-		Optional<IgnoringBlock> ignoringBlock = ignoringBlocksPool.getIgnoringBlock(height);
+	@GetMapping("/{algo}/blocks/{height}")
+	public IgnoringBlock getIgnoringBlock(@PathVariable("algo") String algo, @PathVariable("height") Integer height)
+			throws BlockNotFoundException, AlgorithmTypeNotFoundException {
+		Optional<IgnoringBlock> ignoringBlock = poolFactory.getIgnoringBlocksPool(algo).getIgnoringBlock(height);
 		if (ignoringBlock.isEmpty()) {
-			throw new IgnoringBlockNotFoundException("Ignoring block with height: " + height + " not found");
+			throw new BlockNotFoundException("Ignoring block with height: " + height + " not found");
 		}
 		return ignoringBlock.get();
 	}
 
-	@GetMapping("/blocks/last")
-	public IgnoringBlock getLast() throws IgnoringBlockNotFoundException {
-		Optional<IgnoringBlock> ignoringBlock = ignoringBlocksPool.getLast();
+	@GetMapping("/{algo}/blocks/last")
+	public IgnoringBlock getLast(@PathVariable("algo") String algo) throws BlockNotFoundException, AlgorithmTypeNotFoundException {
+		Optional<IgnoringBlock> ignoringBlock = poolFactory.getIgnoringBlocksPool(algo).getLast();
 		if (ignoringBlock.isEmpty()) {
-			throw new IgnoringBlockNotFoundException("Last ignoring block not found");
+			throw new BlockNotFoundException("Last ignoring block not found");
 		}
 		return ignoringBlock.get();
+	}
+
+	@ExceptionHandler(AlgorithmTypeNotFoundException.class)
+	public ResponseEntity<?> onAlgorithmTypeNotFoundException(AlgorithmTypeNotFoundException e) {
+		ErrorDetails errorDetails = new ErrorDetails();
+		errorDetails.setErrorMessage(e.getMessage());
+		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());
+		return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
 	}
 
 	@ExceptionHandler(TransactionNotFoundException.class)
 	public ResponseEntity<?> onTransactionNotFound(TransactionNotFoundException e) {
+		ErrorDetails errorDetails = new ErrorDetails();
+		errorDetails.setErrorMessage(e.getMessage());
+		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());
+		return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
+	}
+
+	@ExceptionHandler(BlockNotFoundException.class)
+	public ResponseEntity<?> onIgnoringBlockNotFound(BlockNotFoundException e) {
 		ErrorDetails errorDetails = new ErrorDetails();
 		errorDetails.setErrorMessage(e.getMessage());
 		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());

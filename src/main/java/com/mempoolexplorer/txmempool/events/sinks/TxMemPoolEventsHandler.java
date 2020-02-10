@@ -27,12 +27,13 @@ import com.mempoolexplorer.txmempool.TxMemPoolApplication;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.mempool.TxPoolChanges;
-import com.mempoolexplorer.txmempool.components.IgnoredTransactionsPool;
 import com.mempoolexplorer.txmempool.components.MisMinedTransactionsChecker;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
+import com.mempoolexplorer.txmempool.components.containers.AlgorithmDiffContainer;
 import com.mempoolexplorer.txmempool.components.containers.BlockTemplateContainer;
 import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
+import com.mempoolexplorer.txmempool.components.containers.PoolFactory;
 import com.mempoolexplorer.txmempool.entites.AlgorithmDifferences;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.blocktemplate.BlockTemplate;
@@ -59,9 +60,6 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	private BitcoindAdapter bitcoindAdapter;
 
 	@Autowired
-	private IgnoredTransactionsPool ignoredTransactionPool;
-
-	@Autowired
 	private LiveMiningQueueContainer liveMiningQueueContainer;
 
 	@Autowired
@@ -75,6 +73,12 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 	@Autowired
 	private BlockTemplateContainer blockTemplateContainer;
+
+	@Autowired
+	private AlgorithmDiffContainer algoDiffContainer;
+
+	@Autowired
+	private PoolFactory poolFactory;
 
 	@Value("${spring.cloud.stream.bindings.txMemPoolEvents.destination}")
 	private String topic;
@@ -231,17 +235,29 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			logger.warn("THIS SHOULD NOT BE HAPPENING: optCB.isEmpty()");
 			return;
 		}
-		MisMinedTransactions misMinedTransactions = new MisMinedTransactions(txMemPool, optCB.get(), block);
 
-		AlgorithmDifferences ad = new AlgorithmDifferences(txMemPool, blockTemplateContainer, optCB.get());
+		// TODO: What if numConsecutiveBlocks!=1??
+		if (numConsecutiveBlocks != 1) {
+			alarmLogger.addAlarm(
+					"OnNewBlock height: " + block.getHeight() + ", numConsecutiveBlocks=" + numConsecutiveBlocks);
+		}
+		MisMinedTransactions mmtBlockTemplate = new MisMinedTransactions(txMemPool,
+				blockTemplateContainer.getBlockTemplate(), block);
 
-		logger.info(ad.toString());
-		
+		MisMinedTransactions mmtCandidateBlock = new MisMinedTransactions(txMemPool, optCB.get(), block);
+
+		AlgorithmDifferences ad = new AlgorithmDifferences(txMemPool, blockTemplateContainer, optCB.get(),
+				block.getHeight());
+		algoDiffContainer.put(ad);
+
 		// Check for alarms or inconsistencies
-		misMinedTransactionsChecker.check(misMinedTransactions);
+		misMinedTransactionsChecker.check(mmtBlockTemplate);
+		misMinedTransactionsChecker.check(mmtCandidateBlock);
 
-		logger.info(misMinedTransactions.toString());
-		ignoredTransactionPool.refresh(block, misMinedTransactions, txMemPool);
+		poolFactory.getIgnoredTransactionsPool(mmtBlockTemplate.getAlgorithmUsed()).refresh(block, mmtBlockTemplate,
+				txMemPool);
+		poolFactory.getIgnoredTransactionsPool(mmtCandidateBlock.getAlgorithmUsed()).refresh(block, mmtCandidateBlock,
+				txMemPool);
 	}
 
 	private void doFullLoadAsync() {

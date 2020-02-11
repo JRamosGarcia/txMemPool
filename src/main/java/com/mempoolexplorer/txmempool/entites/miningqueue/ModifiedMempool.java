@@ -34,7 +34,7 @@ public class ModifiedMempool {
 		if (null != txKey) {
 			Optional<ModifiedTx> opModTx = Optional.ofNullable(txMemPool.remove(txKey));
 			if (opModTx.isEmpty()) {
-				logger.info("Non existing TxWithRealSatVByte in ModifiedMempool for remove, txId: {}", txId);
+				logger.error("Non existing TxWithRealSatVByte in ModifiedMempool for remove, txId: {}", txId);
 			}
 			return opModTx;
 		}
@@ -42,15 +42,15 @@ public class ModifiedMempool {
 	}
 
 	public Optional<ModifiedTx> getBestThan(Transaction tx) {
-		if(txMemPool.isEmpty()) {
+		if (txMemPool.isEmpty()) {
 			return Optional.empty();
 		}
 		// Get lastKey, if not present throws NotSuchElementException!!!
 		TxKey lastKey = txMemPool.lastKey();
-		// if tx is already in our map, return lastKey, it will be better because this
-		// map is ordered
+		// if tx is already in our map, this should not be happening.
 		if (txKeyMap.containsKey(tx.getTxId())) {
-			return Optional.of(txMemPool.get(lastKey));
+			logger.error("txKeyMap.containsKey(tx.getTxId()) THIS SHOULD NOT BE HAPPENNIG.");
+			return Optional.empty();
 		}
 		// Compare tx and lastKey to return lastKey if better
 		TxKey txKey = new TxKey(tx.getTxId(), tx.getSatvByteIncludingAncestors(), tx.getTimeInSecs());
@@ -60,19 +60,24 @@ public class ModifiedMempool {
 		return Optional.empty();
 	}
 
-	public void substractFeesTo(List<Transaction> notInAnyCandidateBlockTxListOf, Long fee) {
+	public void substractParentDataToChildren(List<Transaction> notInAnyCandidateBlockTxListOf, Long feeToSubstract,
+			int weightToSubstract) {
 		for (Transaction tx : notInAnyCandidateBlockTxListOf) {
 			Optional<ModifiedTx> opModTx = get(tx.getTxId());
 			if (opModTx.isPresent()) {
 				ModifiedTx modTx = opModTx.get();
-				modTx.setRealAncestorFees(modTx.getRealAncestorFees() - fee);
+				modTx.substract(feeToSubstract, weightToSubstract);
 				put(modTx);
 			} else {
-				ModifiedTx modTx = new ModifiedTx(tx, tx.getAncestorFees() - fee);
+				ModifiedTx modTx = new ModifiedTx(tx, feeToSubstract, weightToSubstract);
 				put(modTx);
 			}
 		}
 
+	}
+
+	public boolean contains(String txid) {
+		return (txKeyMap.get(txid) != null);
 	}
 
 	private Optional<ModifiedTx> get(String txId) {

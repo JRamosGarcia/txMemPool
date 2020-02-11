@@ -1,6 +1,8 @@
 package com.mempoolexplorer.txmempool.entites.blocktemplate;
 
-public class BlockTemplateTx {
+import com.mempoolexplorer.txmempool.entites.Feeable;
+
+public class BlockTemplateTx implements Feeable {
 
 	private String txId;
 	private long fee;
@@ -10,8 +12,37 @@ public class BlockTemplateTx {
 	public BlockTemplateTx() {
 	}
 
+	@Override
 	public String getTxId() {
 		return txId;
+	}
+
+	@Override
+	public double getSatvByteIncludingAncestors() {
+		return getSatvByte();// This is not true. Only to implement Feeable
+	}
+
+	@Override
+	public long getBaseFees() {
+		return fee;
+	}
+
+	@Override
+	public long getAncestorFees() {
+		return fee;// This is not true. Only to implement Feeable
+	}
+
+	@Override
+	public double getSatvByte() {
+		if (weight == 0) {
+			return 0;
+		}
+		return (double) (fee) / ((double) weight / 4D);
+	}
+
+	@Override
+	public int getWeight() {
+		return weight;
 	}
 
 	public void setTxId(String txId) {
@@ -34,9 +65,6 @@ public class BlockTemplateTx {
 		this.sigops = sigops;
 	}
 
-	public int getWeight() {
-		return weight;
-	}
 
 	public void setWeight(int weight) {
 		this.weight = weight;

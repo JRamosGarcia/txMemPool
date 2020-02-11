@@ -32,9 +32,10 @@ import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.components.containers.AlgorithmDiffContainer;
 import com.mempoolexplorer.txmempool.components.containers.BlockTemplateContainer;
+import com.mempoolexplorer.txmempool.components.containers.LiveAlgorithmDiffContainer;
 import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
 import com.mempoolexplorer.txmempool.components.containers.PoolFactory;
-import com.mempoolexplorer.txmempool.entites.AlgorithmDifferences;
+import com.mempoolexplorer.txmempool.entites.AlgorithmDiff;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.blocktemplate.BlockTemplate;
 import com.mempoolexplorer.txmempool.entites.blocktemplate.BlockTemplateChanges;
@@ -80,6 +81,9 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	@Autowired
 	private PoolFactory poolFactory;
 
+	@Autowired
+	private LiveAlgorithmDiffContainer liveAlgorithmDiffContainer;
+
 	@Value("${spring.cloud.stream.bindings.txMemPoolEvents.destination}")
 	private String topic;
 
@@ -104,12 +108,13 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 				forceMiningQueueRefresh = true;
 				Block block = mempoolEvent.tryGetBlock().get();
 				logger.info("New Block with {} transactions", block.getTxIds().size());
-				OnNewBlock(block, numConsecutiveBlocks++);
+				OnNewBlock(block);
+				numConsecutiveBlocks++;
 				alarmLogger.prettyPrint();
 			} else if (mempoolEvent.getEventType() == MempoolEvent.EventType.REFRESH_POOL) {
 				// OnRefreshPool
 				TxPoolChanges txpc = mempoolEvent.tryGetTxPoolChanges().get();
-				Optional<BlockTemplateChanges> obtc = mempoolEvent.tryGetBlockTemplateChanges();
+				BlockTemplateChanges btc = mempoolEvent.tryGetBlockTemplateChanges().get();
 				validate(txpc);
 				// When initializing but bitcoindAdapter is not intitializing
 				if ((initializing.get()) && (txpc.getChangeCounter() != 0) && (!loadingFullMempool.get())) {
@@ -123,7 +128,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 					// Load full mempool asyncronous via REST service, then resume kafka msgs
 					doFullLoadAsync();// Method must return ASAP, this is a kafka queue.
 				} else if (!loadingFullMempool.get()) {// This is because consumer.pause does not pause inmediately
-					refreshContainers(txpc, obtc);
+					refreshContainers(txpc, btc);
 					initializing.set(false);
 				}
 				numConsecutiveBlocks = 0;
@@ -176,21 +181,30 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 	}
 
-	// Refresh mempool, liveMiningQueue and blockTemplateContainer
-	private void refreshContainers(TxPoolChanges txpc, Optional<BlockTemplateChanges> obtc) {
+	// Refresh mempool, liveMiningQueue, blockTemplateContainer and
+	// liveAlgorithmDiffContainer
+	private void refreshContainers(TxPoolChanges txpc, BlockTemplateChanges btc) {
+		Optional<MiningQueue> opMQ = Optional.empty();
 		// Order of this operations matters.
 		refreshMempool(txpc);
 		if (txpc.getChangeCounter() != 0) {
-			liveMiningQueueContainer.refreshIfNeeded();
+			opMQ = liveMiningQueueContainer.refreshIfNeeded();
 		}
 		if (forceMiningQueueRefresh) {
 			logger.info("LiveMiningQueue refresh forced.");
-			liveMiningQueueContainer.forceRefresh();
+			opMQ = Optional.of(liveMiningQueueContainer.forceRefresh());
 			forceMiningQueueRefresh = false;
 		}
 		coinBaseTxWeightList.clear();// If we have new txPoolChanges, we reset coinBaseVSizeList
 
-		obtc.ifPresent(blockTemplateContainer::refresh);
+		blockTemplateContainer.refresh(btc);
+
+		if (opMQ.isPresent()) {
+			AlgorithmDiff liveAlgorithmDiff = new AlgorithmDiff(txMemPool,
+					opMQ.get().getCandidateBlock(numConsecutiveBlocks).get(), blockTemplateContainer.getBlockTemplate(),
+					0);
+			liveAlgorithmDiffContainer.setLiveAlgorithmDiff(liveAlgorithmDiff);
+		}
 	}
 
 	public void refreshMempool(TxPoolChanges txPoolChanges) {
@@ -214,7 +228,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 		}
 	}
 
-	private void OnNewBlock(Block block, int numConsecutiveBlocks) {
+	private void OnNewBlock(Block block) {
 		if (coinBaseTxWeightList.size() != numConsecutiveBlocks) {
 			alarmLogger.addAlarm("THIS SHOULD NOT BE HAPPENING: coinBaseTxVSizeList.size() != numConsecutiveBlocks");
 			logger.warn("THIS SHOULD NOT BE HAPPENING: coinBaseTxVSizeList.size() != numConsecutiveBlocks");
@@ -236,8 +250,12 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			return;
 		}
 
+		if (!optCB.get().checkIsCorrect()) {
+			alarmLogger.addAlarm("CandidateBlock is incorrect in block:" + block.getHeight());
+		}
+
 		// TODO: What if numConsecutiveBlocks!=1??
-		if (numConsecutiveBlocks != 1) {
+		if (numConsecutiveBlocks != 0) {
 			alarmLogger.addAlarm(
 					"OnNewBlock height: " + block.getHeight() + ", numConsecutiveBlocks=" + numConsecutiveBlocks);
 		}
@@ -246,9 +264,14 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 		MisMinedTransactions mmtCandidateBlock = new MisMinedTransactions(txMemPool, optCB.get(), block);
 
-		AlgorithmDifferences ad = new AlgorithmDifferences(txMemPool, blockTemplateContainer, optCB.get(),
+		AlgorithmDiff ad = new AlgorithmDiff(txMemPool, optCB.get(), blockTemplateContainer.getBlockTemplate(),
 				block.getHeight());
 		algoDiffContainer.put(ad);
+
+		if (ad.getBitcoindData().getTotalBaseFee().get().longValue() > ad.getOursData().getTotalBaseFee().get()
+				.longValue()) {
+			alarmLogger.addAlarm("Bitcoind algorithm better than us in block: " + block.getHeight());
+		}
 
 		// Check for alarms or inconsistencies
 		misMinedTransactionsChecker.check(mmtBlockTemplate);

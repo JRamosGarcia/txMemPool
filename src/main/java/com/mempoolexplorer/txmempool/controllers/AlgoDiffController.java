@@ -12,9 +12,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mempoolexplorer.txmempool.components.containers.AlgorithmDiffContainer;
+import com.mempoolexplorer.txmempool.components.containers.LiveAlgorithmDiffContainer;
 import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
 import com.mempoolexplorer.txmempool.controllers.exceptions.BlockNotFoundException;
-import com.mempoolexplorer.txmempool.entites.AlgorithmDifferences;
+import com.mempoolexplorer.txmempool.controllers.exceptions.ServiceNotReadyYetException;
+import com.mempoolexplorer.txmempool.entites.AlgorithmDiff;
 
 @RestController
 @RequestMapping("/algo")
@@ -23,10 +25,12 @@ public class AlgoDiffController {
 	@Autowired
 	private AlgorithmDiffContainer algoDiffContainer;
 
+	@Autowired
+	private LiveAlgorithmDiffContainer liveAlgoDiffContainer;
+
 	@GetMapping("/diffs/{height}")
-	public AlgorithmDifferences getAlgorithmDifferences(@PathVariable("height") Integer height)
-			throws BlockNotFoundException {
-		AlgorithmDifferences algorithmDifferences = algoDiffContainer.getHeightToAlgoDiffMap().get(height);
+	public AlgorithmDiff getAlgorithmDifferences(@PathVariable("height") Integer height) throws BlockNotFoundException {
+		AlgorithmDiff algorithmDifferences = algoDiffContainer.getHeightToAlgoDiffMap().get(height);
 		if (algorithmDifferences == null) {
 			throw new BlockNotFoundException();
 		}
@@ -34,12 +38,29 @@ public class AlgoDiffController {
 	}
 
 	@GetMapping("/diffs/last")
-	public AlgorithmDifferences getLastAlgorithmDifferences() throws BlockNotFoundException {
-		Optional<AlgorithmDifferences> opAlgorithmDifferences = algoDiffContainer.getLast();
+	public AlgorithmDiff getLastAlgorithmDifferences() throws BlockNotFoundException {
+		Optional<AlgorithmDiff> opAlgorithmDifferences = algoDiffContainer.getLast();
 		if (opAlgorithmDifferences.isEmpty()) {
 			throw new BlockNotFoundException();
 		}
 		return opAlgorithmDifferences.get();
+	}
+
+	@GetMapping("/liveDiffs")
+	public AlgorithmDiff getLiveAlgorithmDiff() throws BlockNotFoundException, ServiceNotReadyYetException {
+		Optional<AlgorithmDiff> opLiveAlgorithmDiff = liveAlgoDiffContainer.getliveAlgorithmDiff();
+		if (opLiveAlgorithmDiff.isEmpty()) {
+			throw new ServiceNotReadyYetException("No LiveAlgorithmDiff yet.");
+		}
+		return opLiveAlgorithmDiff.get();
+	}
+
+	@ExceptionHandler(ServiceNotReadyYetException.class)
+	public ResponseEntity<?> onServiceNotReadyYetException(ServiceNotReadyYetException e) {
+		ErrorDetails errorDetails = new ErrorDetails();
+		errorDetails.setErrorMessage(e.getMessage());
+		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());
+		return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
 	}
 
 	@ExceptionHandler(BlockNotFoundException.class)

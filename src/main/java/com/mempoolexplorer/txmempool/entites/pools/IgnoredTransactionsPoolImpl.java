@@ -97,8 +97,8 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 			// Consider repudiated if needed
 			if (igTx.getIgnoringBlockList().size() >= txMempoolProperties.getNumTimesTxIgnoredToRaiseAlarm()) {
 				repudiatedTransactionsPool.put(igTx);
-				alarmLogger.addAlarm("Repudiated transaction txId:" + igTx + ". Has been ignored "
-						+ igTx.getIgnoringBlockList().size() + " times.");
+				alarmLogger.addAlarm(mmt.getAlgorithmUsed().toString() + "-Repudiated transaction txId:" + igTx
+						+ ". Has been ignored " + igTx.getIgnoringBlockList().size() + " times.");
 			}
 		}
 

@@ -37,12 +37,30 @@ public class CandidateBlock implements TxContainer {
 		weight += tx.getWeight();
 		totalFees += tx.getFees().getBase();
 		TxToBeMined txToBeMined = new TxToBeMined(tx, payingChildTx, reducedBy, this, nextTxPositionInBlock++);
-		if(null!=txMap.put(tx.getTxId(), txToBeMined)) {
-			//TODO: See what to do here. Uncatched exception
+		if (null != txMap.put(tx.getTxId(), txToBeMined)) {
+			// TODO: See what to do here. Uncatched exception
 			throw new IllegalStateException();
 		}
 		txList.add(txToBeMined);
 		return txToBeMined;
+	}
+
+	public boolean checkIsCorrect() {
+		Iterator<Transaction> txIt = txList.stream().map(txTBM -> txTBM.getTx()).iterator();
+		while (txIt.hasNext()) {
+			Transaction tx = txIt.next();
+			if (!txMap.containsKey(tx.getTxId())) {
+				return false;
+			}
+			Iterator<String> txIdIt = tx.getTxAncestry().getDepends().iterator();
+			while (txIdIt.hasNext()) {
+				String txId = txIdIt.next();
+				if (!txMap.containsKey(txId)) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	public Optional<TxToBeMined> peekLastTx() {

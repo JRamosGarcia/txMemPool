@@ -3,6 +3,7 @@ package com.mempoolexplorer.txmempool.components.containers;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
@@ -13,9 +14,9 @@ import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.controllers.entities.LiveMiningQueueGraphData;
+import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 import com.mempoolexplorer.txmempool.entites.miningqueue.LiveMiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
-import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 import com.mempoolexplorer.txmempool.entites.miningqueue.SatVByte_NumTXs;
 import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
 import com.mempoolexplorer.txmempool.utils.SysProps;
@@ -43,25 +44,26 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 	}
 
 	@Override
-	public void refreshIfNeeded() {
+	public Optional<MiningQueue> refreshIfNeeded() {
 		if (numRefreshedWatcher >= txMempoolProperties.getRefreshCountToCreateNewMiningQueue()) {
 			numRefreshedWatcher = 0;
-			updateLiveMiningQueue();
+			return Optional.of(updateLiveMiningQueue());
 		}
 		numRefreshedWatcher++;
+		return Optional.empty();
 	}
 
 	@Override
-	public void forceRefresh() {
-		updateLiveMiningQueue();
+	public MiningQueue forceRefresh() {
 		numRefreshedWatcher = 0;
+		return updateLiveMiningQueue();
 	}
 
 	// Create LiveMiningQueue. Firsts Blocks are taken from MiningQueue which are
 	// accurate (CPFP and block space left by big txs are taken into account). and
 	// remaining blocks are inaccurate since are calculated from a txMempool
 	// descending list(but faster)
-	private void updateLiveMiningQueue() {
+	private MiningQueue updateLiveMiningQueue() {
 		MiningQueue newMiningQueue = MiningQueue.buildFrom(new ArrayList<>(), txMemPool,
 				txMempoolProperties.getMiningQueueNumTxs(), txMempoolProperties.getMiningQueueMaxNumBlocks());
 		if (newMiningQueue.isHadErrors()) {
@@ -69,6 +71,7 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		}
 		this.liveMiningQueueRef
 				.set(new LiveMiningQueue(buildLiveMiningQueueGraphDataFrom(newMiningQueue), newMiningQueue));
+		return newMiningQueue;
 	}
 
 	private LiveMiningQueueGraphData buildLiveMiningQueueGraphDataFrom(MiningQueue mq) {
@@ -87,8 +90,8 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		Iterator<Transaction> txIt = txMemPool.getDescendingTxStream()
 				.limit(txMempoolProperties.getLiveMiningQueueMaxTxs())
 				// pass if tx has no children or not in mining queue
-				.filter(tx -> !mq.contains(tx.getTxId())).takeWhile(tx -> lmq.getSatVByteNumTXsList()
-						.size() < txMempoolProperties.getLiveMiningQueueGraphSize())
+				.filter(tx -> !mq.contains(tx.getTxId()))
+				.takeWhile(tx -> lmq.getSatVByteNumTXsList().size() < txMempoolProperties.getLiveMiningQueueGraphSize())
 				.iterator();
 
 		List<Integer> blockPositionList = lmq.getBlockPositionList();
@@ -132,8 +135,7 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		List<SatVByte_NumTXs> satVByteNumTXsList = new ArrayList<>();
 		IntStream.range(0, mq.getNumCandidateBlocks()).mapToObj(i -> mq.getCandidateBlock(i)).map(ocb -> ocb.get())
 				.flatMap(cb -> cb.getOrderedStream())
-				.takeWhile(
-						txtbm -> satVByteNumTXsList.size() < txMempoolProperties.getLiveMiningQueueGraphSize())
+				.takeWhile(txtbm -> satVByteNumTXsList.size() < txMempoolProperties.getLiveMiningQueueGraphSize())
 				.forEach(txtbm -> {
 					int satVByte = 0;
 					if (txtbm.getPayingChildTx().isEmpty()) {

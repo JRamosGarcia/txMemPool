@@ -29,10 +29,10 @@ import com.mempoolexplorer.txmempool.components.TxMemPool;
  * tx child is inserted. This ensures an almost descending MiningQueue by
  * satVByte
  * 
- * Childrens of an already inserted parent tx must have reduced sat/vByte
+ * Childrens of an already inserted parent tx must have different sat/vByte
  * INCLUDING TX'S ANCESTORS since some of them are already included. We use the
- * class ModifiedMempool to store that fees reduction since tx in mempool must
- * not be mutated.
+ * class ModifiedMempool to store that fees and weigth reduction since tx in
+ * mempool must not be mutated.
  * 
  * Constructor uses a coinBaseVSizeList, which is a template of blocks with that
  * coinbaseVSize. More CandidateBlocks could be created up to maxNumBlocks.
@@ -124,10 +124,21 @@ public class MiningQueue {
 	// tx comes ordered in descending Sat/vByte including ancestors
 	private void addTx(Transaction tx) {
 
+		if (modifiedMempool.contains(tx.getTxId())) {
+			// This tx is in modifiedMempool with fees and weigh updated.
+			return;
+		}
 		Optional<ModifiedTx> bestThan = modifiedMempool.getBestThan(tx);
 		while (bestThan.isPresent()) {
 			addTxWithParents(bestThan.get().getTx());
 			modifiedMempool.remove(bestThan.get().getTx().getTxId());
+
+			if (modifiedMempool.contains(tx.getTxId())) {
+				// This tx is in modifiedMempool with fees and weigh updated.
+				// Not sure if this code is recheable but feels safer.
+				return;
+			}
+
 			bestThan = modifiedMempool.getBestThan(tx);
 		}
 		addTxWithParents(tx);
@@ -149,8 +160,6 @@ public class MiningQueue {
 		int notInAnyBlockParentsSumWeight = notInAnyBlockParents.stream().mapToInt(trx -> trx.getWeight()).sum();
 		long notInAnyBlockParentsSumFee = notInAnyBlockParents.stream().mapToLong(trx -> trx.getBaseFees()).sum();
 
-		modifiedMempool.substractFeesTo(notInAnyBlockChildrens, tx.getBaseFees() + notInAnyBlockParentsSumFee);
-
 		int txEffectiveWeightInCurrentBlock = tx.getWeight() + notInAnyBlockParentsSumWeight;
 
 		Optional<CandidateBlock> blockToFill = getCandidateBlockToFill(txEffectiveWeightInCurrentBlock, allParentsOfTx);
@@ -165,6 +174,10 @@ public class MiningQueue {
 			TxToBeMined txToBeMined = blockToFill.get().addTx(tx, Optional.empty(),
 					optionalList(notInAnyBlockChildrens));
 			globalTxsMap.put(tx.getTxId(), txToBeMined);
+
+			// Only if tx is really added
+			modifiedMempool.substractParentDataToChildren(notInAnyBlockChildrens,
+					tx.getBaseFees() + notInAnyBlockParentsSumFee, tx.getWeight() + notInAnyBlockParentsSumWeight);
 		}
 	}
 

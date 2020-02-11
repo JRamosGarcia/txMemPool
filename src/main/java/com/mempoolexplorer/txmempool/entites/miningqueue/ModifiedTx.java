@@ -5,12 +5,19 @@ import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 public class ModifiedTx {
 
 	private Transaction tx;
-	private long realAncestorFees;
+	private long ancestorsFeesSubstracted;
+	private int ancestorWeightSubstracted;
 
-	public ModifiedTx(Transaction tx, long realFees) {
+	public ModifiedTx(Transaction tx, long feesToSubstract, int weightToSubsbract) {
 		super();
 		this.tx = tx;
-		this.realAncestorFees = realFees;
+		this.ancestorsFeesSubstracted = feesToSubstract;
+		this.ancestorWeightSubstracted = weightToSubsbract;
+	}
+
+	public void substract(long feesToSubstract, int weightToSubsbract) {
+		this.ancestorsFeesSubstracted += feesToSubstract;
+		this.ancestorWeightSubstracted += weightToSubsbract;
 	}
 
 	public Transaction getTx() {
@@ -21,16 +28,9 @@ public class ModifiedTx {
 		this.tx = tx;
 	}
 
-	public long getRealAncestorFees() {
-		return realAncestorFees;
-	}
-
-	public void setRealAncestorFees(long realAncestorFees) {
-		this.realAncestorFees = realAncestorFees;
-	}
-
 	public double getRealAncestorSatVByte() {
-		return satVByteFrom(realAncestorFees, tx.getWeight());
+		return satVByteFrom(tx.getFees().getAncestor() - ancestorsFeesSubstracted,
+				(tx.getTxAncestry().getAncestorSize() * 4) - ancestorWeightSubstracted);
 	}
 
 	private double satVByteFrom(long fees, int weight) {

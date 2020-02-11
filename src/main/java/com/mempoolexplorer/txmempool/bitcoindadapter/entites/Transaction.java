@@ -43,7 +43,7 @@ public class Transaction implements Feeable {
 	// with tx.getSatvByte since one is calculated using vSize(a rounded up integer)
 	// and the other using weight (accurate)
 	@Override
-	@JsonIgnore
+	//@JsonIgnore
 	public double getSatvByteIncludingAncestors() {
 		if (txAncestry.getAncestorSize() == 0)
 			return 0;
@@ -57,7 +57,7 @@ public class Transaction implements Feeable {
 	// with tx.getSatvByte since one is calculated using vSize(a rounded up integer)
 	// and the other using weight (accurate)
 	@Override
-	@JsonIgnore
+	//@JsonIgnore
 	public double getSatvByte() {
 		// We calculate this using weight, not a vSize field . This is accurate.
 		if (getvSize() == 0)

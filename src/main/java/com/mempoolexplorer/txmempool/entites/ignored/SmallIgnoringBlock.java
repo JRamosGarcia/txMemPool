@@ -5,15 +5,15 @@ import java.util.Optional;
 public class SmallIgnoringBlock {
 
 	private Integer height;
+	private Integer totalTxNumMined;
 	private Optional<Integer> postitionInQueue;
 
 	public SmallIgnoringBlock() {
-
 	}
 
-	public SmallIgnoringBlock(Integer height, Optional<Integer> postitionInQueue) {
-		super();
+	public SmallIgnoringBlock(Integer height, Integer totalTxNumMined, Optional<Integer> postitionInQueue) {
 		this.height = height;
+		this.totalTxNumMined = totalTxNumMined;
 		this.postitionInQueue = postitionInQueue;
 	}
 
@@ -23,6 +23,14 @@ public class SmallIgnoringBlock {
 
 	public void setHeight(Integer height) {
 		this.height = height;
+	}
+
+	public Integer getTotalTxNumMined() {
+		return totalTxNumMined;
+	}
+
+	public void setTotalTxNumMined(Integer totalTxNumMined) {
+		this.totalTxNumMined = totalTxNumMined;
 	}
 
 	public Optional<Integer> getPostitionInQueue() {

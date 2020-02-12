@@ -15,7 +15,7 @@ public class LiveIgnoredTransaction {
 	private List<SmallIgnoringBlock> smallIgnoringBlockList = new ArrayList<>();
 
 	private Integer numTimesIgnored;
-	
+
 	private IgnoredTxState state = IgnoredTxState.INMEMPOOL;
 
 	private Double totalSatvBytesLost = 0D; // Total Satoshis per byte lost due to ignoration (sum of
@@ -39,6 +39,7 @@ public class LiveIgnoredTransaction {
 		for (IgnoringBlock ib : igTx.getIgnoringBlockList()) {
 			var sib = new SmallIgnoringBlock();
 			sib.setHeight(ib.getMinedBlockData().getHeight());
+			sib.setTotalTxNumMined(ib.getMinedBlockData().getFeeableData().getNumTxs().orElse(0));
 			sib.setPostitionInQueue(igTx.getPositionInBlockHeightMap().get(ib.getMinedBlockData().getHeight()));
 			smallIBList.add(sib);
 		}
@@ -73,15 +74,9 @@ public class LiveIgnoredTransaction {
 		return numTimesIgnored;
 	}
 
-
-
-
 	public void setNumTimesIgnored(Integer numTimesIgnored) {
 		this.numTimesIgnored = numTimesIgnored;
 	}
-
-
-
 
 	public IgnoredTxState getState() {
 		return state;

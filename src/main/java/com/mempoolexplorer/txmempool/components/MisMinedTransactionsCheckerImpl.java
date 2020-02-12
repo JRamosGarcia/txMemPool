@@ -45,19 +45,18 @@ public class MisMinedTransactionsCheckerImpl implements MisMinedTransactionsChec
 		int coinbaseWeight = mmt.getMinedBlockData().getCoinBaseTx().getWeight();
 		if (mmt.getMinedBlockData().getWeight() != (sumMinedWeight + coinbaseWeight + SysProps.BLOCK_HEADER_WEIGHT)) {
 			addAlarm(
-					"mmt.getMinedBlockData().getWeight() != (minedWeight + coinbaseWeight + SysProps.BLOCK_HEADER_WEIGHT)"
-							+ " in block: " + mmt.getMinedBlockData().getHeight(),
+					"mmt.getMinedBlockData().getWeight() != (minedWeight + coinbaseWeight + SysProps.BLOCK_HEADER_WEIGHT)",
 					mmt);
 		}
 		int minedWeight = mmt.getMinedBlockData().getWeight();
 		int minedAndInMemPoolWeight = mmt.getMinedAndInMemPoolMapWD().getFeeableData().getTotalWeight().orElse(0);
 		int minedBotNotInMemPoolWeight = mmt.getMinedButNotInMemPoolMapWD().getFeeableData().getTotalWeight().orElse(0);
-		if (minedWeight != (minedAndInMemPoolWeight + minedBotNotInMemPoolWeight + coinbaseWeight
-				+ SysProps.BLOCK_HEADER_WEIGHT)) {
-			addAlarm(
-					"minedWeight!=(minedAndInMemPoolWeight+minedBotNotInMemPoolWeight+coinbaseWeight+SysProps.BLOCK_HEADER_WEIGHT)"
-							+ " in block: " + mmt.getMinedBlockData().getHeight(),
-					mmt);
+		int other = minedAndInMemPoolWeight + minedBotNotInMemPoolWeight + coinbaseWeight
+				+ SysProps.BLOCK_HEADER_WEIGHT;
+		if (minedWeight != other) {
+			addAlarm("minedWeight=" + minedWeight
+					+ "(minedAndInMemPoolWeight+minedBotNotInMemPoolWeight+coinbaseWeight+SysProps.BLOCK_HEADER_WEIGHT)="
+					+ other, mmt);
 		}
 	}
 
@@ -66,20 +65,17 @@ public class MisMinedTransactionsCheckerImpl implements MisMinedTransactionsChec
 	private void checkCandidateBlockData(MisMinedTransactions mmt) {
 		long candidateTotalFees = mmt.getCandidateBlockData().getFeeableData().getTotalBaseFee().orElse(0L);
 		if (mmt.getCandidateBlockData().getTotalFees() != candidateTotalFees) {
-			addAlarm("mmt.getCandidateBlockData().getTotalFees() != candidateTotalFees" + " in block: "
-					+ mmt.getMinedBlockData().getHeight(), mmt);
+			addAlarm("mmt.getCandidateBlockData().getTotalFees() != candidateTotalFees", mmt);
 
 		}
 		int numTx = mmt.getCandidateBlockData().getFeeableData().getNumTxs().orElse(0);
 		if (mmt.getCandidateBlockData().getNumTxs() != numTx) {
-			addAlarm("mmt.getCandidateBlockData().getNumTxs() != numTx" + " in block: "
-					+ mmt.getMinedBlockData().getHeight(), mmt);
+			addAlarm("mmt.getCandidateBlockData().getNumTxs() != numTx", mmt);
 
 		}
 		int totalWeight = mmt.getCandidateBlockData().getFeeableData().getTotalWeight().orElse(0);
 		if (mmt.getCandidateBlockData().getWeight() != totalWeight) {
-			addAlarm("mmt.getCandidateBlockData().getWeight() != totalWeight" + " in block: "
-					+ mmt.getMinedBlockData().getHeight(), mmt);
+			addAlarm("mmt.getCandidateBlockData().getWeight() != totalWeight", mmt);
 
 		}
 	}
@@ -95,8 +91,7 @@ public class MisMinedTransactionsCheckerImpl implements MisMinedTransactionsChec
 		if ((candidateBlockWeight - minedAndInMemPoolWeight) != (notMinedButInCandidateBlockWeight
 				- minedInMempoolButNotInCandidateBlockWeight)) {
 			addAlarm(
-					"(candidateBlockWeight- minedAndInMemPoolWeight ) != (notMinedButInCandidateBlockWeight-minedInMempoolButNotInCandidateBlockWeight)"
-							+ " in block: " + mmt.getMinedBlockData().getHeight(),
+					"(candidateBlockWeight- minedAndInMemPoolWeight ) != (notMinedButInCandidateBlockWeight-minedInMempoolButNotInCandidateBlockWeight)",
 					mmt);
 
 		}
@@ -111,8 +106,7 @@ public class MisMinedTransactionsCheckerImpl implements MisMinedTransactionsChec
 		if ((candidateBlockFees - minedAndInMemPoolFees) != (notMinedButInCandidateBlockFees
 				- minedInMempoolButNotInCandidateBlockFees)) {
 			addAlarm(
-					"(candidateBlockFees- minedAndInMemPoolFees ) != (notMinedButInCandidateBlockFees-minedInMempoolButNotInCandidateBlockFees)"
-							+ " in block: " + mmt.getMinedBlockData().getHeight(),
+					"(candidateBlockFees- minedAndInMemPoolFees ) != (notMinedButInCandidateBlockFees-minedInMempoolButNotInCandidateBlockFees)",
 					mmt);
 
 		}
@@ -132,8 +126,7 @@ public class MisMinedTransactionsCheckerImpl implements MisMinedTransactionsChec
 				.collect(Collectors.toList()).isEmpty()
 				|| !mmt.getMinedButNotInMemPoolSet().stream().filter(txId -> !blockSet.contains(txId))
 						.collect(Collectors.toList()).isEmpty()) {
-			addAlarm("blockSet and minedButNotInMemPoolSet are not equals" + " in block: "
-					+ mmt.getMinedBlockData().getHeight(), mmt);
+			addAlarm("blockSet and minedButNotInMemPoolSet are not equals", mmt);
 
 		}
 	}
@@ -141,14 +134,17 @@ public class MisMinedTransactionsCheckerImpl implements MisMinedTransactionsChec
 	// Check if getLostRewardExcludingNotInMempoolTx is negative
 	private void checkLostReward(MisMinedTransactions mmt) {
 		if (mmt.getLostRewardExcludingNotInMempoolTx() < 0L) {
-			addAlarm("Lost reward excluding not in mempool Tx: " + mmt.getLostRewardExcludingNotInMempoolTx()
-					+ ", in block: " + mmt.getMinedBlockData().getHeight(), mmt);
+			addAlarm("Lost reward excluding not in mempool Tx: " + mmt.getLostRewardExcludingNotInMempoolTx(), mmt);
 		}
 	}
 
 	private void addAlarm(String msg, MisMinedTransactions mmt) {
-		String res = mmt.getAlgorithmUsed().toString();
-		alarmLogger.addAlarm(res + "-" + msg);
-
+		StringBuilder sb = new StringBuilder();
+		sb.append(mmt.getAlgorithmUsed().toString());
+		sb.append(" - ");
+		sb.append(msg);
+		sb.append(", in block: ");
+		sb.append(mmt.getBlock().getHeight());
+		alarmLogger.addAlarm(sb.toString());
 	}
 }

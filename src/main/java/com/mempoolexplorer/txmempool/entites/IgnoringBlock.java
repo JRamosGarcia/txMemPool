@@ -3,9 +3,9 @@ package com.mempoolexplorer.txmempool.entites;
 import java.util.HashSet;
 import java.util.Set;
 
-public class IgnoringBlock {
+import com.mempoolexplorer.txmempool.utils.SysProps;
 
-	public static final String UNKNOWN = "Unknown";
+public class IgnoringBlock {
 
 	private AlgorithmType algorithmUsed;
 	private Set<String> inCandidateBlockButNotInMemPool = new HashSet<>();
@@ -16,7 +16,7 @@ public class IgnoringBlock {
 	private TimeSinceEnteredStatistics notMinedButInCandidateBlockMPTStatistics;
 	private FeeableData minedInMempoolButNotInCandidateBlockData;
 	private FeeableData minedButNotInMemPoolData;
-	private String minerName = UNKNOWN;// If not known, "Unknown"
+	private String minerName = SysProps.MINER_NAME_UNKNOWN;
 	private long lostReward;
 	private long lostRewardExcludingNotInMempoolTx;
 	private int numTxInMempool;
@@ -25,7 +25,7 @@ public class IgnoringBlock {
 
 	}
 
-	public IgnoringBlock(MisMinedTransactions mmt) {
+	public IgnoringBlock(MisMinedTransactions mmt, String minerName) {
 		this.algorithmUsed = mmt.getAlgorithmUsed();
 		this.inCandidateBlockButNotInMemPool = mmt.getInCandidateBlockButNotInMemPool();
 		this.minedBlockData = mmt.getMinedBlockData();
@@ -39,6 +39,7 @@ public class IgnoringBlock {
 		this.lostReward = mmt.getLostReward();
 		this.lostRewardExcludingNotInMempoolTx = mmt.getLostRewardExcludingNotInMempoolTx();
 		this.numTxInMempool = mmt.getNumTxInMempool();
+		this.minerName = minerName;
 	}
 
 	public AlgorithmType getAlgorithmUsed() {

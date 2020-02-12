@@ -12,8 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
+import com.mempoolexplorer.txmempool.components.MinerNameResolver;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
+import com.mempoolexplorer.txmempool.components.containers.MinerNamesUnresolvedContainer;
 import com.mempoolexplorer.txmempool.entites.IgnoredTransaction;
 import com.mempoolexplorer.txmempool.entites.IgnoredTxState;
 import com.mempoolexplorer.txmempool.entites.IgnoringBlock;
@@ -30,6 +32,10 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 
 	private RepudiatedTransactionsPool repudiatedTransactionsPool;
 
+	private MinerNameResolver minerNameResolver;
+
+	private MinerNamesUnresolvedContainer minerNamesUnresolvedContainer;
+
 	private TxMempoolProperties txMempoolProperties;
 
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -42,11 +48,14 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 			ignoredTransactionMap);
 
 	public IgnoredTransactionsPoolImpl(AlarmLogger alarmLogger, IgnoringBlocksPool ignoringBlocksPool,
-			RepudiatedTransactionsPool repudiatedTransactionsPool, TxMempoolProperties txMempoolProperties) {
+			RepudiatedTransactionsPool repudiatedTransactionsPool, MinerNameResolver minerNameResolver,
+			MinerNamesUnresolvedContainer minerNamesUnresolvedContainer, TxMempoolProperties txMempoolProperties) {
 		super();
 		this.alarmLogger = alarmLogger;
 		this.ignoringBlocksPool = ignoringBlocksPool;
 		this.repudiatedTransactionsPool = repudiatedTransactionsPool;
+		this.minerNameResolver = minerNameResolver;
+		this.minerNamesUnresolvedContainer = minerNamesUnresolvedContainer;
 		this.txMempoolProperties = txMempoolProperties;
 	}
 
@@ -65,7 +74,15 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 
 		clearIgnoredTransactionMap(block, txMemPool);// In case of mined or deleted txs
 
-		IgnoringBlock ignoringBlock = new IgnoringBlock(mmt);
+		String coinBaseAscciField = mmt.getMinedBlockData().getCoinBaseAsciiField();
+
+		String minerName = minerNameResolver.resolveFrom(coinBaseAscciField);
+
+		if (minerName.compareTo(SysProps.MINER_NAME_UNKNOWN) == 0) {
+			minerNamesUnresolvedContainer.addCoinBaseField(coinBaseAscciField, block.getHeight());
+		}
+
+		IgnoringBlock ignoringBlock = new IgnoringBlock(mmt, minerName);
 
 		ignoringBlocksPool.add(ignoringBlock);
 
@@ -115,8 +132,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 
 	private double calculateTotalSatvBytesLost(IgnoringBlock ignoringBlock, IgnoredTransaction igTx) {
 		double totalSatvBytesLost = igTx.getTotalSatvBytesLost();
-		double blockSatvBytesLost = ignoringBlock.getMinedBlockData().getFeeableData().getMinSatVByte()
-				.orElse(0D);
+		double blockSatvBytesLost = ignoringBlock.getMinedBlockData().getFeeableData().getMinSatVByte().orElse(0D);
 		double diff = igTx.getTx().getSatvByte() - blockSatvBytesLost;
 		return totalSatvBytesLost + diff;
 	}

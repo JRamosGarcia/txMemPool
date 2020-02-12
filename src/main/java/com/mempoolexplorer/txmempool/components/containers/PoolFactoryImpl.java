@@ -8,6 +8,7 @@ import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.mempoolexplorer.txmempool.components.MinerNameResolver;
 import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.controllers.exceptions.AlgorithmTypeNotFoundException;
 import com.mempoolexplorer.txmempool.entites.AlgorithmType;
@@ -28,6 +29,12 @@ public class PoolFactoryImpl implements PoolFactory {
 	@Autowired
 	private TxMempoolProperties txMempoolProperties;
 
+	@Autowired
+	private MinerNameResolver minerNameResolver;
+
+	@Autowired
+	private MinerNamesUnresolvedContainer minerNamesUnresolvedContainer;
+
 	private List<RepudiatedTransactionsPool> repTxPoolList = new ArrayList<>(2);
 
 	private List<IgnoringBlocksPool> igBlocksPoolList = new ArrayList<>(2);
@@ -43,9 +50,9 @@ public class PoolFactoryImpl implements PoolFactory {
 		repTxPoolList.add(new RepudiatedTransactionsPoolImpl());
 
 		igTxPoolList.add(new IgnoredTransactionsPoolImpl(alarmLogger, igBlocksPoolList.get(0), repTxPoolList.get(0),
-				txMempoolProperties));
+				minerNameResolver, minerNamesUnresolvedContainer, txMempoolProperties));
 		igTxPoolList.add(new IgnoredTransactionsPoolImpl(alarmLogger, igBlocksPoolList.get(1), repTxPoolList.get(1),
-				txMempoolProperties));
+				minerNameResolver, minerNamesUnresolvedContainer, txMempoolProperties));
 	}
 
 	@Override

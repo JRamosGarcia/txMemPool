@@ -83,7 +83,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 				igTx.setTx(nmTx.getTx());
 				igTx.setState(IgnoredTxState.INMEMPOOL);
 			}
-			igTx.getPositionInBlockHeightMap().put(block.getHeight(), nmTx.getOrdinalpositionInBlock());
+			igTx.getPositionInBlockHeightMap().put(block.getHeight(), nmTx.getOrdinalPositionInBlock());
 
 			igTx.getIgnoringBlockList().add(ignoringBlock);
 			if (igTx.getIgnoringBlockList().size() == 1) {
@@ -115,7 +115,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 
 	private double calculateTotalSatvBytesLost(IgnoringBlock ignoringBlock, IgnoredTransaction igTx) {
 		double totalSatvBytesLost = igTx.getTotalSatvBytesLost();
-		double blockSatvBytesLost = ignoringBlock.getMinedBlockData().getFeeableData().getMinSatVByteIncAnc()
+		double blockSatvBytesLost = ignoringBlock.getMinedBlockData().getFeeableData().getMinSatVByte()
 				.orElse(0D);
 		double diff = igTx.getTx().getSatvByte() - blockSatvBytesLost;
 		return totalSatvBytesLost + diff;

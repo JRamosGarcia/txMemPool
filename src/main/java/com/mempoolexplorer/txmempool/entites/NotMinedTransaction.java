@@ -22,7 +22,7 @@ public class NotMinedTransaction implements Feeable {
 		this.ordinalpositionInBlock = ordinalpositionInBlock;
 	}
 
-	public Optional<Integer> getOrdinalpositionInBlock() {
+	public Optional<Integer> getOrdinalPositionInBlock() {
 		return ordinalpositionInBlock;
 	}
 

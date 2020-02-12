@@ -11,6 +11,8 @@ public class FeeableData {
 
 	private double maxSatVByteIncAnc = Double.MIN_VALUE;
 	private double minSatVByteIncAnc = Double.MAX_VALUE;
+	private double maxSatVByte = Double.MIN_VALUE;
+	private double minSatVByte = Double.MAX_VALUE;
 
 	private long totalBaseFee = 0;
 	private long totalAncestorsFee = 0;
@@ -20,6 +22,9 @@ public class FeeableData {
 
 	private String maxSatVByteIncAncTxId;
 	private String minSatVByteIncAncTxId;
+
+	private String maxSatVByteTxId;
+	private String minSatVByteTxId;
 
 	public FeeableData(Stream<? extends Feeable> fStream) {
 		super();
@@ -31,7 +36,7 @@ public class FeeableData {
 	}
 
 	public boolean isValid() {
-		if ((maxSatVByteIncAnc == Double.MIN_VALUE) || (minSatVByteIncAnc == Double.MAX_VALUE))
+		if (maxSatVByteIncAnc == Double.MIN_VALUE)
 			return false;
 		return true;
 	}
@@ -42,24 +47,32 @@ public class FeeableData {
 		totalWeight += feeable.getWeight();
 		numTxs++;
 
-		if ((feeable.getSatvByteIncludingAncestors() == Double.MIN_VALUE)
-				|| (feeable.getSatvByteIncludingAncestors() == Double.MAX_VALUE))
+		if (feeable.getSatvByteIncludingAncestors() == Double.MIN_VALUE)
 			return;
+
 		if (feeable.getSatvByteIncludingAncestors() > maxSatVByteIncAnc) {
 			maxSatVByteIncAnc = feeable.getSatvByteIncludingAncestors();
 			maxSatVByteIncAncTxId = feeable.getTxId();
+		}
+		if (feeable.getSatvByte() > maxSatVByte) {
+			maxSatVByte = feeable.getSatvByte();
+			maxSatVByteTxId = feeable.getTxId();
 		}
 		if (feeable.getSatvByteIncludingAncestors() < minSatVByteIncAnc) {
 			minSatVByteIncAnc = feeable.getSatvByteIncludingAncestors();
 			minSatVByteIncAncTxId = feeable.getTxId();
 		}
+		if (feeable.getSatvByte() < minSatVByte) {
+			minSatVByte = feeable.getSatvByte();
+			minSatVByteTxId = feeable.getTxId();
+		}
 	}
 
 	public void checkOther(FeeableData other) {
-		if ((other.maxSatVByteIncAnc == Double.MIN_VALUE) || (other.minSatVByteIncAnc == Double.MAX_VALUE))
+		if (other.maxSatVByteIncAnc == Double.MIN_VALUE)
 			return;
-		checkFees(other.maxSatVByteIncAnc, other.maxSatVByteIncAncTxId);
-		checkFees(other.minSatVByteIncAnc, other.minSatVByteIncAncTxId);
+		checkFees(other.maxSatVByteIncAnc, other.maxSatVByteIncAncTxId, other.maxSatVByte, other.maxSatVByteTxId);
+		checkFees(other.minSatVByteIncAnc, other.minSatVByteIncAncTxId, other.minSatVByte, other.minSatVByteTxId);
 		totalBaseFee += other.totalBaseFee;
 		totalAncestorsFee += other.totalAncestorsFee;
 		totalWeight += other.totalWeight;
@@ -67,15 +80,24 @@ public class FeeableData {
 	}
 
 	// fee and txId must be checked correct before calling this method.
-	private void checkFees(double fee, String txId) {
+	private void checkFees(double feeIncAnc, String txIdIncAnc, double fee, String txId) {
 
-		if (fee > maxSatVByteIncAnc) {
-			maxSatVByteIncAnc = fee;
-			maxSatVByteIncAncTxId = txId;
+		if (feeIncAnc > maxSatVByteIncAnc) {
+			maxSatVByteIncAnc = feeIncAnc;
+			maxSatVByteIncAncTxId = txIdIncAnc;
 		}
-		if (fee < minSatVByteIncAnc) {
-			minSatVByteIncAnc = fee;
-			minSatVByteIncAncTxId = txId;
+		if (feeIncAnc < minSatVByteIncAnc) {
+			minSatVByteIncAnc = feeIncAnc;
+			minSatVByteIncAncTxId = txIdIncAnc;
+		}
+
+		if (fee > maxSatVByte) {
+			maxSatVByte = fee;
+			maxSatVByteTxId = txId;
+		}
+		if (fee < minSatVByte) {
+			minSatVByte = fee;
+			minSatVByteTxId = txId;
 		}
 	}
 
@@ -111,6 +133,34 @@ public class FeeableData {
 		return Optional.of(minSatVByteIncAnc);
 	}
 
+	public Optional<String> getMaxSatVByteTxId() {
+		if (!isValid()) {
+			return Optional.empty();
+		}
+		return Optional.of(maxSatVByteTxId);
+	}
+
+	public Optional<String> getMinSatVByteTxId() {
+		if (!isValid()) {
+			return Optional.empty();
+		}
+		return Optional.of(minSatVByteTxId);
+	}
+
+	public Optional<Double> getMaxSatVByte() {
+		if (!isValid()) {
+			return Optional.empty();
+		}
+		return Optional.of(maxSatVByte);
+	}
+
+	public Optional<Double> getMinSatVByte() {
+		if (!isValid()) {
+			return Optional.empty();
+		}
+		return Optional.of(minSatVByte);
+	}
+
 	public Optional<Long> getTotalBaseFee() {
 		if (!isValid()) {
 			return Optional.empty();
@@ -124,14 +174,16 @@ public class FeeableData {
 		}
 		return Optional.of(totalAncestorsFee);
 	}
-	public Optional<Integer> getNumTxs(){
-		if(!isValid()) {
+
+	public Optional<Integer> getNumTxs() {
+		if (!isValid()) {
 			return Optional.empty();
 		}
 		return Optional.of(numTxs);
 	}
-	public Optional<Integer> getTotalWeight(){
-		if(!isValid()) {
+
+	public Optional<Integer> getTotalWeight() {
+		if (!isValid()) {
 			return Optional.empty();
 		}
 		return Optional.of(totalWeight);
@@ -150,12 +202,20 @@ public class FeeableData {
 			builder.append(numTxs);
 			builder.append(", totalWeight=");
 			builder.append(totalWeight);
+			builder.append(", maxSatVByte=");
+			builder.append(maxSatVByte);
 			builder.append(", maxSatVByteIncAnc=");
 			builder.append(maxSatVByteIncAnc);
+			builder.append(", minSatVByte=");
+			builder.append(minSatVByte);
 			builder.append(", minSatVByteIncAnc=");
 			builder.append(minSatVByteIncAnc);
+			builder.append(", maxSatVByteTxId=");
+			builder.append(maxSatVByteTxId);
 			builder.append(", maxSatVByteIncAncTxId=");
 			builder.append(maxSatVByteIncAncTxId);
+			builder.append(", minSatVByteTxId=");
+			builder.append(minSatVByteTxId);
 			builder.append(", minSatVByteIncAncTxId=");
 			builder.append(minSatVByteIncAncTxId);
 		} else {

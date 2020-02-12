@@ -22,6 +22,8 @@ public class LiveIgnoredTransaction {
 											// (Tx.satByte-blockMinSatBytes) for each ignoring block)
 	private Long totalFeesLost = 0l;// totalSatvBytesLost*tx.vSize
 
+	private Instant firstSeen;
+
 	private Instant timeWhenShouldHaveBeenMined;// Mining time of the fist block in which the tx should have been mined
 
 	private Integer finallyMinedOnBlock = -1;// Block height on which transaction was finally mined, could be 0 (not
@@ -48,6 +50,7 @@ public class LiveIgnoredTransaction {
 		liTx.setState(igTx.getState());
 		liTx.setTotalSatvBytesLost(igTx.getTotalSatvBytesLost());
 		liTx.setTotalFeesLost(igTx.getTotalFeesLost());
+		liTx.setFirstSeen(Instant.ofEpochSecond(igTx.getTx().getTimeInSecs()));
 		liTx.setTimeWhenShouldHaveBeenMined(igTx.getTimeWhenShouldHaveBeenMined());
 		liTx.setFinallyMinedOnBlock(igTx.getFinallyMinedOnBlock());
 
@@ -100,6 +103,14 @@ public class LiveIgnoredTransaction {
 
 	public void setTotalFeesLost(Long totalFeesLost) {
 		this.totalFeesLost = totalFeesLost;
+	}
+
+	public Instant getFirstSeen() {
+		return firstSeen;
+	}
+
+	public void setFirstSeen(Instant firstSeen) {
+		this.firstSeen = firstSeen;
 	}
 
 	public Instant getTimeWhenShouldHaveBeenMined() {

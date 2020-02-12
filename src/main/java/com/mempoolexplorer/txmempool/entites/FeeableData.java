@@ -10,8 +10,8 @@ import java.util.stream.Stream;
 public class FeeableData {
 
 	private double maxSatVByteIncAnc = Double.MIN_VALUE;
-	private double minSatVByteIncAnc = Double.MAX_VALUE;
 	private double maxSatVByte = Double.MIN_VALUE;
+	private double minSatVByteIncAnc = Double.MAX_VALUE;
 	private double minSatVByte = Double.MAX_VALUE;
 
 	private long totalBaseFee = 0;
@@ -21,9 +21,8 @@ public class FeeableData {
 	private int totalWeight = 0;
 
 	private String maxSatVByteIncAncTxId;
-	private String minSatVByteIncAncTxId;
-
 	private String maxSatVByteTxId;
+	private String minSatVByteIncAncTxId;
 	private String minSatVByteTxId;
 
 	public FeeableData(Stream<? extends Feeable> fStream) {

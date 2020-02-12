@@ -109,9 +109,11 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 				Block block = mempoolEvent.tryGetBlock().get();
 				logger.info("New Block with {} transactions", block.getTxIds().size());
 				OnNewBlock(block);
-				numConsecutiveBlocks++;
 				alarmLogger.prettyPrint();
+				numConsecutiveBlocks++;
 			} else if (mempoolEvent.getEventType() == MempoolEvent.EventType.REFRESH_POOL) {
+				numConsecutiveBlocks = 0;
+				coinBaseTxWeightList.clear();// If we have new txPoolChanges, we reset coinBaseVSizeList
 				// OnRefreshPool
 				TxPoolChanges txpc = mempoolEvent.tryGetTxPoolChanges().get();
 				BlockTemplateChanges btc = mempoolEvent.tryGetBlockTemplateChanges().get();
@@ -131,7 +133,6 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 					refreshContainers(txpc, btc);
 					initializing.set(false);
 				}
-				numConsecutiveBlocks = 0;
 			}
 		} catch (Exception e) {
 			logger.error("Exception: ", e);
@@ -195,14 +196,13 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			opMQ = Optional.of(liveMiningQueueContainer.forceRefresh());
 			forceMiningQueueRefresh = false;
 		}
-		coinBaseTxWeightList.clear();// If we have new txPoolChanges, we reset coinBaseVSizeList
 
 		blockTemplateContainer.refresh(btc);
 
-		if (opMQ.isPresent()) {
+		if (opMQ.isPresent()) {// Mining Queue could not be refreshed.
 			AlgorithmDiff liveAlgorithmDiff = new AlgorithmDiff(txMemPool,
-					opMQ.get().getCandidateBlock(numConsecutiveBlocks).get(), blockTemplateContainer.getBlockTemplate(),
-					0);
+					opMQ.get().getCandidateBlock(0).orElseGet(CandidateBlock::empty),
+					blockTemplateContainer.getBlockTemplate(), 0);
 			liveAlgorithmDiffContainer.setLiveAlgorithmDiff(liveAlgorithmDiff);
 		}
 	}
@@ -243,29 +243,24 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			alarmLogger.addAlarm("Mining Queue had errors, in OnNewBlock");
 		}
 
-		Optional<CandidateBlock> optCB = miningQueue.getCandidateBlock(coinBaseTxWeightList.size() - 1);
-		if (optCB.isEmpty()) {
-			alarmLogger.addAlarm("THIS SHOULD NOT BE HAPPENING: optCB.isEmpty()");
-			logger.warn("THIS SHOULD NOT BE HAPPENING: optCB.isEmpty()");
-			return;
-		}
+		CandidateBlock candidateBlock = miningQueue.getCandidateBlock(coinBaseTxWeightList.size() - 1)
+				.orElse(CandidateBlock.empty());
 
-		if (!optCB.get().checkIsCorrect()) {
+		if (!candidateBlock.checkIsCorrect()) {
 			alarmLogger.addAlarm("CandidateBlock is incorrect in block:" + block.getHeight());
 		}
 
-		// TODO: What if numConsecutiveBlocks!=1??
+		BlockTemplate blockTemplate = blockTemplateContainer.getBlockTemplate();
 		if (numConsecutiveBlocks != 0) {
+			blockTemplate = BlockTemplate.empty();
 			alarmLogger.addAlarm(
 					"OnNewBlock height: " + block.getHeight() + ", numConsecutiveBlocks=" + numConsecutiveBlocks);
 		}
-		MisMinedTransactions mmtBlockTemplate = new MisMinedTransactions(txMemPool,
-				blockTemplateContainer.getBlockTemplate(), block);
+		MisMinedTransactions mmtBlockTemplate = new MisMinedTransactions(txMemPool, blockTemplate, block);
 
-		MisMinedTransactions mmtCandidateBlock = new MisMinedTransactions(txMemPool, optCB.get(), block);
+		MisMinedTransactions mmtCandidateBlock = new MisMinedTransactions(txMemPool, candidateBlock, block);
 
-		AlgorithmDiff ad = new AlgorithmDiff(txMemPool, optCB.get(), blockTemplateContainer.getBlockTemplate(),
-				block.getHeight());
+		AlgorithmDiff ad = new AlgorithmDiff(txMemPool, candidateBlock, blockTemplate, block.getHeight());
 		algoDiffContainer.put(ad);
 
 		if (ad.getBitcoindData().getTotalBaseFee().get().longValue() > ad.getOursData().getTotalBaseFee().get()

@@ -26,6 +26,13 @@ public class CandidateBlock implements TxContainer {
 
 	private int nextTxPositionInBlock = 0;
 
+	private CandidateBlock() {
+	}
+
+	public static CandidateBlock empty() {
+		return new CandidateBlock();
+	}
+
 	public CandidateBlock(int position, int coinBaseWeight) {
 		this.position = position;
 		this.coinBaseWeight = coinBaseWeight;

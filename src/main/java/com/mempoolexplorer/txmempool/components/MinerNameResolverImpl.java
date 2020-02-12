@@ -14,6 +14,8 @@ public class MinerNameResolverImpl implements MinerNameResolver {
 
 	public MinerNameResolverImpl() {
 		minerNames.add("AntPool");
+		minerNames.add("BTC.COM");
+		minerNames.add("edf1");
 	}
 
 	@Override

@@ -17,6 +17,7 @@ import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContai
 import com.mempoolexplorer.txmempool.controllers.entities.LiveMiningQueueGraphData;
 import com.mempoolexplorer.txmempool.controllers.entities.TxInQueue;
 import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
+import com.mempoolexplorer.txmempool.controllers.exceptions.BlockNotFoundException;
 import com.mempoolexplorer.txmempool.controllers.exceptions.ServiceNotReadyYetException;
 import com.mempoolexplorer.txmempool.controllers.exceptions.TransactionNotFoundException;
 import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
@@ -41,7 +42,7 @@ public class LiveMiningQueueController {
 		return liveMiningQueueContainer.atomicGet().getLiveMiningQueueGraphData();
 	}
 
-	@GetMapping("/{txId}")
+	@GetMapping("/tx/{txId}")
 	public TxInQueue getTxInQueue(@PathVariable("txId") String txId)
 			throws TransactionNotFoundException, ServiceNotReadyYetException {
 		if (liveMiningQueueContainer.atomicGet() == null) {
@@ -63,6 +64,24 @@ public class LiveMiningQueueController {
 			int positionInQueue = containingBlock.getPrecedingTxsCount() + txToBeMined.get().getPositionInBlock();
 			return new TxInQueue(txToBeMined.get().getTx(), positionInQueue);
 		}
+	}
+
+	@GetMapping("/candidateBlock/{index}")
+	public CandidateBlock getCandidateBlock(@PathVariable("index") int index) throws BlockNotFoundException {
+		Optional<CandidateBlock> candidateBlock = liveMiningQueueContainer.atomicGet().getMiningQueue()
+				.getCandidateBlock(index);
+		if (candidateBlock.isEmpty()) {
+			throw new BlockNotFoundException("Candidate block with index: " + index + " not found");
+		}
+		return candidateBlock.get();
+	}
+
+	@ExceptionHandler(BlockNotFoundException.class)
+	public ResponseEntity<?> onBlockNotFound(BlockNotFoundException e) {
+		ErrorDetails errorDetails = new ErrorDetails();
+		errorDetails.setErrorMessage(e.getMessage());
+		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());
+		return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
 	}
 
 	@ExceptionHandler(TransactionNotFoundException.class)

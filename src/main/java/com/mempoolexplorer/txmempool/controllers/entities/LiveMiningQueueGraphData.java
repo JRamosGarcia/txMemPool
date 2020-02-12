@@ -15,6 +15,8 @@ public class LiveMiningQueueGraphData {
 
 	private int blocksAccurateUpToBlock = 0;
 
+	private int vSizeInLast10minutes;
+
 	public List<SatVByte_NumTXs> getSatVByteNumTXsList() {
 		return satVByteNumTXsList;
 	}
@@ -37,6 +39,14 @@ public class LiveMiningQueueGraphData {
 
 	public void setBlocksAccurateUpToBlock(int blocksAccurateUpToBlock) {
 		this.blocksAccurateUpToBlock = blocksAccurateUpToBlock;
+	}
+
+	public int getvSizeInLast10minutes() {
+		return vSizeInLast10minutes;
+	}
+
+	public void setvSizeInLast10minutes(int vSizeInLast10minutes) {
+		this.vSizeInLast10minutes = vSizeInLast10minutes;
 	}
 
 }

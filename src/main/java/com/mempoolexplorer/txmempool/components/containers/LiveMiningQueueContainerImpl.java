@@ -1,9 +1,11 @@
 package com.mempoolexplorer.txmempool.components.containers;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
@@ -79,8 +81,15 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		lmq.setSatVByteNumTXsList(createSatVByteNumTXsList(mq));
 		lmq.setBlockPositionList(createBlockPositionList(mq));
 		lmq.setBlocksAccurateUpToBlock(lmq.getBlockPositionList().size());
+		lmq.setvSizeInLast10minutes(calculatevSizeInLast10minutes());
 		addMemPoolTxsTo(lmq, mq);
 		return lmq;
+	}
+
+	private int calculatevSizeInLast10minutes() {
+		int totalWeight = txMemPool.getTxsAfter(Instant.now().minusSeconds(TimeUnit.MINUTES.toSeconds(10)))
+				.mapToInt(tx -> tx.getWeight()).sum();
+		return Math.round(totalWeight / 4f);
 	}
 
 	// Adds mempool transactions to LiveMiningQueue but not having into account CPFP

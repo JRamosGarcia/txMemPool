@@ -1,5 +1,6 @@
 package com.mempoolexplorer.txmempool.components;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -26,6 +27,8 @@ public interface TxMemPool {
 	Optional<Transaction> getTx(String txId);
 
 	Set<String> getTxIdsOfAddress(String addrId);
+	
+	Stream<Transaction> getTxsAfter(Instant instant);
 
 	void drop();
 

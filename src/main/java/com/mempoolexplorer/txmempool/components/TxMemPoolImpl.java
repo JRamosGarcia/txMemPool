@@ -1,5 +1,6 @@
 package com.mempoolexplorer.txmempool.components;
 
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -121,7 +122,7 @@ public class TxMemPoolImpl implements TxMemPool {
 		}
 		return new HashSet<>();
 	}
-	
+
 	// TODO: must be tested
 	@Override
 	public Set<String> getAllChildrenOf(Transaction tx) {
@@ -129,15 +130,15 @@ public class TxMemPoolImpl implements TxMemPool {
 		List<String> txSpentBys = tx.getTxAncestry().getSpentby();
 		if (!txSpentBys.isEmpty()) {
 			Set<String> childrenSet = txSpentBys.stream().collect(Collectors.toSet());
-			Set<String> granSonsSet = childrenSet.stream().map(txId -> txKeyMap.get(txId)).filter(txKey -> txKey != null)
-					.map(txKey -> txMemPool.get(txKey)).filter(trx -> trx != null).map(trx -> getAllChildrenOf(trx))
-					.flatMap(pSet -> pSet.stream()).collect(Collectors.toSet());
+			Set<String> granSonsSet = childrenSet.stream().map(txId -> txKeyMap.get(txId))
+					.filter(txKey -> txKey != null).map(txKey -> txMemPool.get(txKey)).filter(trx -> trx != null)
+					.map(trx -> getAllChildrenOf(trx)).flatMap(pSet -> pSet.stream()).collect(Collectors.toSet());
 			childrenSet.addAll(granSonsSet);
 			return childrenSet;
 		}
 		return new HashSet<>();
 	}
-	
+
 	@Override
 	public Set<String> getTxIdsOfAddress(String addrId) {
 		Set<String> txIdsSet = addressIdToTxIdMap.get(addrId);
@@ -145,6 +146,11 @@ public class TxMemPoolImpl implements TxMemPool {
 			return txIdsSet;
 		}
 		return new HashSet<>();
+	}
+
+	@Override
+	public Stream<Transaction> getTxsAfter(Instant instant) {
+		return txMemPool.values().stream().filter(tx -> tx.getTimeInSecs() > instant.getEpochSecond());
 	}
 
 	@Override

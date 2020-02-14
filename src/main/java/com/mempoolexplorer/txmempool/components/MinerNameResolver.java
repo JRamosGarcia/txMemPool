@@ -1,7 +1,9 @@
 package com.mempoolexplorer.txmempool.components;
 
+import com.mempoolexplorer.txmempool.entites.CoinBaseData;
+
 public interface MinerNameResolver {
 
-	String resolveFrom(String coinBaseField);
+	CoinBaseData resolveFrom(String coinBaseField);
 
 }

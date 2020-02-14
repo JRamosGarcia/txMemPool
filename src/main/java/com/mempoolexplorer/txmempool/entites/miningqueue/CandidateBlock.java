@@ -13,7 +13,7 @@ import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
 public class CandidateBlock implements TxContainer {
-	private int position = 0;// Position of this block in queue
+	private int index = 0;// Position of this block in queue
 	private int weight = 0;
 	private long totalFees = 0;
 	private int coinBaseWeight = 0;
@@ -33,8 +33,8 @@ public class CandidateBlock implements TxContainer {
 		return new CandidateBlock();
 	}
 
-	public CandidateBlock(int position, int coinBaseWeight) {
-		this.position = position;
+	public CandidateBlock(int index, int coinBaseWeight) {
+		this.index = index;
 		this.coinBaseWeight = coinBaseWeight;
 	}
 
@@ -101,8 +101,8 @@ public class CandidateBlock implements TxContainer {
 		return txList.size();
 	}
 
-	public int getPosition() {
-		return position;
+	public int getIndex() {
+		return index;
 	}
 
 	public int getWeight() {
@@ -129,7 +129,7 @@ public class CandidateBlock implements TxContainer {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("CandidateBlock [position=");
-		builder.append(position);
+		builder.append(index);
 		builder.append(", weight=");
 		builder.append(weight);
 		builder.append(", totalFees=");

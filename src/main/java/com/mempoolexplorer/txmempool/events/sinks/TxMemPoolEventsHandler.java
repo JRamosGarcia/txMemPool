@@ -27,6 +27,7 @@ import com.mempoolexplorer.txmempool.TxMemPoolApplication;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.mempool.TxPoolChanges;
+import com.mempoolexplorer.txmempool.components.MinerNameResolver;
 import com.mempoolexplorer.txmempool.components.MisMinedTransactionsChecker;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
@@ -34,8 +35,10 @@ import com.mempoolexplorer.txmempool.components.containers.AlgorithmDiffContaine
 import com.mempoolexplorer.txmempool.components.containers.BlockTemplateContainer;
 import com.mempoolexplorer.txmempool.components.containers.LiveAlgorithmDiffContainer;
 import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
+import com.mempoolexplorer.txmempool.components.containers.MinerNamesUnresolvedContainer;
 import com.mempoolexplorer.txmempool.components.containers.PoolFactory;
 import com.mempoolexplorer.txmempool.entites.AlgorithmDiff;
+import com.mempoolexplorer.txmempool.entites.CoinBaseData;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.blocktemplate.BlockTemplate;
 import com.mempoolexplorer.txmempool.entites.blocktemplate.BlockTemplateChanges;
@@ -45,6 +48,7 @@ import com.mempoolexplorer.txmempool.events.CustomChannels;
 import com.mempoolexplorer.txmempool.events.MempoolEvent;
 import com.mempoolexplorer.txmempool.feingintefaces.BitcoindAdapter;
 import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
+import com.mempoolexplorer.txmempool.utils.SysProps;
 
 @EnableBinding(CustomChannels.class)
 public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<ListenerContainerIdleEvent> {
@@ -84,6 +88,12 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	@Autowired
 	private LiveAlgorithmDiffContainer liveAlgorithmDiffContainer;
 
+	@Autowired
+	private MinerNameResolver minerNameResolver;
+
+	@Autowired
+	private MinerNamesUnresolvedContainer minerNamesUnresolvedContainer;
+
 	@Value("${spring.cloud.stream.bindings.txMemPoolEvents.destination}")
 	private String topic;
 
@@ -116,7 +126,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 				coinBaseTxWeightList.clear();// If we have new txPoolChanges, we reset coinBaseVSizeList
 				// OnRefreshPool
 				TxPoolChanges txpc = mempoolEvent.tryGetTxPoolChanges().get();
-				BlockTemplateChanges btc = mempoolEvent.tryGetBlockTemplateChanges().get();
+				Optional<BlockTemplateChanges> opBTC = mempoolEvent.tryGetBlockTemplateChanges();
 				validate(txpc);
 				// When initializing but bitcoindAdapter is not intitializing
 				if ((initializing.get()) && (txpc.getChangeCounter() != 0) && (!loadingFullMempool.get())) {
@@ -130,7 +140,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 					// Load full mempool asyncronous via REST service, then resume kafka msgs
 					doFullLoadAsync();// Method must return ASAP, this is a kafka queue.
 				} else if (!loadingFullMempool.get()) {// This is because consumer.pause does not pause inmediately
-					refreshContainers(txpc, btc);
+					refreshContainers(txpc, opBTC);
 					initializing.set(false);
 				}
 			}
@@ -184,7 +194,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 	// Refresh mempool, liveMiningQueue, blockTemplateContainer and
 	// liveAlgorithmDiffContainer
-	private void refreshContainers(TxPoolChanges txpc, BlockTemplateChanges btc) {
+	private void refreshContainers(TxPoolChanges txpc, Optional<BlockTemplateChanges> opBTC) {
 		Optional<MiningQueue> opMQ = Optional.empty();
 		// Order of this operations matters.
 		refreshMempool(txpc);
@@ -197,7 +207,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			forceMiningQueueRefresh = false;
 		}
 
-		blockTemplateContainer.refresh(btc);
+		opBTC.ifPresent(blockTemplateContainer::refresh);
 
 		if (opMQ.isPresent()) {// Mining Queue could not be refreshed.
 			AlgorithmDiff liveAlgorithmDiff = new AlgorithmDiff(txMemPool,
@@ -236,37 +246,16 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 		}
 		coinBaseTxWeightList.add(block.getCoinBaseTx().getWeight());
 
-		MiningQueue miningQueue = MiningQueue.buildFrom(coinBaseTxWeightList, txMemPool,
-				txMempoolProperties.getMiningQueueNumTxs(), coinBaseTxWeightList.size());
+		MiningQueue miningQueue = buildMiningQueue();
+		CandidateBlock candidateBlock = getCandidateBlock(block.getHeight(), miningQueue);
+		BlockTemplate blockTemplate = getBlockTemplate(block.getHeight());
+		CoinBaseData coinBaseData = resolveMinerName(block);
 
-		if (miningQueue.isHadErrors()) {
-			alarmLogger.addAlarm("Mining Queue had errors, in OnNewBlock");
-		}
+		MisMinedTransactions mmtBlockTemplate = new MisMinedTransactions(txMemPool, blockTemplate, block, coinBaseData);
+		MisMinedTransactions mmtCandidateBlock = new MisMinedTransactions(txMemPool, candidateBlock, block,
+				coinBaseData);
 
-		CandidateBlock candidateBlock = miningQueue.getCandidateBlock(coinBaseTxWeightList.size() - 1)
-				.orElse(CandidateBlock.empty());
-
-		if (!candidateBlock.checkIsCorrect()) {
-			alarmLogger.addAlarm("CandidateBlock is incorrect in block:" + block.getHeight());
-		}
-
-		BlockTemplate blockTemplate = blockTemplateContainer.getBlockTemplate();
-		if (numConsecutiveBlocks != 0) {
-			blockTemplate = BlockTemplate.empty();
-			alarmLogger.addAlarm(
-					"OnNewBlock height: " + block.getHeight() + ", numConsecutiveBlocks=" + numConsecutiveBlocks);
-		}
-		MisMinedTransactions mmtBlockTemplate = new MisMinedTransactions(txMemPool, blockTemplate, block);
-
-		MisMinedTransactions mmtCandidateBlock = new MisMinedTransactions(txMemPool, candidateBlock, block);
-
-		AlgorithmDiff ad = new AlgorithmDiff(txMemPool, candidateBlock, blockTemplate, block.getHeight());
-		algoDiffContainer.put(ad);
-
-		if (ad.getBitcoindData().getTotalBaseFee().get().longValue() > ad.getOursData().getTotalBaseFee().get()
-				.longValue()) {
-			alarmLogger.addAlarm("Bitcoind algorithm better than us in block: " + block.getHeight());
-		}
+		buildAndStoreAlgorithmDifferences(block, candidateBlock, blockTemplate);
 
 		// Check for alarms or inconsistencies
 		misMinedTransactionsChecker.check(mmtBlockTemplate);
@@ -276,6 +265,57 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 				txMemPool);
 		poolFactory.getIgnoredTransactionsPool(mmtCandidateBlock.getAlgorithmUsed()).refresh(block, mmtCandidateBlock,
 				txMemPool);
+	}
+
+	private void buildAndStoreAlgorithmDifferences(Block block, CandidateBlock candidateBlock,
+			BlockTemplate blockTemplate) {
+		AlgorithmDiff ad = new AlgorithmDiff(txMemPool, candidateBlock, blockTemplate, block.getHeight());
+		algoDiffContainer.put(ad);
+
+		if (ad.getBitcoindData().getTotalBaseFee().get().longValue() > ad.getOursData().getTotalBaseFee().get()
+				.longValue()) {
+			alarmLogger.addAlarm("Bitcoind algorithm better than us in block: " + block.getHeight());
+		}
+	}
+
+	private CoinBaseData resolveMinerName(Block block) {
+		CoinBaseData coinBaseData = minerNameResolver.resolveFrom(block.getCoinBaseTx().getvInField());
+
+		//IgnoreCase for Huobi/HuoBi
+		if (coinBaseData.getMinerName().compareToIgnoreCase(SysProps.MINER_NAME_UNKNOWN) == 0) {
+			minerNamesUnresolvedContainer.addCoinBaseField(coinBaseData.getAscciOfField(), block.getHeight());
+		}
+		return coinBaseData;
+	}
+
+	private BlockTemplate getBlockTemplate(int blockHeight) {
+		BlockTemplate blockTemplate = blockTemplateContainer.getBlockTemplate();
+		if (numConsecutiveBlocks != 0) {
+			blockTemplate = BlockTemplate.empty();
+			alarmLogger
+					.addAlarm("OnNewBlock height: " + blockHeight + ", numConsecutiveBlocks=" + numConsecutiveBlocks);
+		}
+		return blockTemplate;
+	}
+
+	private CandidateBlock getCandidateBlock(int blockHeight, MiningQueue miningQueue) {
+		CandidateBlock candidateBlock = miningQueue.getCandidateBlock(coinBaseTxWeightList.size() - 1)
+				.orElse(CandidateBlock.empty());
+
+		if (!candidateBlock.checkIsCorrect()) {
+			alarmLogger.addAlarm("CandidateBlock is incorrect in block:" + blockHeight);
+		}
+		return candidateBlock;
+	}
+
+	private MiningQueue buildMiningQueue() {
+		MiningQueue miningQueue = MiningQueue.buildFrom(coinBaseTxWeightList, txMemPool,
+				txMempoolProperties.getMiningQueueNumTxs(), coinBaseTxWeightList.size());
+
+		if (miningQueue.isHadErrors()) {
+			alarmLogger.addAlarm("Mining Queue had errors, in OnNewBlock");
+		}
+		return miningQueue;
 	}
 
 	private void doFullLoadAsync() {

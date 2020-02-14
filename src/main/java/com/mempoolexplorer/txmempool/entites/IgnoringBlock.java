@@ -25,7 +25,7 @@ public class IgnoringBlock {
 
 	}
 
-	public IgnoringBlock(MisMinedTransactions mmt, String minerName) {
+	public IgnoringBlock(MisMinedTransactions mmt) {
 		this.algorithmUsed = mmt.getAlgorithmUsed();
 		this.inCandidateBlockButNotInMemPool = mmt.getInCandidateBlockButNotInMemPool();
 		this.minedBlockData = mmt.getMinedBlockData();
@@ -39,7 +39,6 @@ public class IgnoringBlock {
 		this.lostReward = mmt.getLostReward();
 		this.lostRewardExcludingNotInMempoolTx = mmt.getLostRewardExcludingNotInMempoolTx();
 		this.numTxInMempool = mmt.getNumTxInMempool();
-		this.minerName = minerName;
 	}
 
 	public AlgorithmType getAlgorithmUsed() {

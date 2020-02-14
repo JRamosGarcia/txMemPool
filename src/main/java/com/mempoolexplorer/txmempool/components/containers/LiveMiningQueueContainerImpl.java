@@ -19,7 +19,7 @@ import com.mempoolexplorer.txmempool.controllers.entities.LiveMiningQueueGraphDa
 import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 import com.mempoolexplorer.txmempool.entites.miningqueue.LiveMiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
-import com.mempoolexplorer.txmempool.entites.miningqueue.SatVByte_NumTXs;
+import com.mempoolexplorer.txmempool.entites.miningqueue.SatVByteHistogramElement;
 import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
@@ -78,9 +78,9 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 
 	private LiveMiningQueueGraphData buildLiveMiningQueueGraphDataFrom(MiningQueue mq) {
 		LiveMiningQueueGraphData lmq = new LiveMiningQueueGraphData();
-		lmq.setSatVByteNumTXsList(createSatVByteNumTXsList(mq));
+		lmq.setSatVByteHistogram(createSatVByteHistogram(mq));
 		lmq.setBlockPositionList(createBlockPositionList(mq));
-		lmq.setBlocksAccurateUpToBlock(lmq.getBlockPositionList().size());
+		lmq.setNumAccurateBlocks(lmq.getBlockPositionList().size());
 		lmq.setvSizeInLast10minutes(calculatevSizeInLast10minutes());
 		addMemPoolTxsTo(lmq, mq);
 		return lmq;
@@ -100,7 +100,7 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 				.limit(txMempoolProperties.getLiveMiningQueueMaxTxs())
 				// pass if tx has no children or not in mining queue
 				.filter(tx -> !mq.contains(tx.getTxId()))
-				.takeWhile(tx -> lmq.getSatVByteNumTXsList().size() < txMempoolProperties.getLiveMiningQueueGraphSize())
+				.takeWhile(tx -> lmq.getSatVByteHistogram().size() < txMempoolProperties.getLiveMiningQueueGraphSize())
 				.iterator();
 
 		List<Integer> blockPositionList = lmq.getBlockPositionList();
@@ -114,7 +114,7 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		while (txIt.hasNext()) {
 			Transaction tx = txIt.next();
 
-			addTx((int) tx.getSatvByteIncludingAncestors(), lmq.getSatVByteNumTXsList());
+			addTx((int) tx.getSatvByteIncludingAncestors(), lmq.getSatVByteHistogram());
 
 			int nextBlockSize = blockWeight + tx.getWeight();
 			if (nextBlockSize > SysProps.MAX_BLOCK_WEIGHT) {
@@ -139,9 +139,9 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		return blockPositionList;
 	}
 
-	private List<SatVByte_NumTXs> createSatVByteNumTXsList(MiningQueue mq) {
+	private List<SatVByteHistogramElement> createSatVByteHistogram(MiningQueue mq) {
 
-		List<SatVByte_NumTXs> satVByteNumTXsList = new ArrayList<>();
+		List<SatVByteHistogramElement> satVByteNumTXsList = new ArrayList<>();
 		IntStream.range(0, mq.getNumCandidateBlocks()).mapToObj(i -> mq.getCandidateBlock(i)).map(ocb -> ocb.get())
 				.flatMap(cb -> cb.getOrderedStream())
 				.takeWhile(txtbm -> satVByteNumTXsList.size() < txMempoolProperties.getLiveMiningQueueGraphSize())
@@ -159,12 +159,12 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 
 	// AddTx to satVByteNumTXsList taking into account CPFP. if tx has a paying
 	// child, then tx.satvByte=child.satvByte
-	private void addTx(int satVByte, List<SatVByte_NumTXs> satVByteNumTXsList) {
+	private void addTx(int satVByte, List<SatVByteHistogramElement> satVByteNumTXsList) {
 		int size = satVByteNumTXsList.size();
 		if (size == 0) {
 			addNewPair(satVByte, satVByteNumTXsList);
 		} else {
-			SatVByte_NumTXs pair = satVByteNumTXsList.get(satVByteNumTXsList.size() - 1);
+			SatVByteHistogramElement pair = satVByteNumTXsList.get(satVByteNumTXsList.size() - 1);
 			if (pair.getSatVByte() == satVByte) {
 				pair.setNumTxs(pair.getNumTxs() + 1);
 			} else {
@@ -173,8 +173,8 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		}
 	}
 
-	private void addNewPair(int satVByte, List<SatVByte_NumTXs> satVByteNumTXsList) {
-		SatVByte_NumTXs pair = new SatVByte_NumTXs(satVByte, 1);
+	private void addNewPair(int satVByte, List<SatVByteHistogramElement> satVByteNumTXsList) {
+		SatVByteHistogramElement pair = new SatVByteHistogramElement(satVByte, 1);
 		satVByteNumTXsList.add(pair);
 
 	}

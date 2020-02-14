@@ -20,8 +20,10 @@ import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
 import com.mempoolexplorer.txmempool.controllers.exceptions.BlockNotFoundException;
 import com.mempoolexplorer.txmempool.controllers.exceptions.ServiceNotReadyYetException;
 import com.mempoolexplorer.txmempool.controllers.exceptions.TransactionNotFoundException;
-import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
+import com.mempoolexplorer.txmempool.entites.CandidateBlockData;
+import com.mempoolexplorer.txmempool.entites.FeeableData;
 import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
+import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.TxToBeMined;
 
 @RestController
@@ -67,13 +69,26 @@ public class LiveMiningQueueController {
 	}
 
 	@GetMapping("/candidateBlock/{index}")
-	public CandidateBlock getCandidateBlock(@PathVariable("index") int index) throws BlockNotFoundException {
+	public CandidateBlockData getCandidateBlockData(@PathVariable("index") int index) throws BlockNotFoundException {
 		Optional<CandidateBlock> candidateBlock = liveMiningQueueContainer.atomicGet().getMiningQueue()
 				.getCandidateBlock(index);
 		if (candidateBlock.isEmpty()) {
 			throw new BlockNotFoundException("Candidate block with index: " + index + " not found");
 		}
-		return candidateBlock.get();
+		return new CandidateBlockData(candidateBlock.get(), null);
+	}
+
+	@GetMapping("/candidateBlockWithStats/{index}")
+	public CandidateBlockData getCandidateBlockDataWithStats(@PathVariable("index") int index)
+			throws BlockNotFoundException {
+		Optional<CandidateBlock> candidateBlock = liveMiningQueueContainer.atomicGet().getMiningQueue()
+				.getCandidateBlock(index);
+		if (candidateBlock.isEmpty()) {
+			throw new BlockNotFoundException("Candidate block with index: " + index + " not found");
+		}
+		FeeableData feeableData = new FeeableData();
+		feeableData.checkFees(candidateBlock.get().getOrderedStream());
+		return new CandidateBlockData(candidateBlock.get(), feeableData);
 	}
 
 	@ExceptionHandler(BlockNotFoundException.class)

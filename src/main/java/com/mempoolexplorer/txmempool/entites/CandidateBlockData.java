@@ -3,7 +3,7 @@ package com.mempoolexplorer.txmempool.entites;
 import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 
 public class CandidateBlockData {
-	private int position = 0;// Position of this block in queue
+	private int index = 0;// Position of this block in queue
 	private int numTxs = 0;
 	private int weight = 0;
 	private long totalFees = 0;
@@ -13,11 +13,11 @@ public class CandidateBlockData {
 	private FeeableData feeableData = new FeeableData();
 
 	public CandidateBlockData() {
-		
+
 	}
-	
+
 	public CandidateBlockData(CandidateBlock candidateBlock, FeeableData feeableData) {
-		this.position = candidateBlock.getPosition();
+		this.index = candidateBlock.getIndex();
 		this.numTxs = candidateBlock.numTxs();
 		this.weight = candidateBlock.getWeight();
 		this.totalFees = candidateBlock.getTotalFees();
@@ -26,8 +26,8 @@ public class CandidateBlockData {
 		this.feeableData = feeableData;
 	}
 
-	public int getPosition() {
-		return position;
+	public int getIndex() {
+		return index;
 	}
 
 	public int getNumTxs() {
@@ -54,8 +54,8 @@ public class CandidateBlockData {
 		return feeableData;
 	}
 
-	public void setPosition(int position) {
-		this.position = position;
+	public void setIndex(int index) {
+		this.index = index;
 	}
 
 	public void setNumTxs(int numTxs) {
@@ -85,8 +85,8 @@ public class CandidateBlockData {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("CandidateBlockData [position=");
-		builder.append(position);
+		builder.append("CandidateBlockData [index=");
+		builder.append(index);
 		builder.append(", numTxs=");
 		builder.append(numTxs);
 		builder.append(", weight=");

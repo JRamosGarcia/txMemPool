@@ -4,7 +4,6 @@ import java.time.Instant;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.CoinBaseTx;
-import com.mempoolexplorer.txmempool.utils.AsciiUtils;
 
 public class MinedBlockData {
 
@@ -15,11 +14,11 @@ public class MinedBlockData {
 	private Instant minedTime;// This time is set by miners. Can be in the future!
 	private Instant medianMinedTime;// This time always increases with respect height
 	private CoinBaseTx coinBaseTx;// also in txIds but not in notInMemPoolTransactions
-	private String coinBaseAsciiField;
+	private CoinBaseData coinBaseData;
 
 	private FeeableData feeableData = new FeeableData();
 
-	public MinedBlockData(Block block, FeeableData feeableData) {
+	public MinedBlockData(Block block, FeeableData feeableData, CoinBaseData coinBaseData) {
 		this.changeTime = block.getChangeTime();
 		this.hash = block.getHash();
 		this.height = block.getHeight();
@@ -27,7 +26,7 @@ public class MinedBlockData {
 		this.minedTime = block.getMinedTime();
 		this.medianMinedTime = block.getMedianMinedTime();
 		this.coinBaseTx = block.getCoinBaseTx();
-		this.coinBaseAsciiField = AsciiUtils.hexToAscii(block.getCoinBaseTx().getvInField());
+		this.coinBaseData = coinBaseData;
 		this.feeableData = feeableData;
 	}
 
@@ -59,12 +58,12 @@ public class MinedBlockData {
 		return coinBaseTx;
 	}
 
-	public FeeableData getFeeableData() {
-		return feeableData;
+	public CoinBaseData getCoinBaseData() {
+		return coinBaseData;
 	}
 
-	public String getCoinBaseAsciiField() {
-		return coinBaseAsciiField;
+	public FeeableData getFeeableData() {
+		return feeableData;
 	}
 
 	@Override
@@ -85,8 +84,8 @@ public class MinedBlockData {
 		builder.append(", coinBaseTx=");
 		builder.append(coinBaseTx);
 		builder.append(", coinBaseAsciiField=");
-		builder.append(coinBaseAsciiField);
-		builder.append(", feeableData=");
+		builder.append(coinBaseData);
+		builder.append(", coinBaseData=");
 		builder.append(feeableData);
 		builder.append("]");
 		return builder.toString();

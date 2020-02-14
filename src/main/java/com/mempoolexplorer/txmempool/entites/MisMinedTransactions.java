@@ -24,9 +24,6 @@ public class MisMinedTransactions {
 
 	private final static Logger logger = LoggerFactory.getLogger(MisMinedTransactions.class);
 
-	// public static final String ALGORITHM_BITCOIND = "bitcoind";
-	// public static final String ALGORITHM_OURS = "ours";
-
 	private Block block;// Really mined
 	private MinedBlockData minedBlockData;
 
@@ -68,7 +65,8 @@ public class MisMinedTransactions {
 	private AlgorithmType algorithmUsed;
 
 	// Constructor in case of BlockTemplate
-	public MisMinedTransactions(TxMemPool txMemPool, BlockTemplate blockTemplate, Block block) {
+	public MisMinedTransactions(TxMemPool txMemPool, BlockTemplate blockTemplate, Block block,
+			CoinBaseData coinBaseData) {
 		algorithmUsed = AlgorithmType.BITCOIND;
 		this.block = block;
 		this.numTxInMempool = txMemPool.getTxNumber();
@@ -78,12 +76,13 @@ public class MisMinedTransactions {
 		// In mempool and candidateBlock but not in block
 		calculateDataFromBlockTemplate(blockTemplate, txMemPool, block);
 
-		calculateOtherData(block);
+		calculateOtherData(block, coinBaseData);
 
 	}
 
 	// Constructor in case of CandidateBlock
-	public MisMinedTransactions(TxMemPool txMemPool, CandidateBlock candidateBlock, Block block) {
+	public MisMinedTransactions(TxMemPool txMemPool, CandidateBlock candidateBlock, Block block,
+			CoinBaseData coinBaseData) {
 		algorithmUsed = AlgorithmType.OURS;
 		this.block = block;
 		this.numTxInMempool = txMemPool.getTxNumber();
@@ -93,15 +92,15 @@ public class MisMinedTransactions {
 		// In mempool and candidateBlock but not in block
 		calculateDataFrom(candidateBlock);
 
-		calculateOtherData(block);
+		calculateOtherData(block, coinBaseData);
 
 	}
 
-	private void calculateOtherData(Block block) {
+	private void calculateOtherData(Block block, CoinBaseData coinBaseData) {
 		// Mined but not in mempool
 		block.getNotInMemPoolTransactions().values().forEach(nimTx -> minedButNotInMemPoolMapWD.put(nimTx));
 
-		calculateMinedBlockData();
+		calculateMinedBlockData(coinBaseData);
 		calculateLostReward();
 
 		this.notMinedButInCandidateBlockMPTStatistics = new TimeSinceEnteredStatistics(
@@ -131,11 +130,11 @@ public class MisMinedTransactions {
 		lostRewardExcludingNotInMempoolTx = notMinedReward - minedReward;
 	}
 
-	private void calculateMinedBlockData() {
+	private void calculateMinedBlockData(CoinBaseData coinBaseData) {
 		FeeableData feeableData = new FeeableData();
 		feeableData.checkOther(minedAndInMemPoolMapWD.getFeeableData());
 		feeableData.checkOther(minedButNotInMemPoolMapWD.getFeeableData());
-		minedBlockData = new MinedBlockData(block, feeableData);
+		minedBlockData = new MinedBlockData(block, feeableData, coinBaseData);
 	}
 
 	private void calculateDataFrom(CandidateBlock candidateBlock) {
@@ -183,7 +182,7 @@ public class MisMinedTransactions {
 		});
 
 		cbd.setCoinBaseWeight(block.getCoinBaseTx().getWeight());
-		cbd.setPosition(0);
+		cbd.setIndex(0);
 		cbd.setPrecedingTxsCount(0);
 		cbd.setFeeableData(feeableData);
 		candidateBlockData = cbd;

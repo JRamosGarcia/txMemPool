@@ -3,26 +3,26 @@ package com.mempoolexplorer.txmempool.controllers.entities;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.mempoolexplorer.txmempool.entites.miningqueue.SatVByte_NumTXs;
+import com.mempoolexplorer.txmempool.entites.miningqueue.SatVByteHistogramElement;
 
 public class LiveMiningQueueGraphData {
 
 	// This list can be disordered because a small tx with low satVByte filling gaps
 	// of big tx with high satVByte
-	private List<SatVByte_NumTXs> satVByteNumTXsList = new ArrayList<>();
+	private List<SatVByteHistogramElement> satVByteHistogram = new ArrayList<>();
 
 	private List<Integer> blockPositionList = new ArrayList<>();
 
-	private int blocksAccurateUpToBlock = 0;
+	private int numAccurateBlocks = 0;
 
 	private int vSizeInLast10minutes;
 
-	public List<SatVByte_NumTXs> getSatVByteNumTXsList() {
-		return satVByteNumTXsList;
+	public List<SatVByteHistogramElement> getSatVByteHistogram() {
+		return satVByteHistogram;
 	}
 
-	public void setSatVByteNumTXsList(List<SatVByte_NumTXs> satVByteNumTXsList) {
-		this.satVByteNumTXsList = satVByteNumTXsList;
+	public void setSatVByteHistogram(List<SatVByteHistogramElement> satVByteHistogram) {
+		this.satVByteHistogram = satVByteHistogram;
 	}
 
 	public List<Integer> getBlockPositionList() {
@@ -33,12 +33,12 @@ public class LiveMiningQueueGraphData {
 		this.blockPositionList = blockPositionList;
 	}
 
-	public int getBlocksAccurateUpToBlock() {
-		return blocksAccurateUpToBlock;
+	public int getNumAccurateBlocks() {
+		return numAccurateBlocks;
 	}
 
-	public void setBlocksAccurateUpToBlock(int blocksAccurateUpToBlock) {
-		this.blocksAccurateUpToBlock = blocksAccurateUpToBlock;
+	public void setNumAccurateBlocks(int numAccurateBlocks) {
+		this.numAccurateBlocks = numAccurateBlocks;
 	}
 
 	public int getvSizeInLast10minutes() {

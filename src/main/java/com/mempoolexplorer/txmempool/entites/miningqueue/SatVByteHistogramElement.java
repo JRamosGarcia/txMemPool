@@ -1,11 +1,11 @@
 package com.mempoolexplorer.txmempool.entites.miningqueue;
 
-public class SatVByte_NumTXs {
+public class SatVByteHistogramElement {
 
 	private Integer satVByte;
 	private Integer numTxs;
 
-	public SatVByte_NumTXs(Integer satVByte, Integer numTxs) {
+	public SatVByteHistogramElement(Integer satVByte, Integer numTxs) {
 		super();
 		this.satVByte = satVByte;
 		this.numTxs = numTxs;

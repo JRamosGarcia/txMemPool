@@ -189,13 +189,13 @@ public class MiningQueue {
 	}
 
 	private Optional<CandidateBlock> getCandidateBlockToFill(int effectiveWeight, Set<String> allParentsOfTx) {
-		List<TxToBeMined> inAnyCandidateBlockTxList = getInAnyCandidateBlockTxListOf(allParentsOfTx);
+		List<TxToBeMined> parentTxsAlreadyInABlockList = getInAnyCandidateBlockTxListOf(allParentsOfTx);
 		Iterator<CandidateBlock> it = blockList.iterator();
 		while (it.hasNext()) {
 			CandidateBlock block = it.next();
 			if (block.getFreeSpace() >= effectiveWeight) {
 				// We cannot put a Tx if any of its parents is mined in a block after this one
-				if (notAnyTxAfterCandidateBlockPosition(block.getPosition(), inAnyCandidateBlockTxList)) {
+				if (notAnyTxAfterCandidateBlockIndex(block.getIndex(), parentTxsAlreadyInABlockList)) {
 					return Optional.of(block);
 				}
 			}
@@ -214,9 +214,9 @@ public class MiningQueue {
 
 	// return true if there is no TxToBeMined in txToBeMinedList which is going to
 	// be mined in a block after blockPosition
-	private boolean notAnyTxAfterCandidateBlockPosition(int blockPosition, List<TxToBeMined> txToBeMinedList) {
-		for (TxToBeMined txToBeMined : txToBeMinedList) {
-			if (txToBeMined.getContainingBlock().getPosition() > blockPosition) {
+	private boolean notAnyTxAfterCandidateBlockIndex(int blockIndex, List<TxToBeMined> parentTxsAlreadyInABlockList) {
+		for (TxToBeMined txToBeMined : parentTxsAlreadyInABlockList) {
+			if (txToBeMined.getContainingBlock().getIndex() > blockIndex) {
 				return false;
 			}
 		}

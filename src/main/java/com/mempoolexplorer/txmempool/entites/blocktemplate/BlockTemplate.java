@@ -3,6 +3,7 @@ package com.mempoolexplorer.txmempool.entites.blocktemplate;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blocktemplate.BlockTemplateTx;
 import com.mempoolexplorer.txmempool.entites.miningqueue.TxContainer;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 

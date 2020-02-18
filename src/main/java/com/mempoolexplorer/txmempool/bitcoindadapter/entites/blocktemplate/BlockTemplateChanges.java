@@ -1,4 +1,4 @@
-package com.mempoolexplorer.txmempool.entites.blocktemplate;
+package com.mempoolexplorer.txmempool.bitcoindadapter.entites.blocktemplate;
 
 import java.util.List;
 

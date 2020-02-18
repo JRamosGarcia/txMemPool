@@ -8,7 +8,7 @@ FROM openjdk:11
 #VOLUME /tmp
 
 #Opcion funciona con linea de comandos
-#COPY build/libs/bitcoindAdapter-0.0.1-SNAPSHOT.jar app.jar
+#COPY build/libs/txMemPool-0.0.1-SNAPSHOT.jar app.jar
 #ENTRYPOINT ["java", "-jar", "app.jar"]
 
 #Opcion funciona con ejemplo de spring boot
@@ -16,7 +16,7 @@ FROM openjdk:11
 #COPY ${DEPENDENCY}/BOOT-INF/lib /app/lib
 #COPY ${DEPENDENCY}/META-INF /app/META-INF
 #COPY ${DEPENDENCY}/BOOT-INF/classes /app
-#ENTRYPOINT ["java","-cp","app:app/lib/*","com.mempoolexplorer.bitcoind.adapter.BitcoindAdapterApplication"]
+#ENTRYPOINT ["java","-cp","app:app/lib/*","com.mempoolexplorer.txmempool.TxMemPoolApplication"]
 
 #Opcion funciona mio
 COPY ${DEPENDENCY} /

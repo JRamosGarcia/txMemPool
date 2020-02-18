@@ -171,7 +171,35 @@ services:
 #      - bitcoind_adapter2
     volumes:
       - tx_mempool_volume:/tmp
-          
+  
+  mempool_recorder:
+    image: ${REGISTRY_HOST}/mempool_recorder:latest
+    container_name: mempool_recorder
+    environment:
+       JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000"
+       spring.cloud.config.enabled: "true"
+       spring.cloud.config.fail-fast: "true"
+       spring_cloud_config_uri: http://${CONFIGURATION_SERVER_IP_ADDRESS}:${CONFIGURATION_SERVER_PORT}
+       eureka.client.serviceUrl.defaultZone: http://${SERVICE_DISCOVERY_IP_ADDRESS}:${SERVICE_DISCOVERY_PORT}/eureka/
+       management.server.port: ${MEMPOOL_RECORDER_MANAGEMENT_PORT}
+       server.port: ${MEMPOOL_RECORDER_PORT}
+       spring.cloud.stream.kafka.binder.zkNodes: ${ZOOKEEPER_IP_ADDRESS}
+       spring.cloud.stream.kafka.binder.brokers: ${KAFKA1_IP_ADDRESS}      
+    networks:
+      bitnet:
+       ipv4_address: ${MEMPOOL_RECORDER_IP_ADDRESSS}
+    restart: on-failure
+    depends_on:
+#      - mongo
+      - configuration_server
+      - service_discovery
+#TODO: Hay que volver a poner esto
+#      - bitcoind_adapter1
+#      - bitcoind_adapter2
+    volumes:
+      - mempool_recorder_volume:/tmp
+    
+  
   gateway_service:
     image: ${REGISTRY_HOST}/gateway_service:latest
     container_name: gateway_service
@@ -205,6 +233,7 @@ volumes:
   bitcoindAdapter1_volume:
 #  bitcoindAdapter2_volume:
   tx_mempool_volume:
+  mempool_recorder_volume:
   configuration_server_volume:
   service_discovery_volume:
   gateway_service_volume:

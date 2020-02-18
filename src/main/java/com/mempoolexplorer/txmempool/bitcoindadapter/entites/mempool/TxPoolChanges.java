@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
-import com.mempoolexplorer.txmempool.events.TxAncestryChanges;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
 public class TxPoolChanges {

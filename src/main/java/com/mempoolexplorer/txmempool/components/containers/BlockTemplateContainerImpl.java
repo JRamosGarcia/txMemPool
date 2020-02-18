@@ -7,9 +7,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blocktemplate.BlockTemplateChanges;
 import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.entites.blocktemplate.BlockTemplate;
-import com.mempoolexplorer.txmempool.entites.blocktemplate.BlockTemplateChanges;
 
 @Component
 public class BlockTemplateContainerImpl implements BlockTemplateContainer {

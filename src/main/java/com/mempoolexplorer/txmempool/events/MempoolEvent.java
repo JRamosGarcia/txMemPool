@@ -3,8 +3,8 @@ package com.mempoolexplorer.txmempool.events;
 import java.util.Optional;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
+import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blocktemplate.BlockTemplateChanges;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.mempool.TxPoolChanges;
-import com.mempoolexplorer.txmempool.entites.blocktemplate.BlockTemplateChanges;
 
 /**
  * This class is an union of Block and TxPoolChanges since is meant to be used

@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
+import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blocktemplate.BlockTemplateTx;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.entites.blocktemplate.BlockTemplate;
-import com.mempoolexplorer.txmempool.entites.blocktemplate.BlockTemplateTx;
 import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 
 public class AlgorithmDiff {

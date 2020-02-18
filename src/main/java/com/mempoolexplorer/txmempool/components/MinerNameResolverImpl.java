@@ -25,7 +25,7 @@ public class MinerNameResolverImpl implements MinerNameResolver {
 				"tb20190602f1", "E2M & BTC.TOP", "wxd19850920", "slush", "bytepool.com", "BTC.TOP", "1THash&58COIN",
 				"www.okex.com", "shenwei2001", "xmtg", "bzp111", "fak500", "NovaBlock", "zhundongall2020", "123zay",
 				"szwwucaiwan8", "wanxinrr", "ViaBTC", "giantfinex3", "ghf19817498586", "xmtg", "dazahui", "fak800",
-				"sss102", "amlakparsa35", "ddd563002772");
+				"sss102", "amlakparsa35", "ddd563002772", "Ukrpool.com");
 	}
 
 	@Override

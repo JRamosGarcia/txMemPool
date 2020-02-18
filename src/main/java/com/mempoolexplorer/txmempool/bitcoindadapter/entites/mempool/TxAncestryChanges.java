@@ -1,4 +1,4 @@
-package com.mempoolexplorer.txmempool.events;
+package com.mempoolexplorer.txmempool.bitcoindadapter.entites.mempool;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Fees;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.TxAncestry;

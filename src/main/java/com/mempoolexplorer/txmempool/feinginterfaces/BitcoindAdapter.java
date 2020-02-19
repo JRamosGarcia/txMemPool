@@ -1,4 +1,4 @@
-package com.mempoolexplorer.txmempool.feingintefaces;
+package com.mempoolexplorer.txmempool.feinginterfaces;
 
 import java.util.Map;
 

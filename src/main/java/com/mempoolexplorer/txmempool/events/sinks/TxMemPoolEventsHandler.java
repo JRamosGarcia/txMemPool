@@ -46,7 +46,7 @@ import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
 import com.mempoolexplorer.txmempool.events.CustomChannels;
 import com.mempoolexplorer.txmempool.events.MempoolEvent;
-import com.mempoolexplorer.txmempool.feingintefaces.BitcoindAdapter;
+import com.mempoolexplorer.txmempool.feinginterfaces.BitcoindAdapter;
 import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 

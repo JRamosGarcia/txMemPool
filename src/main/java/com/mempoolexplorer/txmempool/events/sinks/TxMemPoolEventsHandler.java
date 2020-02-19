@@ -117,9 +117,10 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			if ((mempoolEvent.getEventType() == MempoolEvent.EventType.NEW_BLOCK) && (!initializing.get())) {
 				forceMiningQueueRefresh = true;
 				Block block = mempoolEvent.tryGetBlock().get();
-				logger.info("New Block with {} transactions", block.getTxIds().size());
+				logger.info("New Block with {} transactions ---------------------------------------------------",
+						block.getTxIds().size());
 				OnNewBlock(block);
-				alarmLogger.prettyPrint();
+				//alarmLogger.prettyPrint();
 				numConsecutiveBlocks++;
 			} else if (mempoolEvent.getEventType() == MempoolEvent.EventType.REFRESH_POOL) {
 				numConsecutiveBlocks = 0;
@@ -281,7 +282,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	private CoinBaseData resolveMinerName(Block block) {
 		CoinBaseData coinBaseData = minerNameResolver.resolveFrom(block.getCoinBaseTx().getvInField());
 
-		//IgnoreCase for Huobi/HuoBi
+		// IgnoreCase for Huobi/HuoBi
 		if (coinBaseData.getMinerName().compareToIgnoreCase(SysProps.MINER_NAME_UNKNOWN) == 0) {
 			minerNamesUnresolvedContainer.addCoinBaseField(coinBaseData.getAscciOfField(), block.getHeight());
 		}

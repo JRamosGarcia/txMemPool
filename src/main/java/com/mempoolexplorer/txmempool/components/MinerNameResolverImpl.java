@@ -21,11 +21,8 @@ public class MinerNameResolverImpl implements MinerNameResolver {
 	public MinerNameResolverImpl() {
 
 		// Order is important (i.e. "E2M & BTC.TOP" vs "BTC.TOP")
-		minerNames = List.of("AntPool", "BTC.COM", "edf1", "Huobi", "poolin.com", "taaltech", "hash933123", "Bitfury",
-				"tb20190602f1", "E2M & BTC.TOP", "wxd19850920", "slush", "bytepool.com", "BTC.TOP", "1THash&58COIN",
-				"www.okex.com", "shenwei2001", "xmtg", "bzp111", "fak500", "NovaBlock", "zhundongall2020", "123zay",
-				"szwwucaiwan8", "wanxinrr", "ViaBTC", "giantfinex3", "ghf19817498586", "xmtg", "dazahui", "fak800",
-				"sss102", "amlakparsa35", "ddd563002772", "Ukrpool.com");
+		minerNames = List.of("AntPool", "BTC.COM", "Huobi", "poolin.com", "Bitfury", "E2M & BTC.TOP", "slush",
+				"bytepool.com", "BTC.TOP", "1THash&58COIN", "www.okex.com", "NovaBlock", "ViaBTC", "Ukrpool.com");
 	}
 
 	@Override
@@ -38,6 +35,7 @@ public class MinerNameResolverImpl implements MinerNameResolver {
 	}
 
 	private String getMinerNameFrom(String ascciFromHex) {
+		ascciFromHex = ascciFromHex.replaceAll("[^\\x00-\\x7F]", "");
 		for (String minerName : minerNames) {
 			if (ascciFromHex.contains(minerName)) {
 				return minerName;
@@ -49,14 +47,15 @@ public class MinerNameResolverImpl implements MinerNameResolver {
 			if (start < 0) {
 				return SysProps.MINER_NAME_UNKNOWN;
 			}
-			start += SysProps.MINER_NAME_UNKNOWN.length();
+			start += SysProps.MINED_BY_START.length();
 
-			int end = ascciFromHex.indexOf("\\", start);
+			// int end = ascciFromHex.length();
+			int end = ascciFromHex.indexOf(0, start);// up to first null character
 			if (end < 0) {
 				return SysProps.MINER_NAME_UNKNOWN;
 			}
 
-			return ascciFromHex.substring(start, end);
+			return ascciFromHex.substring(start, end).trim();
 		} catch (Exception e) {
 			logger.error("Error searching for Miner Name. ", e);
 			return SysProps.MINER_NAME_UNKNOWN;

@@ -72,16 +72,16 @@ services:
     volumes:
       - mongodb_data_volume1:/data/db
 
-#  mongo2:
-#    image: mongo:latest
-#    container_name: mongo2
+  mongo2:
+    image: mongo:latest
+    container_name: mongo2
 ##    ports:
 ##      - "27017:27017"
-#    networks:
-#      bitnet:
-#       ipv4_address: ${MONGO_2_IP_ADDRESS}
-#    volumes:
-#      - mongodb_data_volume2:/data/db
+    networks:
+      bitnet:
+       ipv4_address: ${MONGO_2_IP_ADDRESS}
+    volumes:
+      - mongodb_data_volume2:/data/db
 
   bitcoind_adapter1:
     image: ${REGISTRY_HOST}/bitcoind_adapter:latest
@@ -181,6 +181,7 @@ services:
        spring.cloud.config.fail-fast: "true"
        spring_cloud_config_uri: http://${CONFIGURATION_SERVER_IP_ADDRESS}:${CONFIGURATION_SERVER_PORT}
        eureka.client.serviceUrl.defaultZone: http://${SERVICE_DISCOVERY_IP_ADDRESS}:${SERVICE_DISCOVERY_PORT}/eureka/
+       spring.data.mongodb.uri: mongodb://${MONGO_2_IP_ADDRESS}:${MONGO_2_PORT}/stateOnBlock
        management.server.port: ${MEMPOOL_RECORDER_MANAGEMENT_PORT}
        server.port: ${MEMPOOL_RECORDER_PORT}
        spring.cloud.stream.kafka.binder.zkNodes: ${ZOOKEEPER_IP_ADDRESS}
@@ -226,7 +227,7 @@ networks:
 #        - gateway: 172.18.0.1
 volumes:
   mongodb_data_volume1:
-#  mongodb_data_volume2:
+  mongodb_data_volume2:
   kafka_data_volume1:
   kafka_data_volume2:
   kafka_data_volume3:

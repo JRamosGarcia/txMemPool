@@ -21,8 +21,9 @@ public class MinerNameResolverImpl implements MinerNameResolver {
 	public MinerNameResolverImpl() {
 
 		// Order is important (i.e. "E2M & BTC.TOP" vs "BTC.TOP")
-		minerNames = List.of("AntPool", "BTC.COM", "Huobi", "poolin.com", "Bitfury", "E2M & BTC.TOP", "slush",
-				"bytepool.com", "BTC.TOP", "1THash&58COIN", "www.okex.com", "NovaBlock", "ViaBTC", "Ukrpool.com");
+		minerNames = List.of("AntPool", "BTC.COM", "Huobi", "HuoBi", "poolin.com", "Bitfury", "E2M & BTC.TOP", "slush",
+				"bytepool.com", "BTC.TOP", "1THash&58COIN", "www.okex.com", "NovaBlock", "ViaBTC", "Ukrpool.com",
+				"SpiderPool","TTTTTT3333");
 	}
 
 	@Override

@@ -182,6 +182,8 @@ services:
        spring_cloud_config_uri: http://${CONFIGURATION_SERVER_IP_ADDRESS}:${CONFIGURATION_SERVER_PORT}
        eureka.client.serviceUrl.defaultZone: http://${SERVICE_DISCOVERY_IP_ADDRESS}:${SERVICE_DISCOVERY_PORT}/eureka/
        spring.data.mongodb.uri: mongodb://${MONGO_2_IP_ADDRESS}:${MONGO_2_PORT}/stateOnBlock
+       #logging.level.org.springframework.data.mongodb.core.MongoTemplate: DEBUG
+       #logging.level.org.springframework.data.mongodb.core.ReactiveMongoTemplate: DEBUG
        management.server.port: ${MEMPOOL_RECORDER_MANAGEMENT_PORT}
        server.port: ${MEMPOOL_RECORDER_PORT}
        spring.cloud.stream.kafka.binder.zkNodes: ${ZOOKEEPER_IP_ADDRESS}

@@ -227,13 +227,13 @@ public class MiningQueue {
 	// any CandidateBlock
 	private List<Transaction> getNotInAnyCandidateBlockTxListOf(Set<String> txIdSet) {
 		return txIdSet.stream().filter(txId -> !contains(txId)).map(txId -> txMemPool.getTx(txId))
-				.filter(Optional::isPresent).map(op -> op.get()).collect(Collectors.toList());
+				.flatMap(Optional::stream).collect(Collectors.toList());
 	}
 
 	// Returns the list of txs that are in {@value allParentsOfTx} and in any
 	// CandidateBlock
 	private List<TxToBeMined> getInAnyCandidateBlockTxListOf(Set<String> allParentsOfTx) {
-		return allParentsOfTx.stream().map(txId -> getTxToBeMined(txId)).filter(Optional::isPresent).map(op -> op.get())
+		return allParentsOfTx.stream().map(txId -> getTxToBeMined(txId)).flatMap(Optional::stream)
 				.collect(Collectors.toList());
 	}
 

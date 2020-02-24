@@ -129,7 +129,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 				TxPoolChanges txpc = mempoolEvent.tryGetTxPoolChanges().get();
 				Optional<BlockTemplateChanges> opBTC = mempoolEvent.tryGetBlockTemplateChanges();
 				validate(txpc);
-				// When initializing but bitcoindAdapter is not intitializing
+				// When initializing but bitcoindAdapter is not initializing
 				if ((initializing.get()) && (txpc.getChangeCounter() != 0) && (!loadingFullMempool.get())) {
 					// We pause incoming messages, but several messages has been taken from kafka at
 					// once so this method will be called several times. Refresh the mempool only if

@@ -9,10 +9,10 @@ import java.util.stream.Stream;
  */
 public class FeeableData {
 
-	private double maxSatVByteIncAnc = Double.MIN_VALUE;
-	private double maxSatVByte = Double.MIN_VALUE;
-	private double minSatVByteIncAnc = Double.MAX_VALUE;
-	private double minSatVByte = Double.MAX_VALUE;
+	private double maxSatVByteIncAnc = Double.NEGATIVE_INFINITY;
+	private double maxSatVByte = Double.NEGATIVE_INFINITY;
+	private double minSatVByteIncAnc = Double.POSITIVE_INFINITY;
+	private double minSatVByte = Double.POSITIVE_INFINITY;
 
 	private long totalBaseFee = 0;
 	private long totalAncestorsFee = 0;
@@ -35,7 +35,7 @@ public class FeeableData {
 	}
 
 	public boolean isValid() {
-		if (maxSatVByteIncAnc == Double.MIN_VALUE)
+		if (maxSatVByteIncAnc == Double.NEGATIVE_INFINITY)
 			return false;
 		return true;
 	}
@@ -46,7 +46,7 @@ public class FeeableData {
 		totalWeight += feeable.getWeight();
 		numTxs++;
 
-		if (feeable.getSatvByteIncludingAncestors() == Double.MIN_VALUE)
+		if (feeable.getSatvByteIncludingAncestors() == Double.NEGATIVE_INFINITY)
 			return;
 
 		if (feeable.getSatvByteIncludingAncestors() > maxSatVByteIncAnc) {
@@ -68,7 +68,7 @@ public class FeeableData {
 	}
 
 	public void checkOther(FeeableData other) {
-		if (other.maxSatVByteIncAnc == Double.MIN_VALUE)
+		if (other.maxSatVByteIncAnc == Double.NEGATIVE_INFINITY)
 			return;
 		checkFees(other.maxSatVByteIncAnc, other.maxSatVByteIncAncTxId, other.maxSatVByte, other.maxSatVByteTxId);
 		checkFees(other.minSatVByteIncAnc, other.minSatVByteIncAncTxId, other.minSatVByte, other.minSatVByteTxId);

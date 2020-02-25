@@ -6,16 +6,16 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "txmempool")
 public class TxMempoolProperties {
-
-	private Integer refreshCountToCreateNewMiningQueue;
-	private Integer miningQueueNumTxs;
-	private Integer miningQueueMaxNumBlocks;
-	private Integer liveMiningQueueMaxTxs;
-	private Integer liveMiningQueueGraphSize;
-	private Integer maxLiveIgnoringBlocksCircularQueueSize;
-	private Integer numTimesTxIgnoredToRaiseAlarm;
-	private Integer numTxMinedButNotInMemPoolToRaiseAlarm;
-	private Boolean liveAlgorithmDiffsEnabled;
+	
+	private Integer refreshCountToCreateNewMiningQueue = 5;
+	private Integer miningQueueNumTxs = 100000;
+	private Integer miningQueueMaxNumBlocks = 30;
+	private Integer liveMiningQueueMaxTxs = 100000;
+	private Integer liveMiningQueueGraphSize = 500;
+	private Integer maxLiveIgnoringBlocksCircularQueueSize = 100;
+	private Integer numTimesTxIgnoredToRaiseAlarm = 3;
+	private Integer numTxMinedButNotInMemPoolToRaiseAlarm = 10;
+	private Boolean liveAlgorithmDiffsEnabled = false;
 
 	public Integer getRefreshCountToCreateNewMiningQueue() {
 		return refreshCountToCreateNewMiningQueue;

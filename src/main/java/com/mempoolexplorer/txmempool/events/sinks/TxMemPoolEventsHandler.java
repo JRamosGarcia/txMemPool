@@ -210,11 +210,13 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 		opBTC.ifPresent(blockTemplateContainer::refresh);
 
-		if (opMQ.isPresent()) {// Mining Queue could not be refreshed.
-			AlgorithmDiff liveAlgorithmDiff = new AlgorithmDiff(txMemPool,
-					opMQ.get().getCandidateBlock(0).orElseGet(CandidateBlock::empty),
-					blockTemplateContainer.getBlockTemplate(), 0);
-			liveAlgorithmDiffContainer.setLiveAlgorithmDiff(liveAlgorithmDiff);
+		if (txMempoolProperties.getLiveAlgorithmDiffsEnabled()) {
+			if (opMQ.isPresent()) {// Mining Queue could not be refreshed.
+				AlgorithmDiff liveAlgorithmDiff = new AlgorithmDiff(txMemPool,
+						opMQ.get().getCandidateBlock(0).orElseGet(CandidateBlock::empty),
+						blockTemplateContainer.getBlockTemplate(), 0);
+				liveAlgorithmDiffContainer.setLiveAlgorithmDiff(liveAlgorithmDiff);
+			}
 		}
 	}
 

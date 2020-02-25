@@ -15,6 +15,7 @@ public class TxMempoolProperties {
 	private Integer maxLiveIgnoringBlocksCircularQueueSize;
 	private Integer numTimesTxIgnoredToRaiseAlarm;
 	private Integer numTxMinedButNotInMemPoolToRaiseAlarm;
+	private Boolean liveAlgorithmDiffsEnabled;
 
 	public Integer getRefreshCountToCreateNewMiningQueue() {
 		return refreshCountToCreateNewMiningQueue;
@@ -78,6 +79,14 @@ public class TxMempoolProperties {
 
 	public void setNumTxMinedButNotInMemPoolToRaiseAlarm(Integer numTxMinedButNotInMemPoolToRaiseAlarm) {
 		this.numTxMinedButNotInMemPoolToRaiseAlarm = numTxMinedButNotInMemPoolToRaiseAlarm;
+	}
+
+	public Boolean getLiveAlgorithmDiffsEnabled() {
+		return liveAlgorithmDiffsEnabled;
+	}
+
+	public void setLiveAlgorithmDiffsEnabled(Boolean liveAlgorithmDiffsEnabled) {
+		this.liveAlgorithmDiffsEnabled = liveAlgorithmDiffsEnabled;
 	}
 
 }

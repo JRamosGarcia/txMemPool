@@ -52,22 +52,26 @@ public class CandidateBlock implements TxContainer {
 		return txToBeMined;
 	}
 
-	public boolean checkIsCorrect() {
+	// This only is valid only if this candidate block is the first one.
+	public Optional<Boolean> checkIsCorrect() {
+		if (index != 0) {
+			return Optional.empty();
+		}
 		Iterator<Transaction> txIt = txList.stream().map(txTBM -> txTBM.getTx()).iterator();
 		while (txIt.hasNext()) {
 			Transaction tx = txIt.next();
 			if (!txMap.containsKey(tx.getTxId())) {
-				return false;
+				return Optional.of(Boolean.FALSE);
 			}
 			Iterator<String> txIdIt = tx.getTxAncestry().getDepends().iterator();
 			while (txIdIt.hasNext()) {
 				String txId = txIdIt.next();
 				if (!txMap.containsKey(txId)) {
-					return false;
+					return Optional.of(Boolean.TRUE);
 				}
 			}
 		}
-		return true;
+		return Optional.of(Boolean.TRUE);
 	}
 
 	public Optional<TxToBeMined> peekLastTx() {

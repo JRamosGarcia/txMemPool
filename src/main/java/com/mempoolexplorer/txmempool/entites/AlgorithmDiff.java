@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
@@ -15,7 +16,7 @@ import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 public class AlgorithmDiff {
 
 	private int blockHeight;
-	private Boolean candidateBlockCorrect = Boolean.FALSE;
+	private Optional<Boolean> candidateBlockCorrect = Optional.empty();
 	private String firstOffendingTx;
 	private FeeableData oursData = new FeeableData();
 	private FeeableData bitcoindData = new FeeableData();
@@ -23,9 +24,12 @@ public class AlgorithmDiff {
 	private List<Transaction> txOrderedListOurs = new ArrayList<>();
 	private List<BlockTemplateTx> txOrderedListBitcoind = new ArrayList<>();
 
-	public AlgorithmDiff(TxMemPool txMemPool, CandidateBlock oursCB, BlockTemplate blockTemplate, int blockHeight) {
+	
+	// Two constructors for the case when we have already calculate if candidateBlock is correct or not
+	public AlgorithmDiff(TxMemPool txMemPool, CandidateBlock oursCB, BlockTemplate blockTemplate, int blockHeight,
+			Optional<Boolean> candidateBlockCorrect) {
 		this.blockHeight = blockHeight;
-		candidateBlockCorrect = oursCB.checkIsCorrect();
+		this.candidateBlockCorrect = candidateBlockCorrect;
 		this.txOrderedListOurs = oursCB.getOrderedStream().map(txTBM -> txTBM.getTx())
 				.sorted(Comparator.comparingDouble(Transaction::getSatvByte).reversed()).collect(Collectors.toList());
 		order(blockTemplate);
@@ -35,6 +39,11 @@ public class AlgorithmDiff {
 
 		this.algoDiffs = new AlgorithmDiffSets(txMemPool, blockTemplate, oursCB);
 		calculateFirstOffending();
+
+	}
+
+	public AlgorithmDiff(TxMemPool txMemPool, CandidateBlock oursCB, BlockTemplate blockTemplate, int blockHeight) {
+		this(txMemPool, oursCB, blockTemplate, blockHeight, oursCB.checkIsCorrect());
 	}
 
 	private void calculateFirstOffending() {
@@ -65,7 +74,7 @@ public class AlgorithmDiff {
 		return blockHeight;
 	}
 
-	public Boolean getCandidateBlockCorrect() {
+	public Optional<Boolean> getCandidateBlockCorrect() {
 		return candidateBlockCorrect;
 	}
 

@@ -3,8 +3,6 @@ package com.mempoolexplorer.txmempool.entites;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.mempoolexplorer.txmempool.utils.SysProps;
-
 public class IgnoringBlock {
 
 	private AlgorithmType algorithmUsed;
@@ -16,7 +14,6 @@ public class IgnoringBlock {
 	private TimeSinceEnteredStatistics notMinedButInCandidateBlockMPTStatistics;
 	private FeeableData minedInMempoolButNotInCandidateBlockData;
 	private FeeableData minedButNotInMemPoolData;
-	private String minerName = SysProps.MINER_NAME_UNKNOWN;
 	private long lostReward;
 	private long lostRewardExcludingNotInMempoolTx;
 	private int numTxInMempool;
@@ -75,10 +72,6 @@ public class IgnoringBlock {
 
 	public FeeableData getMinedButNotInMemPoolData() {
 		return minedButNotInMemPoolData;
-	}
-
-	public String getMinerName() {
-		return minerName;
 	}
 
 	public long getLostReward() {

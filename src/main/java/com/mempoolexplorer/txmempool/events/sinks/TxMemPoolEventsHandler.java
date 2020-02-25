@@ -120,7 +120,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 				logger.info("New Block with {} transactions ---------------------------------------------------",
 						block.getTxIds().size());
 				OnNewBlock(block);
-				//alarmLogger.prettyPrint();
+				// alarmLogger.prettyPrint();
 				numConsecutiveBlocks++;
 			} else if (mempoolEvent.getEventType() == MempoolEvent.EventType.REFRESH_POOL) {
 				numConsecutiveBlocks = 0;
@@ -248,7 +248,11 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 		coinBaseTxWeightList.add(block.getCoinBaseTx().getWeight());
 
 		MiningQueue miningQueue = buildMiningQueue();
+		// CandidateBlock can be empty
 		CandidateBlock candidateBlock = getCandidateBlock(block.getHeight(), miningQueue);
+		Optional<Boolean> isCorrect = checkCandidateBlockIsCorrect(block.getHeight(), candidateBlock);
+
+		// When two blocks arrive without refreshing mempool this is ALWAYS empty
 		BlockTemplate blockTemplate = getBlockTemplate(block.getHeight());
 		CoinBaseData coinBaseData = resolveMinerName(block);
 
@@ -256,7 +260,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 		MisMinedTransactions mmtCandidateBlock = new MisMinedTransactions(txMemPool, candidateBlock, block,
 				coinBaseData);
 
-		buildAndStoreAlgorithmDifferences(block, candidateBlock, blockTemplate);
+		buildAndStoreAlgorithmDifferences(block, candidateBlock, blockTemplate, isCorrect);
 
 		// Check for alarms or inconsistencies
 		misMinedTransactionsChecker.check(mmtBlockTemplate);
@@ -269,12 +273,13 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	}
 
 	private void buildAndStoreAlgorithmDifferences(Block block, CandidateBlock candidateBlock,
-			BlockTemplate blockTemplate) {
-		AlgorithmDiff ad = new AlgorithmDiff(txMemPool, candidateBlock, blockTemplate, block.getHeight());
+			BlockTemplate blockTemplate, Optional<Boolean> isCorrect) {
+		AlgorithmDiff ad = new AlgorithmDiff(txMemPool, candidateBlock, blockTemplate, block.getHeight(), isCorrect);
 		algoDiffContainer.put(ad);
 
-		if (ad.getBitcoindData().getTotalBaseFee().get().longValue() > ad.getOursData().getTotalBaseFee().get()
-				.longValue()) {
+		if (ad.getBitcoindData().getTotalBaseFee().isPresent() && ad.getOursData().getTotalBaseFee().isPresent()
+				&& ad.getBitcoindData().getTotalBaseFee().get().longValue() > ad.getOursData().getTotalBaseFee().get()
+						.longValue()) {
 			alarmLogger.addAlarm("Bitcoind algorithm better than us in block: " + block.getHeight());
 		}
 	}
@@ -303,10 +308,19 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 		CandidateBlock candidateBlock = miningQueue.getCandidateBlock(coinBaseTxWeightList.size() - 1)
 				.orElse(CandidateBlock.empty());
 
-		if (!candidateBlock.checkIsCorrect()) {
-			alarmLogger.addAlarm("CandidateBlock is incorrect in block:" + blockHeight);
-		}
 		return candidateBlock;
+	}
+
+	private Optional<Boolean> checkCandidateBlockIsCorrect(int blockHeight, CandidateBlock candidateBlock) {
+		Optional<Boolean> opIsCorrect = candidateBlock.checkIsCorrect();
+		if (opIsCorrect.isEmpty()) {
+			alarmLogger.addAlarm("We can't determinate if CandidateBlock is incorrect in block:" + blockHeight);
+		} else {
+			if (!opIsCorrect.get()) {
+				alarmLogger.addAlarm("CandidateBlock is incorrect in block:" + blockHeight);
+			}
+		}
+		return opIsCorrect;
 	}
 
 	private MiningQueue buildMiningQueue() {

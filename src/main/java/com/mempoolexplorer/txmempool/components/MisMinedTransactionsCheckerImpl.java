@@ -135,7 +135,7 @@ public class MisMinedTransactionsCheckerImpl implements MisMinedTransactionsChec
 	private void checkLostReward(MisMinedTransactions mmt) {
 		if (mmt.getLostRewardExcludingNotInMempoolTx() < 0L) {
 			addAlarm("Lost reward excluding not in mempool Tx: " + mmt.getLostRewardExcludingNotInMempoolTx()
-					+ "Mined by: " + mmt.getMinedBlockData().getCoinBaseData().getMinerName(), mmt);
+					+ " Mined by: " + mmt.getMinedBlockData().getCoinBaseData().getMinerName(), mmt);
 		}
 	}
 

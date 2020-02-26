@@ -43,17 +43,16 @@ public class MisMinedTransactionsCheckerImpl implements MisMinedTransactionsChec
 	private void checkMinedBlockData(MisMinedTransactions mmt) {
 		int sumMinedWeight = mmt.getMinedBlockData().getFeeableData().getTotalWeight().orElse(0);
 		int coinbaseWeight = mmt.getMinedBlockData().getCoinBaseTx().getWeight();
-		if (mmt.getMinedBlockData().getWeight() != (sumMinedWeight + coinbaseWeight + SysProps.BLOCK_HEADER_WEIGHT)) {
-			addAlarm(
-					"mmt.getMinedBlockData().getWeight() != (minedWeight + coinbaseWeight + SysProps.BLOCK_HEADER_WEIGHT)",
-					mmt);
-		}
 		int minedWeight = mmt.getMinedBlockData().getWeight();
+		if ((minedWeight - (sumMinedWeight + coinbaseWeight
+				+ SysProps.BLOCK_HEADER_WEIGHT)) > SysProps.EXPECTED_BLOCK_HEADER_WEIGHT_VARIANCE) {
+			addAlarm("(minedWeight - (sumMinedWeight + coinbaseWeight + SysProps.BLOCK_HEADER_WEIGHT)) >8)", mmt);
+		}
 		int minedAndInMemPoolWeight = mmt.getMinedAndInMemPoolMapWD().getFeeableData().getTotalWeight().orElse(0);
 		int minedBotNotInMemPoolWeight = mmt.getMinedButNotInMemPoolMapWD().getFeeableData().getTotalWeight().orElse(0);
 		int other = minedAndInMemPoolWeight + minedBotNotInMemPoolWeight + coinbaseWeight
 				+ SysProps.BLOCK_HEADER_WEIGHT;
-		if (minedWeight != other) {
+		if ((minedWeight - other) > SysProps.EXPECTED_BLOCK_HEADER_WEIGHT_VARIANCE) {
 			addAlarm("minedWeight=" + minedWeight
 					+ "(minedAndInMemPoolWeight+minedBotNotInMemPoolWeight+coinbaseWeight+SysProps.BLOCK_HEADER_WEIGHT)="
 					+ other, mmt);

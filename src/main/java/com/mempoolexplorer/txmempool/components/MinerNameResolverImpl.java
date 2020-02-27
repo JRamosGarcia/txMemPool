@@ -1,7 +1,9 @@
 package com.mempoolexplorer.txmempool.components;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -19,12 +21,16 @@ public class MinerNameResolverImpl implements MinerNameResolver {
 
 	private List<String> minerNames = new ArrayList<>();
 
+	private Map<String, String> sanetizedNamesMap = new HashMap<>();
+
 	public MinerNameResolverImpl() {
 
 		// Order is important (i.e. "E2M & BTC.TOP" vs "BTC.TOP")
 		minerNames = List.of("AntPool", "BTC.COM", "Huobi", "HuoBi", "poolin.com", "Bitfury", "E2M & BTC.TOP", "slush",
 				"bytepool.com", "BTC.TOP", "1THash&58COIN", "www.okex.com", "NovaBlock", "ViaBTC", "Ukrpool.com",
-				"SpiderPool", "TTTTTT3333", "taal.com", "bitcoin.com", "MiningCity", "ckpool");
+				"SpiderPool", "TTTTTT3333", "taal.com", "bitcoin.com", "MiningCity", "ckpool", "CN/TT");
+
+		sanetizedNamesMap = Map.of("CN/TT", "cn_slash_tt");
 	}
 
 	@Override
@@ -32,20 +38,17 @@ public class MinerNameResolverImpl implements MinerNameResolver {
 
 		String ascciFromHex = AsciiUtils.hexToAscii(coinBaseField);
 
-		Optional<String> opMinerName = getMinerName(coinBaseField, ascciFromHex);
-
-		if (opMinerName.isPresent()) {
-			return new CoinBaseData(ascciFromHex, opMinerName.get().toLowerCase());
-		}
-		return new CoinBaseData(ascciFromHex, SysProps.MINER_NAME_UNKNOWN);
+		return getMinerName(coinBaseField, ascciFromHex).map(mn -> new CoinBaseData(ascciFromHex, mn))
+				.orElse(new CoinBaseData(ascciFromHex, SysProps.MINER_NAME_UNKNOWN));
 	}
 
 	private Optional<String> getMinerName(String coinBaseField, String ascciFromHex) {
-		Optional<String> opMinerName = getMinerNameFromCoinBaseField(coinBaseField);
-		if (opMinerName.isEmpty()) {
-			opMinerName = getMinerNameFromAscci(ascciFromHex);
-		}
-		return opMinerName;
+		return getMinerNameFromCoinBaseField(coinBaseField).or(() -> getMinerNameFromAscci(ascciFromHex))
+				.map(this::sanetize);
+	}
+
+	private String sanetize(String minerName) {
+		return Optional.ofNullable(sanetizedNamesMap.get(minerName)).orElse(minerName).toLowerCase();
 	}
 
 	private Optional<String> getMinerNameFromCoinBaseField(String coinbaseField) {

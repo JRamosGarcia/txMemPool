@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "txmempool")
 public class TxMempoolProperties {
-	
+
 	private Integer refreshCountToCreateNewMiningQueue = 5;
 	private Integer miningQueueNumTxs = 100000;
 	private Integer miningQueueMaxNumBlocks = 30;
@@ -16,6 +16,7 @@ public class TxMempoolProperties {
 	private Integer numTimesTxIgnoredToRaiseAlarm = 3;
 	private Integer numTxMinedButNotInMemPoolToRaiseAlarm = 10;
 	private Boolean liveAlgorithmDiffsEnabled = false;
+	private Boolean persistState = false;
 
 	public Integer getRefreshCountToCreateNewMiningQueue() {
 		return refreshCountToCreateNewMiningQueue;
@@ -87,6 +88,14 @@ public class TxMempoolProperties {
 
 	public void setLiveAlgorithmDiffsEnabled(Boolean liveAlgorithmDiffsEnabled) {
 		this.liveAlgorithmDiffsEnabled = liveAlgorithmDiffsEnabled;
+	}
+
+	public Boolean getPersistState() {
+		return persistState;
+	}
+
+	public void setPersistState(Boolean persistState) {
+		this.persistState = persistState;
 	}
 
 }

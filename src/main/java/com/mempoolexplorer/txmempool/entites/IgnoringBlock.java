@@ -3,7 +3,17 @@ package com.mempoolexplorer.txmempool.entites;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+@Document(collection = "ignoringBlocks")
 public class IgnoringBlock {
+
+	@JsonIgnore
+	@Id
+	private String dbKey;
 
 	private AlgorithmType algorithmUsed;
 	private Set<String> inCandidateBlockButNotInMemPool = new HashSet<>();
@@ -36,6 +46,19 @@ public class IgnoringBlock {
 		this.lostReward = mmt.getLostReward();
 		this.lostRewardExcludingNotInMempoolTx = mmt.getLostRewardExcludingNotInMempoolTx();
 		this.numTxInMempool = mmt.getNumTxInMempool();
+		this.dbKey = builDBKey();
+	}
+
+	public static String builDBKey(AlgorithmType algoType, int height) {
+		return algoType.toString() + height;
+	}
+
+	private String builDBKey() {
+		return builDBKey(algorithmUsed, minedBlockData.getHeight());
+	}
+
+	public String getDbKey() {
+		return dbKey;
 	}
 
 	public AlgorithmType getAlgorithmUsed() {

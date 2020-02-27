@@ -39,7 +39,9 @@ import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContai
 import com.mempoolexplorer.txmempool.components.containers.MinerNamesUnresolvedContainer;
 import com.mempoolexplorer.txmempool.components.containers.PoolFactory;
 import com.mempoolexplorer.txmempool.entites.AlgorithmDiff;
+import com.mempoolexplorer.txmempool.entites.AlgorithmType;
 import com.mempoolexplorer.txmempool.entites.CoinBaseData;
+import com.mempoolexplorer.txmempool.entites.IgnoringBlock;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.blocktemplate.BlockTemplate;
 import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
@@ -48,6 +50,11 @@ import com.mempoolexplorer.txmempool.events.CustomChannels;
 import com.mempoolexplorer.txmempool.events.MempoolEvent;
 import com.mempoolexplorer.txmempool.feinginterfaces.BitcoindAdapter;
 import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
+import com.mempoolexplorer.txmempool.repositories.IgnoringBlockRepository;
+import com.mempoolexplorer.txmempool.repositories.MinerNameToBlockHeightRepository;
+import com.mempoolexplorer.txmempool.repositories.MinerStatisticsRepository;
+import com.mempoolexplorer.txmempool.repositories.entities.MinerNameToBlockHeight;
+import com.mempoolexplorer.txmempool.repositories.entities.MinerStatistics;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
 @EnableBinding(CustomChannels.class)
@@ -94,6 +101,15 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	@Autowired
 	private MinerNamesUnresolvedContainer minerNamesUnresolvedContainer;
 
+	@Autowired
+	private IgnoringBlockRepository ignoringBlockRepository;
+
+	@Autowired
+	private MinerStatisticsRepository minerStatisticsRepository;
+
+	@Autowired
+	private MinerNameToBlockHeightRepository minerNameToBlockHeightRepository;
+
 	@Value("${spring.cloud.stream.bindings.txMemPoolEvents.destination}")
 	private String topic;
 
@@ -117,8 +133,8 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			if ((mempoolEvent.getEventType() == MempoolEvent.EventType.NEW_BLOCK) && (!initializing.get())) {
 				forceMiningQueueRefresh = true;
 				Block block = mempoolEvent.tryGetBlock().get();
-				logger.info("New Block with {} transactions ---------------------------------------------------",
-						block.getTxIds().size());
+				logger.info("New block(height: " + block.getHeight() + ", hash:" + block.getHash() + "txNum: "
+						+ block.getTxIds().size() + ") ---------------------------");
 				OnNewBlock(block);
 				// alarmLogger.prettyPrint();
 				numConsecutiveBlocks++;
@@ -272,6 +288,50 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 				txMemPool);
 		poolFactory.getIgnoredTransactionsPool(mmtCandidateBlock.getAlgorithmUsed()).refresh(block, mmtCandidateBlock,
 				txMemPool);
+
+		if (txMempoolProperties.getPersistState()) {
+			saveStatisticsToDB(block.getHeight());
+		}
+	}
+
+	private void saveStatisticsToDB(int blockHeight) {
+		// Using get directly should not give any problem in this place.
+		IgnoringBlock iGBlockBitcoind = poolFactory.getIgnoringBlocksPool(AlgorithmType.BITCOIND)
+				.getIgnoringBlock(blockHeight).get();
+		IgnoringBlock iGBlockOurs = poolFactory.getIgnoringBlocksPool(AlgorithmType.OURS).getIgnoringBlock(blockHeight)
+				.get();
+
+		ignoringBlockRepository.insert(iGBlockBitcoind);
+		ignoringBlockRepository.insert(iGBlockOurs);
+
+		String minerName = iGBlockBitcoind.getMinedBlockData().getCoinBaseData().getMinerName();
+
+		minerNameToBlockHeightRepository.insert(new MinerNameToBlockHeight(minerName, blockHeight,
+				iGBlockBitcoind.getMinedBlockData().getMedianMinedTime()));
+
+		saveMinerStatistics(minerName, iGBlockBitcoind, iGBlockOurs);
+
+		// SaveGlobalStatistics
+		saveMinerStatistics(SysProps.GLOBAL_MINER_NAME, iGBlockBitcoind, iGBlockOurs);
+	}
+
+	private void saveMinerStatistics(String minerName, IgnoringBlock iGBlockBitcoind, IgnoringBlock iGBlockOurs) {
+		MinerStatistics ms;
+		Optional<MinerStatistics> opMinerStatistics = minerStatisticsRepository.findById(minerName);
+		if (opMinerStatistics.isPresent()) {
+			ms = opMinerStatistics.get();
+			ms.setNumBlocksMined(ms.getNumBlocksMined() + 1);
+			ms.setTotalLostRewardBT(ms.getTotalLostRewardBT() + iGBlockBitcoind.getLostReward());
+			ms.setTotalLostRewardCB(ms.getTotalLostRewardCB() + iGBlockOurs.getLostReward());
+		} else {
+			ms = new MinerStatistics();
+			ms.setMinerName(minerName);
+			ms.setNumBlocksMined(1);
+			ms.setTotalLostRewardBT(iGBlockBitcoind.getLostReward());
+			ms.setTotalLostRewardCB(iGBlockOurs.getLostReward());
+		}
+		minerStatisticsRepository.save(ms);
+		logger.info("Statistics persisted.");
 	}
 
 	private void buildAndStoreAlgorithmDifferences(Block block, CandidateBlock candidateBlock,
@@ -289,8 +349,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	private CoinBaseData resolveMinerName(Block block) {
 		CoinBaseData coinBaseData = minerNameResolver.resolveFrom(block.getCoinBaseTx().getvInField());
 
-		// IgnoreCase for Huobi/HuoBi
-		if (coinBaseData.getMinerName().compareToIgnoreCase(SysProps.MINER_NAME_UNKNOWN) == 0) {
+		if (coinBaseData.getMinerName().compareTo(SysProps.MINER_NAME_UNKNOWN) == 0) {
 			minerNamesUnresolvedContainer.addCoinBaseField(coinBaseData.getAscciOfField(), block.getHeight());
 		}
 		return coinBaseData;

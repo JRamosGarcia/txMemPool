@@ -1,9 +1,7 @@
 package com.mempoolexplorer.txmempool.components;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -21,16 +19,12 @@ public class MinerNameResolverImpl implements MinerNameResolver {
 
 	private List<String> minerNames = new ArrayList<>();
 
-	private Map<String, String> sanetizedNamesMap = new HashMap<>();
-
 	public MinerNameResolverImpl() {
 
 		// Order is important (i.e. "E2M & BTC.TOP" vs "BTC.TOP")
 		minerNames = List.of("AntPool", "BTC.COM", "Huobi", "HuoBi", "poolin.com", "Bitfury", "E2M & BTC.TOP", "slush",
 				"bytepool.com", "BTC.TOP", "1THash&58COIN", "www.okex.com", "NovaBlock", "ViaBTC", "Ukrpool.com",
 				"SpiderPool", "TTTTTT3333", "taal.com", "bitcoin.com", "MiningCity", "ckpool", "CN/TT");
-
-		sanetizedNamesMap = Map.of("CN/TT", "cn_slash_tt", "1THash&58COIN", "1THash_amp_58COIN");
 	}
 
 	@Override
@@ -48,7 +42,7 @@ public class MinerNameResolverImpl implements MinerNameResolver {
 	}
 
 	private String sanetize(String minerName) {
-		return Optional.ofNullable(sanetizedNamesMap.get(minerName)).orElse(minerName).toLowerCase();
+		return minerName.replace("/", "_slash_").replace("&", "_amp_").toLowerCase();
 	}
 
 	private Optional<String> getMinerNameFromCoinBaseField(String coinbaseField) {

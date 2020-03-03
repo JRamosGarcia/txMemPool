@@ -1,7 +1,6 @@
 package com.mempoolexplorer.txmempool.controllers;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,39 +13,41 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
 import com.mempoolexplorer.txmempool.controllers.exceptions.MinerNameNotFoundException;
-import com.mempoolexplorer.txmempool.repositories.MinerNameToBlockHeightRepository;
-import com.mempoolexplorer.txmempool.repositories.MinerStatisticsRepository;
 import com.mempoolexplorer.txmempool.repositories.entities.MinerStatistics;
+import com.mempoolexplorer.txmempool.repositories.reactive.MinerNameToBlockHeightReactiveRepository;
+import com.mempoolexplorer.txmempool.repositories.reactive.MinerStatisticsReactiveRepository;
 import com.mempoolexplorer.txmempool.utils.SysProps;
+
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/minerStatistics")
 public class MinerStatisticsController {
 
 	@Autowired
-	private MinerNameToBlockHeightRepository minerNameToBlockHeightRepository;
+	private MinerNameToBlockHeightReactiveRepository minerNameToBlockHeightRepository;
 
 	@Autowired
-	private MinerStatisticsRepository minerStatisticsRepository;
+	private MinerStatisticsReactiveRepository minerStatisticsRepository;
 
 	@GetMapping("/minerNames")
-	public List<String> getMinerNames() {
+	public Mono<List<String>> getMinerNames() {
 		// TODO: do this but in BD
-		return minerNameToBlockHeightRepository.findAll().stream().map(mTb -> mTb.getMinerToBlock().getMinerName())
-				.distinct().collect(Collectors.toList());
+		return minerNameToBlockHeightRepository.findAll().map(mTb -> mTb.getMinerToBlock().getMinerName()).distinct().collectList();
 	}
 
 	@GetMapping("/{minerName}")
-	public MinerStatistics getMinerStatistics(@PathVariable("minerName") String minerName)
+	public Mono<MinerStatistics> getMinerStatistics(@PathVariable("minerName") String minerName)
 			throws MinerNameNotFoundException {
 		return minerStatisticsRepository.findById(minerName.toLowerCase())
-				.orElseThrow(() -> new MinerNameNotFoundException("Miner name:" + minerName + " not found."));
+				.switchIfEmpty(Mono.error(new MinerNameNotFoundException("Miner name:" + minerName + " not found.")));
 	}
 
 	@GetMapping("/global")
-	public MinerStatistics getGlobalMinerStatistics() throws MinerNameNotFoundException {
+	public Mono<MinerStatistics> getGlobalMinerStatistics() throws MinerNameNotFoundException {
 		return minerStatisticsRepository.findById(SysProps.GLOBAL_MINER_NAME)
-				.orElseThrow(() -> new MinerNameNotFoundException("Global miner statistics not found."));
+				.switchIfEmpty(Mono.error(new MinerNameNotFoundException("Global miner statistics not found.")));
+
 	}
 
 	@ExceptionHandler(MinerNameNotFoundException.class)

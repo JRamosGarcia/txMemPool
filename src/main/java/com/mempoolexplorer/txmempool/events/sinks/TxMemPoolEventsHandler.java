@@ -11,8 +11,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang3.Validate;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.TopicPartition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.stream.annotation.EnableBinding;
@@ -23,6 +21,7 @@ import org.springframework.kafka.event.ListenerContainerIdleEvent;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 
+import com.mempoolexplorer.txmempool.StatisticsService;
 import com.mempoolexplorer.txmempool.TxMemPoolApplication;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
@@ -39,9 +38,7 @@ import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContai
 import com.mempoolexplorer.txmempool.components.containers.MinerNamesUnresolvedContainer;
 import com.mempoolexplorer.txmempool.components.containers.PoolFactory;
 import com.mempoolexplorer.txmempool.entites.AlgorithmDiff;
-import com.mempoolexplorer.txmempool.entites.AlgorithmType;
 import com.mempoolexplorer.txmempool.entites.CoinBaseData;
-import com.mempoolexplorer.txmempool.entites.IgnoringBlock;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.blocktemplate.BlockTemplate;
 import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
@@ -50,17 +47,13 @@ import com.mempoolexplorer.txmempool.events.CustomChannels;
 import com.mempoolexplorer.txmempool.events.MempoolEvent;
 import com.mempoolexplorer.txmempool.feinginterfaces.BitcoindAdapter;
 import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
-import com.mempoolexplorer.txmempool.repositories.IgnoringBlockRepository;
-import com.mempoolexplorer.txmempool.repositories.MinerNameToBlockHeightRepository;
-import com.mempoolexplorer.txmempool.repositories.MinerStatisticsRepository;
-import com.mempoolexplorer.txmempool.repositories.entities.MinerNameToBlockHeight;
-import com.mempoolexplorer.txmempool.repositories.entities.MinerStatistics;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @EnableBinding(CustomChannels.class)
 public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<ListenerContainerIdleEvent> {
-
-	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
 	@Autowired
 	private TxMemPool txMemPool;
@@ -102,13 +95,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	private MinerNamesUnresolvedContainer minerNamesUnresolvedContainer;
 
 	@Autowired
-	private IgnoringBlockRepository ignoringBlockRepository;
-
-	@Autowired
-	private MinerStatisticsRepository minerStatisticsRepository;
-
-	@Autowired
-	private MinerNameToBlockHeightRepository minerNameToBlockHeightRepository;
+	private StatisticsService statisticsService;
 
 	@Value("${spring.cloud.stream.bindings.txMemPoolEvents.destination}")
 	private String topic;
@@ -133,7 +120,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			if ((mempoolEvent.getEventType() == MempoolEvent.EventType.NEW_BLOCK) && (!initializing.get())) {
 				forceMiningQueueRefresh = true;
 				Block block = mempoolEvent.tryGetBlock().get();
-				logger.info("New block(height: " + block.getHeight() + ", hash:" + block.getHash() + "txNum: "
+				log.info("New block(height: " + block.getHeight() + ", hash:" + block.getHash() + "txNum: "
 						+ block.getTxIds().size() + ") ---------------------------");
 				OnNewBlock(block);
 				// alarmLogger.prettyPrint();
@@ -150,7 +137,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 					// We pause incoming messages, but several messages has been taken from kafka at
 					// once so this method will be called several times. Refresh the mempool only if
 					// not initializing
-					logger.info("txMemPool is starting but bitcoindAdapter started long ago... "
+					log.info("txMemPool is starting but bitcoindAdapter started long ago... "
 							+ "pausing receiving kafka messages and loading full mempool from REST interface");
 					consumer.pause(Collections.singleton(new TopicPartition(topic, 0)));
 					loadingFullMempool.set(true);
@@ -162,7 +149,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 				}
 			}
 		} catch (Exception e) {
-			logger.error("Exception: ", e);
+			log.error("Exception: ", e);
 			alarmLogger.addAlarm("Exception in @StreamListener of txMemPoolEvents" + e.toString());
 		}
 	}
@@ -219,7 +206,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			opMQ = liveMiningQueueContainer.refreshIfNeeded();
 		}
 		if (forceMiningQueueRefresh) {
-			logger.info("LiveMiningQueue refresh forced.");
+			log.info("LiveMiningQueue refresh forced.");
 			opMQ = Optional.of(liveMiningQueueContainer.forceRefresh());
 			forceMiningQueueRefresh = false;
 		}
@@ -239,7 +226,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	public void refreshMempool(TxPoolChanges txPoolChanges) {
 		if (txPoolChanges.getChangeCounter() == 0) {
 			if (updateFullTxMemPool) {
-				logger.info("Receiving full txMemPool due to bitcoindAdapter/txMemPool (re)start. "
+				log.info("Receiving full txMemPool due to bitcoindAdapter/txMemPool (re)start. "
 						+ "Dropping last txMemPool and BlockTemplate (if any) It can take a while...");
 				txMemPool.drop();
 				blockTemplateContainer.drop();
@@ -248,19 +235,19 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			txMemPool.refresh(txPoolChanges);
 		} else {
 			if (!updateFullTxMemPool) {
-				logger.info("Full txMemPool received!");
+				log.info("Full txMemPool received!");
 				forceMiningQueueRefresh = true;
 			}
 			updateFullTxMemPool = true;// Needed if bitcoindAdapter restarts
 			txMemPool.refresh(txPoolChanges);
-			logger.info("{} transactions in txMemPool.", txMemPool.getTxNumber());
+			log.info("{} transactions in txMemPool.", txMemPool.getTxNumber());
 		}
 	}
 
 	private void OnNewBlock(Block block) {
 		if (coinBaseTxWeightList.size() != numConsecutiveBlocks) {
 			alarmLogger.addAlarm("THIS SHOULD NOT BE HAPPENING: coinBaseTxVSizeList.size() != numConsecutiveBlocks");
-			logger.warn("THIS SHOULD NOT BE HAPPENING: coinBaseTxVSizeList.size() != numConsecutiveBlocks");
+			log.warn("THIS SHOULD NOT BE HAPPENING: coinBaseTxVSizeList.size() != numConsecutiveBlocks");
 			return;
 		}
 		coinBaseTxWeightList.add(block.getCoinBaseTx().getWeight());
@@ -290,48 +277,10 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 				txMemPool);
 
 		if (txMempoolProperties.getPersistState()) {
-			saveStatisticsToDB(block.getHeight());
+			// Returns a boolean if blockHeight does not exist in igTxPool.
+			// we ignore it since it's saved above
+			statisticsService.saveStatisticsToDB(block.getHeight());
 		}
-	}
-
-	private void saveStatisticsToDB(int blockHeight) {
-		// Using get directly should not give any problem in this place.
-		IgnoringBlock iGBlockBitcoind = poolFactory.getIgnoringBlocksPool(AlgorithmType.BITCOIND)
-				.getIgnoringBlock(blockHeight).get();
-		IgnoringBlock iGBlockOurs = poolFactory.getIgnoringBlocksPool(AlgorithmType.OURS).getIgnoringBlock(blockHeight)
-				.get();
-
-		ignoringBlockRepository.insert(iGBlockBitcoind);
-		ignoringBlockRepository.insert(iGBlockOurs);
-
-		String minerName = iGBlockBitcoind.getMinedBlockData().getCoinBaseData().getMinerName();
-
-		minerNameToBlockHeightRepository.insert(new MinerNameToBlockHeight(minerName, blockHeight,
-				iGBlockBitcoind.getMinedBlockData().getMedianMinedTime()));
-
-		saveMinerStatistics(minerName, iGBlockBitcoind, iGBlockOurs);
-
-		// SaveGlobalStatistics
-		saveMinerStatistics(SysProps.GLOBAL_MINER_NAME, iGBlockBitcoind, iGBlockOurs);
-	}
-
-	private void saveMinerStatistics(String minerName, IgnoringBlock iGBlockBitcoind, IgnoringBlock iGBlockOurs) {
-		MinerStatistics ms;
-		Optional<MinerStatistics> opMinerStatistics = minerStatisticsRepository.findById(minerName);
-		if (opMinerStatistics.isPresent()) {
-			ms = opMinerStatistics.get();
-			ms.setNumBlocksMined(ms.getNumBlocksMined() + 1);
-			ms.setTotalLostRewardBT(ms.getTotalLostRewardBT() + iGBlockBitcoind.getLostReward());
-			ms.setTotalLostRewardCB(ms.getTotalLostRewardCB() + iGBlockOurs.getLostReward());
-		} else {
-			ms = new MinerStatistics();
-			ms.setMinerName(minerName);
-			ms.setNumBlocksMined(1);
-			ms.setTotalLostRewardBT(iGBlockBitcoind.getLostReward());
-			ms.setTotalLostRewardCB(iGBlockOurs.getLostReward());
-		}
-		minerStatisticsRepository.save(ms);
-		logger.info("Statistics persisted.");
 	}
 
 	private void buildAndStoreAlgorithmDifferences(Block block, CandidateBlock candidateBlock,
@@ -422,7 +371,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			txpc.setChangeTime(Instant.now());
 			txpc.setNewTxs(new ArrayList<>(fullMemPoolMap.values()));
 			txMemPool.refresh(txpc);
-			logger.info("LiveMiningQueue refresh forced.");
+			log.info("LiveMiningQueue refresh forced.");
 			liveMiningQueueContainer.forceRefresh();
 			blockTemplateContainer.setBlockTemplate(blockTemplate);
 
@@ -431,7 +380,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 			doResume.set(true);
 		} catch (Exception e) {
 			// When loading if there are no clients, shutdown.
-			logger.error(e.toString());
+			log.error(e.toString());
 			alarmLogger.addAlarm("Eror en MemPoolEventsHandler.run, stopping txMemPool service: " + e.toString());
 			TxMemPoolApplication.exit();
 		}

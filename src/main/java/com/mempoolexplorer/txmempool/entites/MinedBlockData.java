@@ -18,6 +18,10 @@ public class MinedBlockData {
 
 	private FeeableData feeableData = new FeeableData();
 
+	public MinedBlockData() {
+
+	}
+
 	public MinedBlockData(Block block, FeeableData feeableData, CoinBaseData coinBaseData) {
 		this.changeTime = block.getChangeTime();
 		this.hash = block.getHash();

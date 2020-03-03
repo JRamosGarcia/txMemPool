@@ -9,6 +9,10 @@ public class TimeSinceEnteredStatistics {
 	private long minUpToMiningSecs;
 	private long averageUpToMiningSecs;
 
+	public TimeSinceEnteredStatistics() {
+
+	}
+
 	public TimeSinceEnteredStatistics(long blockMinedTimeInSecs, Stream<NotMinedTransaction> nmts) {
 		LongSummaryStatistics summaryStatistics = nmts
 				.mapToLong(nmTx -> (blockMinedTimeInSecs - nmTx.getTx().getTimeInSecs())).summaryStatistics();

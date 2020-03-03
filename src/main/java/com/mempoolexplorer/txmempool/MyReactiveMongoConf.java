@@ -1,16 +1,20 @@
 package com.mempoolexplorer.txmempool;
 
+import java.util.ArrayList;
+import java.util.Collection;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.AbstractReactiveMongoConfiguration;
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 
+import com.mempoolexplorer.txmempool.repositories.reactive.IgnoringBlockReactiveRepository;
 import com.mongodb.ConnectionString;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
 
 @Configuration
-@EnableReactiveMongoRepositories
+@EnableReactiveMongoRepositories(basePackageClasses = { IgnoringBlockReactiveRepository.class })
 class MyReactiveMongoConf extends AbstractReactiveMongoConfiguration {
 
 	@Value("${spring.data.mongodb.uri}")
@@ -26,4 +30,18 @@ class MyReactiveMongoConf extends AbstractReactiveMongoConfiguration {
 		ConnectionString cs = new ConnectionString(connString);
 		return cs.getDatabase();
 	}
+
+	@Override
+	public boolean autoIndexCreation() {
+		return false;// see TxMemPoolApplication.initIndicesAfterStartup
+	}
+
+	@Override
+	protected Collection<String> getMappingBasePackages() {
+		java.util.List<String> packages = new ArrayList<>(1);
+		packages.add("com.mempoolexplorer.txmempool.repositories.entities");
+		packages.add("com.mempoolexplorer.txmempool.entites");
+		return packages;
+	}
+
 }

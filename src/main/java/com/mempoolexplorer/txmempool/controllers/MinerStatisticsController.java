@@ -33,10 +33,8 @@ public class MinerStatisticsController {
 	private MinerStatisticsReactiveRepository minerStatisticsRepository;
 
 	@GetMapping("/minerNames")
-	public Mono<List<String>> getMinerNames() {
-		// TODO: do this but in BD
-		return minerNameToBlockHeightRepository.findAll().map(mTb -> mTb.getMinerToBlock().getMinerName()).distinct()
-				.collectList();
+	public List<String> getMinerNames() {
+		return minerNameToBlockHeightRepository.findDistinctMinerNames();
 	}
 
 	@GetMapping("/{minerName}")

@@ -59,7 +59,7 @@ public class StatisticsServiceImpl implements StatisticsService {
 		// Only igBlock whith bitcoind algorithm increments block count when saving
 		// miner statistics
 		if (algorithmUsed == AlgorithmType.BITCOIND) {
-			minerNameToBlockHeightRepository.insert(
+			minerNameToBlockHeightRepository.save(
 					new MinerNameToBlockHeight(minerName, blockHeight, ib.getMinedBlockData().getMedianMinedTime()))
 					.block();
 			saveMinerStatistics(minerName, ib.getLostReward(), 0, 1);
@@ -84,12 +84,12 @@ public class StatisticsServiceImpl implements StatisticsService {
 		IgnoringBlock iGBlockBitcoind = opIGBlockBitcoind.get();
 		IgnoringBlock iGBlockOurs = opIGBlockOurs.get();
 
-		ignoringBlockRepository.insert(iGBlockBitcoind).block();
-		ignoringBlockRepository.insert(iGBlockOurs).block();
+		ignoringBlockRepository.save(iGBlockBitcoind).block();
+		ignoringBlockRepository.save(iGBlockOurs).block();
 
 		String minerName = iGBlockBitcoind.getMinedBlockData().getCoinBaseData().getMinerName();
 
-		minerNameToBlockHeightRepository.insert(new MinerNameToBlockHeight(minerName, blockHeight,
+		minerNameToBlockHeightRepository.save(new MinerNameToBlockHeight(minerName, blockHeight,
 				iGBlockBitcoind.getMinedBlockData().getMedianMinedTime())).block();
 
 		saveMinerStatistics(minerName, iGBlockBitcoind.getLostReward(), iGBlockOurs.getLostReward(), 1);

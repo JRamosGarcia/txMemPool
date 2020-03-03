@@ -38,8 +38,6 @@ public class StatisticsServiceImpl implements StatisticsService {
 	public RecalculateAllStatsResult recalculateAllStats() {
 		RecalculateAllStatsResult res = new RecalculateAllStatsResult();
 
-		ignoringBlockRepository.deleteAll().block();
-		res.getExecutionInfoList().add("ignoringBlockRepository.deleteAll() executed.");
 		minerStatisticsRepository.deleteAll().block();
 		res.getExecutionInfoList().add("minerStatisticsRepository.deleteAll() executed.");
 		minerNameToBlockHeightRepository.deleteAll().block();

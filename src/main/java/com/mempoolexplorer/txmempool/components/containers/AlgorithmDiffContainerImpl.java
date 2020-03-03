@@ -1,24 +1,40 @@
 package com.mempoolexplorer.txmempool.components.containers;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.mempoolexplorer.txmempool.entites.AlgorithmDiff;
+import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
 
 @Component
 public class AlgorithmDiffContainerImpl implements AlgorithmDiffContainer {
 
-	private Map<Integer, AlgorithmDiff> heightToAlgoDiffMap = new HashMap<>();
-	private AlgorithmDiff last;
+	@Autowired
+	private TxMempoolProperties txMempoolProperties;
 
-	// TODO: it does not get Garbage collected.
+	private Map<Integer, AlgorithmDiff> heightToAlgoDiffMap = new ConcurrentHashMap<>();
+	private AtomicReference<AlgorithmDiff> last = new AtomicReference<>();
+
 	@Override
-	public void put(AlgorithmDiff ad) {
-		last = ad;
-		heightToAlgoDiffMap.put(ad.getBlockHeight(), ad);
+	public void put(AlgorithmDiff algoDiff) {
+		last.set(algoDiff);
+		heightToAlgoDiffMap.put(algoDiff.getBlockHeight(), algoDiff);
+
+		if (null != last.get()) {
+			List<Integer> toRemoveList = heightToAlgoDiffMap.values().stream()
+					.filter(ad -> ad.getBlockHeight() > (last.get().getBlockHeight()
+							- txMempoolProperties.getMaxLiveDataBufferSize()))
+					.map(ad -> ad.getBlockHeight()).collect(Collectors.toList());
+
+			toRemoveList.stream().forEach(height -> heightToAlgoDiffMap.remove(height));
+		}
 	}
 
 	@Override
@@ -28,7 +44,7 @@ public class AlgorithmDiffContainerImpl implements AlgorithmDiffContainer {
 
 	@Override
 	public Optional<AlgorithmDiff> getLast() {
-		return Optional.ofNullable(last);
+		return Optional.ofNullable(last.get());
 	}
 
 }

@@ -20,12 +20,20 @@ public class AlgorithmDiff {
 	private String firstOffendingTx;
 	private FeeableData oursData = new FeeableData();
 	private FeeableData bitcoindData = new FeeableData();
-	private AlgorithmDiffSets algoDiffs;
+	private AlgorithmDiffSets algoDiffs = AlgorithmDiffSets.empty();
 	private List<Transaction> txOrderedListOurs = new ArrayList<>();
 	private List<BlockTemplateTx> txOrderedListBitcoind = new ArrayList<>();
 
-	
-	// Two constructors for the case when we have already calculate if candidateBlock is correct or not
+	public static AlgorithmDiff empty() {
+		return new AlgorithmDiff();
+	}
+
+	private AlgorithmDiff() {
+
+	}
+
+	// Two constructors for the case when we have already calculate if
+	// candidateBlock is correct or not
 	public AlgorithmDiff(TxMemPool txMemPool, CandidateBlock oursCB, BlockTemplate blockTemplate, int blockHeight,
 			Optional<Boolean> candidateBlockCorrect) {
 		this.blockHeight = blockHeight;

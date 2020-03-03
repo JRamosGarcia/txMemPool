@@ -30,7 +30,7 @@ public class MinerNameResolverImpl implements MinerNameResolver {
 				"bytepool.com", "BTC.TOP", "1THash&58COIN", "www.okex.com", "NovaBlock", "ViaBTC", "Ukrpool.com",
 				"SpiderPool", "TTTTTT3333", "taal.com", "bitcoin.com", "MiningCity", "ckpool", "CN/TT");
 
-		sanetizedNamesMap = Map.of("CN/TT", "cn_slash_tt");
+		sanetizedNamesMap = Map.of("CN/TT", "cn_slash_tt", "1THash&58COIN", "1THash_amp_58COIN");
 	}
 
 	@Override

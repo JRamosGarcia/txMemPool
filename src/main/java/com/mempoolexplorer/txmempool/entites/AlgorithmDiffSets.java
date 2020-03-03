@@ -17,6 +17,14 @@ public class AlgorithmDiffSets {
 	private Set<String> inBTNotInCB = new HashSet<>();
 	private Set<String> inCBNotInBT = new HashSet<>();
 
+	public static AlgorithmDiffSets empty() {
+		return new AlgorithmDiffSets();
+	}
+
+	private AlgorithmDiffSets() {
+
+	}
+
 	public AlgorithmDiffSets(TxMemPool txMemPool, BlockTemplate bt, CandidateBlock candidateBlock) {
 
 		bt.getBlockTemplateTxMap().keySet().forEach(txId -> {

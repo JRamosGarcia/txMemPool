@@ -21,7 +21,7 @@ public class OperationsController {
 
 	@GetMapping("/recalculateAllStats")
 	private RecalculateAllStatsResult recalculateAllStats() {
-		if (!properties.getPersistState()) {
+		if (properties.getPersistState()) {
 			return statisticsService.recalculateAllStats();
 		}
 		var rasr = new RecalculateAllStatsResult();

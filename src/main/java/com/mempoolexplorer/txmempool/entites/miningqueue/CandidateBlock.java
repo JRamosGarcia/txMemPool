@@ -79,7 +79,8 @@ public class CandidateBlock implements TxContainer {
 	}
 
 	public int getFreeSpace() {
-		return SysProps.MAX_BLOCK_WEIGHT - coinBaseWeight - weight;
+		return SysProps.MAX_BLOCK_WEIGHT - SysProps.BLOCK_HEADER_WEIGHT - SysProps.EXPECTED_BLOCK_HEADER_WEIGHT_VARIANCE
+				- coinBaseWeight - weight;
 	}
 
 	public Stream<Entry<String, TxToBeMined>> getEntriesStream() {

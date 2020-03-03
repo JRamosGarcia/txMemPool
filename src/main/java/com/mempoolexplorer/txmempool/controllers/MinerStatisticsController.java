@@ -13,11 +13,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
 import com.mempoolexplorer.txmempool.controllers.exceptions.MinerNameNotFoundException;
+import com.mempoolexplorer.txmempool.repositories.entities.MinerNameToBlockHeight;
 import com.mempoolexplorer.txmempool.repositories.entities.MinerStatistics;
 import com.mempoolexplorer.txmempool.repositories.reactive.MinerNameToBlockHeightReactiveRepository;
 import com.mempoolexplorer.txmempool.repositories.reactive.MinerStatisticsReactiveRepository;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -33,7 +35,8 @@ public class MinerStatisticsController {
 	@GetMapping("/minerNames")
 	public Mono<List<String>> getMinerNames() {
 		// TODO: do this but in BD
-		return minerNameToBlockHeightRepository.findAll().map(mTb -> mTb.getMinerToBlock().getMinerName()).distinct().collectList();
+		return minerNameToBlockHeightRepository.findAll().map(mTb -> mTb.getMinerToBlock().getMinerName()).distinct()
+				.collectList();
 	}
 
 	@GetMapping("/{minerName}")
@@ -48,6 +51,11 @@ public class MinerStatisticsController {
 		return minerStatisticsRepository.findById(SysProps.GLOBAL_MINER_NAME)
 				.switchIfEmpty(Mono.error(new MinerNameNotFoundException("Global miner statistics not found.")));
 
+	}
+
+	@GetMapping("/last20BlocksOf/{minerName}")
+	public Flux<MinerNameToBlockHeight> getLastBlocksOfMiner(@PathVariable("minerName") String minerName) {
+		return minerNameToBlockHeightRepository.findTop20ByMinerToBlockMinerNameOrderByMedianMinedTimeDesc(minerName);
 	}
 
 	@ExceptionHandler(MinerNameNotFoundException.class)

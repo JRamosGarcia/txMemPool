@@ -54,14 +54,19 @@ public class StatisticsServiceImpl implements StatisticsService {
 		int blockHeight = ib.getMinedBlockData().getHeight();
 		AlgorithmType algorithmUsed = ib.getAlgorithmUsed();
 
-		// Only igBlock bitcoind instance saves this to avoid repetitive saves.
+		// Only igBlock whith bitcoind algorithm saves minerNameToBlockHeight to avoid
+		// repetitive saves.
+		// Only igBlock whith bitcoind algorithm increments block count when saving
+		// miner statistics
 		if (algorithmUsed == AlgorithmType.BITCOIND) {
 			minerNameToBlockHeightRepository.insert(
 					new MinerNameToBlockHeight(minerName, blockHeight, ib.getMinedBlockData().getMedianMinedTime()))
 					.block();
 			saveMinerStatistics(minerName, ib.getLostReward(), 0, 1);
+			saveMinerStatistics(SysProps.GLOBAL_MINER_NAME, ib.getLostReward(), 0, 1);
 		} else {
 			saveMinerStatistics(minerName, 0, ib.getLostReward(), 0);
+			saveMinerStatistics(SysProps.GLOBAL_MINER_NAME, 0, ib.getLostReward(), 0);
 		}
 		res.getExecutionInfoList().add("Saved stats for block: " + blockHeight + ", Algorithm: " + algorithmUsed);
 	}

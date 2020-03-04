@@ -19,6 +19,7 @@ public class TxMempoolProperties {
 	private Integer liveMiningQueueGraphSize = 500;
 	private Integer maxLiveDataBufferSize = 100;
 	private Integer numTimesTxIgnoredToRaiseAlarm = 3;
+	private Integer totalSatVBLostToRaiseAlarm = 3;
 	private Integer numTxMinedButNotInMemPoolToRaiseAlarm = 10;
 	private Boolean liveAlgorithmDiffsEnabled = false;
 	private Boolean persistState = false;

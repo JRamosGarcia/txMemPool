@@ -95,7 +95,8 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 			ignoredTransactionMap.put(igTx.getTx().getTxId(), igTx);
 
 			// Consider repudiated if needed
-			if (igTx.getIgnoringBlockList().size() >= txMempoolProperties.getNumTimesTxIgnoredToRaiseAlarm()) {
+			if ((igTx.getIgnoringBlockList().size() >= txMempoolProperties.getNumTimesTxIgnoredToRaiseAlarm())
+					&& igTx.getTotalSatvBytesLost() >= txMempoolProperties.getTotalSatVBLostToRaiseAlarm()) {
 				repudiatedTransactionsPool.put(igTx);
 				alarmLogger.addAlarm(mmt.getAlgorithmUsed().toString() + "-Repudiated transaction txId:" + igTx
 						+ ". Has been ignored " + igTx.getIgnoringBlockList().size() + " times.");

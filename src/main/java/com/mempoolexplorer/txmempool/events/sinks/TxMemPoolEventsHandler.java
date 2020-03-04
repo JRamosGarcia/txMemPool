@@ -148,7 +148,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 					initializing.set(false);
 				}
 			}
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			log.error("Exception: ", e);
 			alarmLogger.addAlarm("Exception in @StreamListener of txMemPoolEvents" + e.toString());
 		}

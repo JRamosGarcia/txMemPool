@@ -117,9 +117,12 @@ public class StatisticsServiceImpl implements StatisticsService {
 			ms.setNumBlocksMined(ms.getNumBlocksMined() + add);
 			ms.setTotalLostRewardBT(ms.getTotalLostRewardBT() + iGBlockBitcoindLostReward);
 			ms.setTotalLostRewardCB(ms.getTotalLostRewardCB() + iGBlockOursLostReward);
+			//Avoid division by 0
+			ms.setTotalLostRewardBTPerBlock(ms.getTotalLostRewardBT() / Math.max(ms.getNumBlocksMined(),1));
+			ms.setTotalLostRewardCBPerBlock(ms.getTotalLostRewardCB() / Math.max(ms.getNumBlocksMined(),1));
 			return ms;
-		}).defaultIfEmpty(new MinerStatistics(minerName, iGBlockBitcoindLostReward, iGBlockOursLostReward, add))
-				.block();
+		}).defaultIfEmpty(new MinerStatistics(minerName, iGBlockBitcoindLostReward, iGBlockOursLostReward, add,
+				iGBlockBitcoindLostReward, iGBlockOursLostReward)).block();
 
 		minerStatisticsRepository.save(minerStatistics).block();
 	}

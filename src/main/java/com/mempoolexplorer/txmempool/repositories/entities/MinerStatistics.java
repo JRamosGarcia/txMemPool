@@ -16,5 +16,7 @@ public class MinerStatistics {
 	private Long totalLostRewardBT;
 	private Long totalLostRewardCB;
 	private Integer numBlocksMined;
+	private Long totalLostRewardBTPerBlock;
+	private Long totalLostRewardCBPerBlock;
 
 }

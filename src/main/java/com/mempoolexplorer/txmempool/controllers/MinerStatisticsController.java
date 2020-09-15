@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
+import com.mempoolexplorer.txmempool.controllers.exceptions.AlgorithmTypeNotFoundException;
 import com.mempoolexplorer.txmempool.controllers.exceptions.MinerNameNotFoundException;
+import com.mempoolexplorer.txmempool.entites.AlgorithmType;
 import com.mempoolexplorer.txmempool.repositories.entities.MinerNameToBlockHeight;
 import com.mempoolexplorer.txmempool.repositories.entities.MinerStatistics;
 import com.mempoolexplorer.txmempool.repositories.reactive.MinerNameToBlockHeightReactiveRepository;
@@ -51,6 +53,22 @@ public class MinerStatisticsController {
 
 	}
 
+	@GetMapping("/byLostReward/{algo}")
+	public Flux<MinerStatistics> getMinerStatisticsByLostRewardBy(@PathVariable("algo") String algo)
+			throws AlgorithmTypeNotFoundException {
+		AlgorithmType algorithmType;
+		try {
+			algorithmType = AlgorithmType.valueOf(algo);
+		} catch (Throwable e) {
+			throw new AlgorithmTypeNotFoundException("Algorithm " + algo + " not found");
+		}
+		if (algorithmType == AlgorithmType.BITCOIND) {
+			return minerStatisticsRepository.findAllByOrderByTotalLostRewardBTPerBlockDesc();
+		} else {
+			return minerStatisticsRepository.findAllByOrderByTotalLostRewardCBPerBlockDesc();
+		}
+	}
+
 	@GetMapping("/last20BlocksOf/{minerName}")
 	public Flux<MinerNameToBlockHeight> getLastBlocksOfMiner(@PathVariable("minerName") String minerName) {
 		return minerNameToBlockHeightRepository.findTop20ByMinerToBlockMinerNameOrderByMedianMinedTimeDesc(minerName);
@@ -58,6 +76,14 @@ public class MinerStatisticsController {
 
 	@ExceptionHandler(MinerNameNotFoundException.class)
 	public ResponseEntity<?> onMinerNameNotFound(MinerNameNotFoundException e) {
+		ErrorDetails errorDetails = new ErrorDetails();
+		errorDetails.setErrorMessage(e.getMessage());
+		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());
+		return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
+	}
+
+	@ExceptionHandler(MinerNameNotFoundException.class)
+	public ResponseEntity<?> onAlgorithmTypeNotFound(AlgorithmTypeNotFoundException e) {
 		ErrorDetails errorDetails = new ErrorDetails();
 		errorDetails.setErrorMessage(e.getMessage());
 		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());

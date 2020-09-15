@@ -6,21 +6,21 @@ import java.util.Optional;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.entites.Feeable;
 
-public class TxToBeMined implements Feeable{
+public class TxToBeMined implements Feeable {
 	private Transaction tx;
 	private CandidateBlock containingBlock;
 	private int positionInBlock;
 	private Optional<Transaction> payingChildTx;// Child paying for this tx in case of CPFP
-	private Optional<List<Transaction>> reducedBy;// parents Already in block who reduces satVByte
+	private Optional<List<Transaction>> parentsAlreadyInBlock;// parents Already in block who modifies satVByte
 
-	public TxToBeMined(Transaction tx, Optional<Transaction> payingChildTx, Optional<List<Transaction>> reducedBy,
+	public TxToBeMined(Transaction tx, Optional<Transaction> payingChildTx, Optional<List<Transaction>> parentsAlreadyInBlock,
 			CandidateBlock containedBlock, int positionInBlock) {
 		super();
 		this.tx = tx;
 		this.containingBlock = containedBlock;
 		this.positionInBlock = positionInBlock;
 		this.payingChildTx = payingChildTx;
-		this.reducedBy = reducedBy;
+		this.parentsAlreadyInBlock = parentsAlreadyInBlock;
 	}
 
 	public Transaction getTx() {
@@ -39,8 +39,8 @@ public class TxToBeMined implements Feeable{
 		return payingChildTx;
 	}
 
-	public Optional<List<Transaction>> getReducedBy() {
-		return reducedBy;
+	public Optional<List<Transaction>> getParentsAlreadyInBlock() {
+		return parentsAlreadyInBlock;
 	}
 
 	@Override

@@ -155,10 +155,10 @@ public class CandidateBlock implements TxContainer {
 				// cp stands for "child paying"
 				builder.append(", cp: " + txToBeMined.getPayingChildTx().get().getTxId());
 			}
-			if (txToBeMined.getReducedBy().isPresent()) {
-				// red stands for "reducing fee of"
-				builder.append(", rfo: ");
-				Iterator<Transaction> it = txToBeMined.getReducedBy().get().iterator();
+			if (txToBeMined.getParentsAlreadyInBlock().isPresent()) {
+				// paob stands for "parents already on block"
+				builder.append(", paob: ");
+				Iterator<Transaction> it = txToBeMined.getParentsAlreadyInBlock().get().iterator();
 				while (it.hasNext()) {
 					Transaction nextTx = it.next();
 					builder.append(nextTx.getTxId());

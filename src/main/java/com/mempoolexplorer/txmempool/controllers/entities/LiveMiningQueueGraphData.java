@@ -3,8 +3,6 @@ package com.mempoolexplorer.txmempool.controllers.entities;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.mempoolexplorer.txmempool.entites.miningqueue.SatVByteHistogramElement;
-
 public class LiveMiningQueueGraphData {
 
 	// This list can be disordered because a small tx with low satVByte filling gaps

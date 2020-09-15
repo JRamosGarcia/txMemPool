@@ -1,4 +1,4 @@
-package com.mempoolexplorer.txmempool.entites.miningqueue;
+package com.mempoolexplorer.txmempool.controllers.entities;
 
 public class SatVByteHistogramElement {
 

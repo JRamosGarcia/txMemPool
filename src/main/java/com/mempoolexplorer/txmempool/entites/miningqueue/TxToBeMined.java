@@ -12,15 +12,18 @@ public class TxToBeMined implements Feeable {
 	private int positionInBlock;
 	private Optional<Transaction> payingChildTx;// Child paying for this tx in case of CPFP
 	private Optional<List<Transaction>> parentsAlreadyInBlock;// parents Already in block who modifies satVByte
+	private double modifiedSatVByte;
 
-	public TxToBeMined(Transaction tx, Optional<Transaction> payingChildTx, Optional<List<Transaction>> parentsAlreadyInBlock,
-			CandidateBlock containedBlock, int positionInBlock) {
+	public TxToBeMined(Transaction tx, Optional<Transaction> payingChildTx,
+			Optional<List<Transaction>> parentsAlreadyInBlock, CandidateBlock containedBlock, int positionInBlock,
+			double modifiedSatByte) {
 		super();
 		this.tx = tx;
 		this.containingBlock = containedBlock;
 		this.positionInBlock = positionInBlock;
 		this.payingChildTx = payingChildTx;
 		this.parentsAlreadyInBlock = parentsAlreadyInBlock;
+		this.modifiedSatVByte = modifiedSatByte;
 	}
 
 	public Transaction getTx() {
@@ -96,6 +99,10 @@ public class TxToBeMined implements Feeable {
 	@Override
 	public int getWeight() {
 		return tx.getWeight();
+	}
+
+	public double getModifiedSatVByte() {
+		return modifiedSatVByte;
 	}
 
 }

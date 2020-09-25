@@ -1,23 +1,23 @@
 package com.mempoolexplorer.txmempool.entites.miningqueue;
 
-import com.mempoolexplorer.txmempool.controllers.entities.LiveMiningQueueGraphData;
+import com.mempoolexplorer.txmempool.controllers.entities.CompletLiveMiningQueueGraphData;
 
 public class LiveMiningQueue {
 
-	private LiveMiningQueueGraphData liveMiningQueueGraphData;
+	private CompletLiveMiningQueueGraphData liveMiningQueueGraphData;
 	private MiningQueue miningQueue;
 
-	public LiveMiningQueue(LiveMiningQueueGraphData liveMiningQueueGraphData, MiningQueue miningQueue) {
+	public LiveMiningQueue(CompletLiveMiningQueueGraphData liveMiningQueueGraphData, MiningQueue miningQueue) {
 		super();
 		this.liveMiningQueueGraphData = liveMiningQueueGraphData;
 		this.miningQueue = miningQueue;
 	}
 
-	public LiveMiningQueueGraphData getLiveMiningQueueGraphData() {
+	public CompletLiveMiningQueueGraphData getLiveMiningQueueGraphData() {
 		return liveMiningQueueGraphData;
 	}
 
-	public void setLiveMiningQueueGraphData(LiveMiningQueueGraphData liveMiningQueueGraphData) {
+	public void setLiveMiningQueueGraphData(CompletLiveMiningQueueGraphData liveMiningQueueGraphData) {
 		this.liveMiningQueueGraphData = liveMiningQueueGraphData;
 	}
 

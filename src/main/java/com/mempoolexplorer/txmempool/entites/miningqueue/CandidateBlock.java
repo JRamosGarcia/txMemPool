@@ -39,11 +39,12 @@ public class CandidateBlock implements TxContainer {
 	}
 
 	// Returns TxToBeMined created and added
-	public TxToBeMined addTx(Transaction tx, Optional<Transaction> payingChildTx,
-			Optional<List<Transaction>> reducedBy) {
+	public TxToBeMined addTx(Transaction tx, Optional<Transaction> payingChildTx, Optional<List<Transaction>> reducedBy,
+			double modifiedSatVByte) {
 		weight += tx.getWeight();
 		totalFees += tx.getFees().getBase();
-		TxToBeMined txToBeMined = new TxToBeMined(tx, payingChildTx, reducedBy, this, nextTxPositionInBlock++);
+		TxToBeMined txToBeMined = new TxToBeMined(tx, payingChildTx, reducedBy, this, nextTxPositionInBlock++,
+				modifiedSatVByte);
 		if (null != txMap.put(tx.getTxId(), txToBeMined)) {
 			// TODO: See what to do here. Uncatched exception
 			throw new IllegalStateException();
@@ -95,6 +96,10 @@ public class CandidateBlock implements TxContainer {
 
 	public Optional<TxToBeMined> getTx(String txId) {
 		return Optional.ofNullable(txMap.get(txId));
+	}
+
+	public int getNumTxs() {
+		return txList.size();
 	}
 
 	@Override

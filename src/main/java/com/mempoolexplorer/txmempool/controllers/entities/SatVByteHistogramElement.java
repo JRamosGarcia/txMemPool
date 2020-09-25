@@ -1,41 +1,20 @@
 package com.mempoolexplorer.txmempool.controllers.entities;
 
+import java.util.List;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+@AllArgsConstructor
 public class SatVByteHistogramElement {
 
+	private Double modSatVByte;
 	private Integer satVByte;
 	private Integer numTxs;
-
-	public SatVByteHistogramElement(Integer satVByte, Integer numTxs) {
-		super();
-		this.satVByte = satVByte;
-		this.numTxs = numTxs;
-	}
-
-	public Integer getSatVByte() {
-		return satVByte;
-	}
-
-	public void setSatVByte(Integer satVByte) {
-		this.satVByte = satVByte;
-	}
-
-	public Integer getNumTxs() {
-		return numTxs;
-	}
-
-	public void setNumTxs(Integer numTxs) {
-		this.numTxs = numTxs;
-	}
-
-	@Override
-	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("SatVByteNumTXs [satVByte=");
-		builder.append(satVByte);
-		builder.append(", numTxs=");
-		builder.append(numTxs);
-		builder.append("]");
-		return builder.toString();
-	}
+	private Integer sumWeight;
+	private List<String> txIdList;
 
 }

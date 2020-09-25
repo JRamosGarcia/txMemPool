@@ -130,7 +130,7 @@ public class MiningQueue {
 		}
 		Optional<ModifiedTx> bestThan = modifiedMempool.getBestThan(tx);
 		while (bestThan.isPresent()) {
-			addTxWithParents(bestThan.get().getTx());
+			addTxWithParents(bestThan.get().getTx(), bestThan.get().getRealAncestorSatVByte());
 			modifiedMempool.remove(bestThan.get().getTx().getTxId());
 
 			if (modifiedMempool.contains(tx.getTxId())) {
@@ -141,10 +141,10 @@ public class MiningQueue {
 
 			bestThan = modifiedMempool.getBestThan(tx);
 		}
-		addTxWithParents(tx);
+		addTxWithParents(tx, tx.getSatvByteIncludingAncestors());
 	}
 
-	private void addTxWithParents(Transaction tx) {
+	private void addTxWithParents(Transaction tx, double realSatVByte) {
 
 		if (contains(tx.getTxId())) {
 			// This tx is another's parent that has been yet included in a block. Ignore it
@@ -167,12 +167,12 @@ public class MiningQueue {
 		if (blockToFill.isPresent()) {
 			notInAnyBlockParents.stream().forEach(trx -> {
 				TxToBeMined txToBeMined = blockToFill.get().addTx(trx, Optional.of(tx),
-						optionalList(notInAnyBlockChildrens));
+						optionalList(notInAnyBlockChildrens), realSatVByte);
 				globalTxsMap.put(trx.getTxId(), txToBeMined);
 
 			});
 			TxToBeMined txToBeMined = blockToFill.get().addTx(tx, Optional.empty(),
-					optionalList(notInAnyBlockChildrens));
+					optionalList(notInAnyBlockChildrens), realSatVByte);
 			globalTxsMap.put(tx.getTxId(), txToBeMined);
 
 			// Only if tx is really added

@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
-import com.mempoolexplorer.txmempool.controllers.entities.CompletLiveMiningQueueGraphData;
+import com.mempoolexplorer.txmempool.controllers.entities.CompleteLiveMiningQueueGraphData;
 import com.mempoolexplorer.txmempool.controllers.entities.TxInQueue;
 import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
 import com.mempoolexplorer.txmempool.controllers.exceptions.BlockNotFoundException;
@@ -37,7 +37,7 @@ public class LiveMiningQueueController {
 	private TxMemPool txMemPool;
 
 	@GetMapping("/graphicData")
-	public CompletLiveMiningQueueGraphData getGraphicData() throws ServiceNotReadyYetException {
+	public CompleteLiveMiningQueueGraphData getGraphicData() throws ServiceNotReadyYetException {
 		if (liveMiningQueueContainer.atomicGet() == null) {
 			throw new ServiceNotReadyYetException();
 		}

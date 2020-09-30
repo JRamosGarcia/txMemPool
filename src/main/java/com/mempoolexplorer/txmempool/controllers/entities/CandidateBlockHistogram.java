@@ -1,7 +1,9 @@
 package com.mempoolexplorer.txmempool.controllers.entities;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -10,6 +12,6 @@ import lombok.Setter;
 @Setter
 public class CandidateBlockHistogram {
 
+	Map<Integer, SatVByteHistogramElement> histogramMap = new HashMap<Integer, SatVByteHistogramElement>(100);
 	List<SatVByteHistogramElement> histogramList = new ArrayList<>();
-
 }

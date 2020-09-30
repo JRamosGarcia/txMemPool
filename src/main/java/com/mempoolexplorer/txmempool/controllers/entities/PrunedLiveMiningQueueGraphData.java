@@ -1,7 +1,10 @@
 package com.mempoolexplorer.txmempool.controllers.entities;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -10,17 +13,25 @@ import lombok.Setter;
 @Setter
 public class PrunedLiveMiningQueueGraphData {
 
-	private int numTxs;
+	private Instant lastModTime;
+
+	private int numTxsInMempool;
+
+	private int numTxsInMiningQueue;
 
 	private int vSizeInLast10minutes;
 
+	private int maxModSatVByte;// Maximum Modified SatVByte for drawing purpouses
+
 	private List<CandidateBlockRecap> candidateBlockRecapList = new ArrayList<>();
 
-	private int selectedCandidateBlock;
+	private int selectedCandidateBlock = -1;
 
-	private CandidateBlockHistogram candidateBlockHistogram;
+	@JsonProperty("candidateBlockHistogram")
+	private List<PrunedSatVByteHistogramElement> prunedCandidateBlockHistogram;
 
-	private int selectedCandidateBlockHistogram;
+	private int selectedSatVByte = -1;
 
-	private SatVByteHistogramElement SatVByteHistogramElement;
+	@JsonProperty("satVByteHistogramElement")
+	private List<PrunedTx> prunedTxs;
 }

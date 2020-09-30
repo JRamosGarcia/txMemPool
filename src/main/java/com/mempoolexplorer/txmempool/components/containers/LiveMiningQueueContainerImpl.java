@@ -15,7 +15,8 @@ import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.controllers.entities.CandidateBlockHistogram;
 import com.mempoolexplorer.txmempool.controllers.entities.CandidateBlockRecap;
-import com.mempoolexplorer.txmempool.controllers.entities.CompletLiveMiningQueueGraphData;
+import com.mempoolexplorer.txmempool.controllers.entities.CompleteLiveMiningQueueGraphData;
+import com.mempoolexplorer.txmempool.controllers.entities.PrunedTx;
 import com.mempoolexplorer.txmempool.controllers.entities.SatVByteHistogramElement;
 import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 import com.mempoolexplorer.txmempool.entites.miningqueue.LiveMiningQueue;
@@ -74,9 +75,11 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		return newMiningQueue;
 	}
 
-	private CompletLiveMiningQueueGraphData buildLiveMiningQueueGraphDataFrom(MiningQueue mq) {
-		CompletLiveMiningQueueGraphData lmq = new CompletLiveMiningQueueGraphData();
-		lmq.setNumTxs(txMemPool.getTxNumber());
+	private CompleteLiveMiningQueueGraphData buildLiveMiningQueueGraphDataFrom(MiningQueue mq) {
+		CompleteLiveMiningQueueGraphData lmq = new CompleteLiveMiningQueueGraphData();
+		lmq.setLastModTime(Instant.now());
+		lmq.setNumTxsInMempool(txMemPool.getTxNumber());
+		lmq.setNumTxsInMiningQueue(mq.getNumTxs());
 		lmq.setCandidateBlockRecapList(createCandidateBlockRecapList(mq));
 		lmq.setCandidateBlockHistogramList(createCandidateBlockHistogramList(mq));
 		lmq.setVSizeInLast10minutes(calculatevSizeInLast10minutes());
@@ -108,10 +111,8 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		CandidateBlockHistogram cbh = new CandidateBlockHistogram();
 
 		cb.getOrderedStream().forEach(txtbm -> {
-			int satVByte = 0;
 			int weight = txtbm.getTx().getWeight();
-			satVByte = (int) txtbm.getSatvByte();
-			addTx(txtbm.getTxId(), txtbm.getModifiedSatVByte(), satVByte, weight, cbh.getHistogramList());
+			addTx(txtbm.getTxId(), txtbm.getModifiedSatVByte(), weight, cbh);
 		});
 
 		return cbh;
@@ -123,30 +124,23 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		return Math.round(totalWeight / 4f);
 	}
 
-	// AddTx to satVByteNumTXsList taking into account CPFP. if tx has a paying
-	// child, then tx.satvByte=child.satvByte
-	private void addTx(String txId, Double modSatVByte, int satVByte, int weight,
-			List<SatVByteHistogramElement> satVByteNumTXsList) {
-		int size = satVByteNumTXsList.size();
-		if (size == 0) {
-			addNewPair(txId, modSatVByte, satVByte, weight, satVByteNumTXsList);
+	private void addTx(String txId, double modSatVByte, int weight, CandidateBlockHistogram cbh) {
+
+		SatVByteHistogramElement histogram = cbh.getHistogramMap().get((int) modSatVByte);
+		if (histogram == null) {
+			addNewPair(txId, modSatVByte, weight, cbh);
 		} else {
-			SatVByteHistogramElement pair = satVByteNumTXsList.get(satVByteNumTXsList.size() - 1);
-			if (pair.getSatVByte() == satVByte) {
-				pair.setNumTxs(pair.getNumTxs() + 1);
-				pair.setSumWeight(pair.getSumWeight() + weight);
-				pair.getTxIdList().add(txId);
-			} else {
-				addNewPair(txId, modSatVByte, satVByte, weight, satVByteNumTXsList);
-			}
+			histogram.setNumTxs(histogram.getNumTxs() + 1);
+			histogram.setWeight(histogram.getWeight() + weight);
+			histogram.getPrunedTxs().add(new PrunedTx(txId, weight));
 		}
 	}
 
-	private void addNewPair(String txId, Double modSatVByte, int satVByte, int weight,
-			List<SatVByteHistogramElement> satVByteNumTXsList) {
-		List<String> txIdList = new ArrayList<>();
-		txIdList.add(txId);
-		SatVByteHistogramElement pair = new SatVByteHistogramElement(modSatVByte, satVByte, 1, weight, txIdList);
-		satVByteNumTXsList.add(pair);
+	private void addNewPair(String txId, double modSatVByte, int weight, CandidateBlockHistogram cbh) {
+		List<PrunedTx> prunedTxs = new ArrayList<>();
+		prunedTxs.add(new PrunedTx(txId, weight));
+		SatVByteHistogramElement pair = new SatVByteHistogramElement((int) modSatVByte, 1, weight, prunedTxs);
+		cbh.getHistogramMap().put((int) modSatVByte, pair);
+		cbh.getHistogramList().add(pair);
 	}
 }

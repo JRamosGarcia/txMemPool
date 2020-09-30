@@ -101,6 +101,10 @@ public class MiningQueue {
 		return mq;
 	}
 
+	public int getNumTxs() {
+		return globalTxsMap.size();
+	}
+	
 	public int getNumCandidateBlocks() {
 		return blockList.size();
 	}

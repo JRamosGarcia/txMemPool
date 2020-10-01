@@ -1,5 +1,7 @@
 package com.mempoolexplorer.txmempool.controllers.entities;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,7 +13,10 @@ import lombok.ToString;
 //@NoArgsConstructor
 @ToString
 public class CandidateBlockRecap {
+	@JsonProperty("w")
 	private int weight = 0;
+	@JsonProperty("t")
 	private long totalFees = 0;
+	@JsonProperty("n")
 	private int numTxs = 0;
 }

@@ -1,6 +1,5 @@
 package com.mempoolexplorer.txmempool.controllers.entities;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,12 +10,12 @@ import lombok.Setter;
 @Setter
 public class CompleteLiveMiningQueueGraphData {
 
-	private Instant lastModTime;
-	
+	private long lastModTime;
+
 	private int numTxsInMempool;
-	
+
 	private int numTxsInMiningQueue;
-	
+
 	private int vSizeInLast10minutes;
 
 	List<CandidateBlockRecap> candidateBlockRecapList = new ArrayList<>();

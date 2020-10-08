@@ -77,7 +77,7 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 
 	private CompleteLiveMiningQueueGraphData buildLiveMiningQueueGraphDataFrom(MiningQueue mq) {
 		CompleteLiveMiningQueueGraphData lmq = new CompleteLiveMiningQueueGraphData();
-		lmq.setLastModTime(Instant.now());
+		lmq.setLastModTime(Instant.now().toEpochMilli());
 		lmq.setNumTxsInMempool(txMemPool.getTxNumber());
 		lmq.setNumTxsInMiningQueue(mq.getNumTxs());
 		lmq.setCandidateBlockRecapList(createCandidateBlockRecapList(mq));

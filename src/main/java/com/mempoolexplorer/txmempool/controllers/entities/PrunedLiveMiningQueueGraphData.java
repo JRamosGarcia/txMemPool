@@ -1,6 +1,5 @@
 package com.mempoolexplorer.txmempool.controllers.entities;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,7 +12,7 @@ import lombok.Setter;
 @Setter
 public class PrunedLiveMiningQueueGraphData {
 
-	private Instant lastModTime;
+	private long lastModTime;
 
 	private int numTxsInMempool;
 
@@ -28,10 +27,10 @@ public class PrunedLiveMiningQueueGraphData {
 	private int selectedCandidateBlock = -1;
 
 	@JsonProperty("candidateBlockHistogram")
-	private List<PrunedSatVByteHistogramElement> prunedCandidateBlockHistogram;
+	private List<PrunedSatVByteHistogramElement> prunedCandidateBlockHistogram = new ArrayList<>();
 
 	private int selectedSatVByte = -1;
 
 	@JsonProperty("satVByteHistogramElement")
-	private List<PrunedTx> prunedTxs;
+	private List<PrunedTx> prunedTxs = new ArrayList<>();
 }

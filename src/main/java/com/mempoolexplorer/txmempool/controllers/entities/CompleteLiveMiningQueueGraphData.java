@@ -16,7 +16,7 @@ public class CompleteLiveMiningQueueGraphData {
 
 	private int numTxsInMiningQueue;
 
-	private int vSizeInLast10minutes;
+	private int weightInLast10minutes;
 
 	List<CandidateBlockRecap> candidateBlockRecapList = new ArrayList<>();
 

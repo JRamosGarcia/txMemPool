@@ -14,23 +14,22 @@ public class PrunedLiveMiningQueueGraphData {
 
 	private long lastModTime;
 
-	private int numTxsInMempool;
+	private int weightInLast10minutes;
 
-	private int numTxsInMiningQueue;
-
-	private int vSizeInLast10minutes;
-
-	private int maxModSatVByte;// Maximum Modified SatVByte for drawing purpouses
-
+	@JsonProperty("mempool")
 	private List<CandidateBlockRecap> candidateBlockRecapList = new ArrayList<>();
 
-	private int selectedCandidateBlock = -1;
+	private int blockSelected = -1;
 
-	@JsonProperty("candidateBlockHistogram")
+	@JsonProperty("blockHistogram")
 	private List<PrunedSatVByteHistogramElement> prunedCandidateBlockHistogram = new ArrayList<>();
 
-	private int selectedSatVByte = -1;
+	private int satVByteSelected = -1;
 
-	@JsonProperty("satVByteHistogramElement")
+	@JsonProperty("satVByteHistogram")
 	private List<PrunedTx> prunedTxs = new ArrayList<>();
+
+	private int txIndexSelected = -1;
+
+	private String txIdSelected = "";
 }

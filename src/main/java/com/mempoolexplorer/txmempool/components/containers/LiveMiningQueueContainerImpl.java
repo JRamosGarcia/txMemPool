@@ -16,7 +16,7 @@ import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.controllers.entities.CandidateBlockHistogram;
 import com.mempoolexplorer.txmempool.controllers.entities.CandidateBlockRecap;
 import com.mempoolexplorer.txmempool.controllers.entities.CompleteLiveMiningQueueGraphData;
-import com.mempoolexplorer.txmempool.controllers.entities.PrunedTx;
+import com.mempoolexplorer.txmempool.controllers.entities.TxIdAndWeight;
 import com.mempoolexplorer.txmempool.controllers.entities.SatVByteHistogramElement;
 import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 import com.mempoolexplorer.txmempool.entites.miningqueue.LiveMiningQueue;
@@ -82,7 +82,7 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		lmq.setNumTxsInMiningQueue(mq.getNumTxs());
 		lmq.setCandidateBlockRecapList(createCandidateBlockRecapList(mq));
 		lmq.setCandidateBlockHistogramList(createCandidateBlockHistogramList(mq));
-		lmq.setVSizeInLast10minutes(calculatevSizeInLast10minutes());
+		lmq.setWeightInLast10minutes(calculateWeightInLast10minutes());
 		return lmq;
 	}
 
@@ -118,10 +118,10 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		return cbh;
 	}
 
-	private int calculatevSizeInLast10minutes() {
+	private int calculateWeightInLast10minutes() {
 		int totalWeight = txMemPool.getTxsAfter(Instant.now().minusSeconds(TimeUnit.MINUTES.toSeconds(10)))
 				.mapToInt(tx -> tx.getWeight()).sum();
-		return Math.round(totalWeight / 4f);
+		return Math.round(totalWeight);
 	}
 
 	private void addTx(String txId, double modSatVByte, int weight, CandidateBlockHistogram cbh) {
@@ -132,13 +132,13 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		} else {
 			histogram.setNumTxs(histogram.getNumTxs() + 1);
 			histogram.setWeight(histogram.getWeight() + weight);
-			histogram.getPrunedTxs().add(new PrunedTx(txId, weight));
+			histogram.getTxIdAndWeightList().add(new TxIdAndWeight(txId, weight));
 		}
 	}
 
 	private void addNewPair(String txId, double modSatVByte, int weight, CandidateBlockHistogram cbh) {
-		List<PrunedTx> prunedTxs = new ArrayList<>();
-		prunedTxs.add(new PrunedTx(txId, weight));
+		List<TxIdAndWeight> prunedTxs = new ArrayList<>();
+		prunedTxs.add(new TxIdAndWeight(txId, weight));
 		SatVByteHistogramElement pair = new SatVByteHistogramElement((int) modSatVByte, 1, weight, prunedTxs);
 		cbh.getHistogramMap().put((int) modSatVByte, pair);
 		cbh.getHistogramList().add(pair);

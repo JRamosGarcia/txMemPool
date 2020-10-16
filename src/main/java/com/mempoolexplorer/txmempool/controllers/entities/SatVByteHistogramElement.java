@@ -14,6 +14,6 @@ public class SatVByteHistogramElement {
 	private int modSatVByte;
 	private int numTxs;
 	private int weight;
-	private List<PrunedTx> prunedTxs;
+	private List<TxIdAndWeight> txIdAndWeightList;
 
 }

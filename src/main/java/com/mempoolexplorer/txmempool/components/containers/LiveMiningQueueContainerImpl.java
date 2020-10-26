@@ -2,7 +2,9 @@ package com.mempoolexplorer.txmempool.components.containers;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -130,17 +132,22 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		if (histogram == null) {
 			addNewPair(txId, modSatVByte, weight, cbh);
 		} else {
+			// Order matters
+			histogram.getTxIdAndWeightList().add(new TxIdAndWeight(txId, weight));
+			histogram.getTxIdToListIndex().put(txId, histogram.getNumTxs());
 			histogram.setNumTxs(histogram.getNumTxs() + 1);
 			histogram.setWeight(histogram.getWeight() + weight);
-			histogram.getTxIdAndWeightList().add(new TxIdAndWeight(txId, weight));
 		}
 	}
 
 	private void addNewPair(String txId, double modSatVByte, int weight, CandidateBlockHistogram cbh) {
-		List<TxIdAndWeight> prunedTxs = new ArrayList<>();
-		prunedTxs.add(new TxIdAndWeight(txId, weight));
-		SatVByteHistogramElement pair = new SatVByteHistogramElement((int) modSatVByte, 1, weight, prunedTxs);
-		cbh.getHistogramMap().put((int) modSatVByte, pair);
-		cbh.getHistogramList().add(pair);
+		List<TxIdAndWeight> txIdAndWeightList = new ArrayList<>();
+		txIdAndWeightList.add(new TxIdAndWeight(txId, weight));
+		Map<String, Integer> txIdToListIndex = new HashMap<>();
+		txIdToListIndex.put(txId, 0);
+		SatVByteHistogramElement sVByteHElement = new SatVByteHistogramElement((int) modSatVByte, 1, weight,
+				txIdAndWeightList, txIdToListIndex);
+		cbh.getHistogramMap().put((int) modSatVByte, sVByteHElement);
+		cbh.getHistogramList().add(sVByteHElement);
 	}
 }

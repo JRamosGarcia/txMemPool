@@ -64,6 +64,8 @@ public class TxMemPoolImpl implements TxMemPool {
 			}
 			// remove+put must be made each modification since tx modification while on map
 			// is pretty unsafe. (suffered in my own skin)
+			// We use a deepCopy of the Tx to not modify tx hodled in miningQueue
+			oldTx = oldTx.deepCopy();
 			oldTx.setFees(entry.getValue().getFees());
 			oldTx.setTxAncestry(entry.getValue().getTxAncestry());
 			txKey = new TxKey(oldTx.getTxId(), oldTx.getSatvByteIncludingAncestors(), oldTx.getTimeInSecs());

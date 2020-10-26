@@ -2,7 +2,7 @@ package com.mempoolexplorer.txmempool.controllers.exceptions;
 
 public class MinerNameNotFoundException extends Exception {
 
-	private static final long serialVersionUID = 3290927037379587017L;
+	private static final long serialVersionUID = 1L;
 
 	public MinerNameNotFoundException() {
 		super();

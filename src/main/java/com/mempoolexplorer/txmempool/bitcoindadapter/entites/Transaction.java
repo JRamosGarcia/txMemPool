@@ -8,19 +8,42 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.mempoolexplorer.txmempool.entites.Feeable;
 
 public class Transaction implements Feeable {
+
 	private String txId;
 	private List<TxInput> txInputs = new ArrayList<>();
 	private List<TxOutput> txOutputs = new ArrayList<>();
-	private Integer weight;// for SegWit
+	private int weight;// for SegWit
 	// BE CAREFUL: THIS FIELD MUST KEPT UPDATED, COULD CHANGE ONCE RECEIVED!!!!
 	private Fees fees;
-	private Long timeInSecs;// Epoch time in seconds since the transaction entered in mempool (set by
+	private long timeInSecs;// Epoch time in seconds since the transaction entered in mempool (set by
 	// bitcoind).
 	// BE CAREFUL: THIS FIELD MUST KEPT UPDATED, COULD CHANGE ONCE RECEIVED!!!!
 	private TxAncestry txAncestry;
-	private Boolean bip125Replaceable;
+	private boolean bip125Replaceable;
 	private String hex;// Raw transaction in hexadecimal
 	// RPC
+
+	public Transaction deepCopy() {
+		Transaction tx = new Transaction();
+		tx.setTxId(this.txId);
+		if (this.txInputs != null) {
+			tx.setTxInputs(this.txInputs.stream().map(txi -> txi.deepCopy()).collect(Collectors.toList()));
+		}
+		if (this.txOutputs != null) {
+			tx.setTxOutputs(this.txOutputs.stream().map(txo -> txo.deepCopy()).collect(Collectors.toList()));
+		}
+		tx.setWeight(weight);
+		if (this.fees != null) {
+			tx.setFees(this.fees.deepCopy());
+		}
+		tx.setTimeInSecs(this.timeInSecs);
+		if (this.txAncestry != null) {
+			tx.setTxAncestry(this.txAncestry.deepCopy());
+		}
+		tx.setBip125Replaceable(this.bip125Replaceable);
+		tx.setHex(this.hex);
+		return tx;
+	}
 
 	/**
 	 * Returns all addresses involved in this transaction, address in inputs,
@@ -43,7 +66,7 @@ public class Transaction implements Feeable {
 	// with tx.getSatvByte since one is calculated using vSize(a rounded up integer)
 	// and the other using weight (accurate)
 	@Override
-	//@JsonIgnore
+	// @JsonIgnore
 	public double getSatvByteIncludingAncestors() {
 		if (txAncestry.getAncestorSize() == 0)
 			return 0;
@@ -57,7 +80,7 @@ public class Transaction implements Feeable {
 	// with tx.getSatvByte since one is calculated using vSize(a rounded up integer)
 	// and the other using weight (accurate)
 	@Override
-	//@JsonIgnore
+	// @JsonIgnore
 	public double getSatvByte() {
 		// We calculate this using weight, not a vSize field . This is accurate.
 		if (getvSize() == 0)
@@ -119,11 +142,11 @@ public class Transaction implements Feeable {
 		this.fees = fees;
 	}
 
-	public Long getTimeInSecs() {
+	public long getTimeInSecs() {
 		return timeInSecs;
 	}
 
-	public void setTimeInSecs(Long timeInSecs) {
+	public void setTimeInSecs(long timeInSecs) {
 		this.timeInSecs = timeInSecs;
 	}
 
@@ -135,11 +158,11 @@ public class Transaction implements Feeable {
 		this.txAncestry = txAncestry;
 	}
 
-	public Boolean getBip125Replaceable() {
+	public boolean getBip125Replaceable() {
 		return bip125Replaceable;
 	}
 
-	public void setBip125Replaceable(Boolean bip125Replaceable) {
+	public void setBip125Replaceable(boolean bip125Replaceable) {
 		this.bip125Replaceable = bip125Replaceable;
 	}
 

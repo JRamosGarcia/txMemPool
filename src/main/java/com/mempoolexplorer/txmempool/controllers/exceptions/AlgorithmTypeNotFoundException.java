@@ -2,7 +2,7 @@ package com.mempoolexplorer.txmempool.controllers.exceptions;
 
 public class AlgorithmTypeNotFoundException extends Exception {
 	
-	private static final long serialVersionUID = 3029388442844477246L;
+	private static final long serialVersionUID = 1L;
 
 	public AlgorithmTypeNotFoundException() {
 		super();

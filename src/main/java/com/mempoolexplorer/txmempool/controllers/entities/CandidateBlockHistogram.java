@@ -12,6 +12,7 @@ import lombok.Setter;
 @Setter
 public class CandidateBlockHistogram {
 
+	//Map SatVByte->TxHistogram
 	Map<Integer, SatVByteHistogramElement> histogramMap = new HashMap<Integer, SatVByteHistogramElement>(100);
 	List<SatVByteHistogramElement> histogramList = new ArrayList<>();
 }

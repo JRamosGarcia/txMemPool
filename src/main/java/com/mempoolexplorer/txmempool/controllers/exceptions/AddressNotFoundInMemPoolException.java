@@ -2,7 +2,7 @@ package com.mempoolexplorer.txmempool.controllers.exceptions;
 
 public class AddressNotFoundInMemPoolException extends Exception {
 
-	private static final long serialVersionUID = -2678721372795522019L;
+	private static final long serialVersionUID = 1L;
 
 	public AddressNotFoundInMemPoolException() {
 		super();

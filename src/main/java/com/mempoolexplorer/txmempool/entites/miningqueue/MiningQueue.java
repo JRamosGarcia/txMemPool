@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,6 +97,10 @@ public class MiningQueue {
 		}
 	}
 
+	public Stream<TxToBeMined> getGlobalTxStream() {
+		return globalTxsMap.values().stream();
+	}
+	
 	public static MiningQueue empty() {
 		MiningQueue mq = new MiningQueue();
 		return mq;

@@ -2,7 +2,7 @@ package com.mempoolexplorer.txmempool.controllers.exceptions;
 
 public class BlockNotFoundException extends Exception {
 
-	private static final long serialVersionUID = 9081789344029880305L;
+	private static final long serialVersionUID = 1L;
 
 	public BlockNotFoundException() {
 		super();

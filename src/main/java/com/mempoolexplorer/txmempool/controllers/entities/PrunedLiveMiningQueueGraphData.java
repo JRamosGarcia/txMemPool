@@ -32,4 +32,6 @@ public class PrunedLiveMiningQueueGraphData {
 	private int txIndexSelected = -1;
 
 	private String txIdSelected = "";
+
+	private TxDependenciesInfo txDependenciesInfo = null;
 }

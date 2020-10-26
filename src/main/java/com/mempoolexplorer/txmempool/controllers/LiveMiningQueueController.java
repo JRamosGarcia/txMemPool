@@ -1,6 +1,8 @@
 package com.mempoolexplorer.txmempool.controllers;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,6 +25,7 @@ import com.mempoolexplorer.txmempool.controllers.exceptions.TransactionNotFoundE
 import com.mempoolexplorer.txmempool.entites.CandidateBlockData;
 import com.mempoolexplorer.txmempool.entites.FeeableData;
 import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
+import com.mempoolexplorer.txmempool.entites.miningqueue.LiveMiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.TxToBeMined;
 
@@ -89,6 +92,14 @@ public class LiveMiningQueueController {
 		FeeableData feeableData = new FeeableData();
 		feeableData.checkFees(candidateBlock.get().getOrderedStream());
 		return new CandidateBlockData(candidateBlock.get(), feeableData);
+	}
+
+	@GetMapping("/txsWithPayingChildren")
+	public List<String> getTxsWithPayingChildren() {
+		LiveMiningQueue mq = liveMiningQueueContainer.atomicGet();
+		return mq.getMiningQueue().getGlobalTxStream().filter(txtbm -> {
+			return txtbm.getPayingChildTx().isPresent();
+		}).map(tx -> tx.getTxId()).collect(Collectors.toList());
 	}
 
 	@ExceptionHandler(BlockNotFoundException.class)

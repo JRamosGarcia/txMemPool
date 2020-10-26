@@ -1,49 +1,24 @@
 package com.mempoolexplorer.txmempool.bitcoindadapter.entites;
 
-public class Fees {
-	private Long base;
-	private Long modified;
-	private Long ancestor;
-	private Long descendant;
-	
-	public Long getBase() {
-		return base;
-	}
-	public void setBase(Long base) {
-		this.base = base;
-	}
-	public Long getModified() {
-		return modified;
-	}
-	public void setModified(Long modified) {
-		this.modified = modified;
-	}
-	public Long getAncestor() {
-		return ancestor;
-	}
-	public void setAncestor(Long ancestor) {
-		this.ancestor = ancestor;
-	}
-	public Long getDescendant() {
-		return descendant;
-	}
-	public void setDescendant(Long descendant) {
-		this.descendant = descendant;
-	}
-	
-	@Override
-	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("Fees [base=");
-		builder.append(base);
-		builder.append(", modified=");
-		builder.append(modified);
-		builder.append(", ancestor=");
-		builder.append(ancestor);
-		builder.append(", descendant=");
-		builder.append(descendant);
-		builder.append("]");
-		return builder.toString();
-	}
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
+@Getter
+@Setter
+@ToString
+public class Fees {
+	private long base;
+	private long modified;
+	private long ancestor;
+	private long descendant;
+
+	public Fees deepCopy() {
+		Fees fees = new Fees();
+		fees.setBase(this.base);
+		fees.setModified(this.modified);
+		fees.setAncestor(this.ancestor);
+		fees.setDescendant(this.descendant);
+		return fees;
+	}
 }

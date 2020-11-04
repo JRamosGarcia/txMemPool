@@ -62,7 +62,7 @@ public class LiveIgnoredController {
 		return retList;
 	}
 
-	@GetMapping("/{algo}/txs/{txId}")
+	@GetMapping("/{algo}/tx/{txId}")
 	public LiveIgnoredTransaction getLiveIgnoredTransactionById(@PathVariable("algo") String algo,
 			@PathVariable("txId") String txId) throws TransactionNotFoundException, AlgorithmTypeNotFoundException {
 		Optional<IgnoredTransaction> ignoredTransaction = poolFactory.getIgnoredTransactionsPool(algo)
@@ -80,7 +80,7 @@ public class LiveIgnoredController {
 				.collect(Collectors.toList());
 	}
 
-	@GetMapping("/{algo}/fullTxs/{txId}")
+	@GetMapping("/{algo}/fullTx/{txId}")
 	public IgnoredTransaction getIgnoredTransactionById(@PathVariable("algo") String algo,
 			@PathVariable("txId") String txId) throws TransactionNotFoundException, AlgorithmTypeNotFoundException {
 		Optional<IgnoredTransaction> ignoredTransaction = poolFactory.getIgnoredTransactionsPool(algo)
@@ -96,7 +96,7 @@ public class LiveIgnoredController {
 		return poolFactory.getIgnoringBlocksPool(algo).getIgnoringBlocksMap();
 	}
 
-	@GetMapping("/{algo}/blocks/{height}")
+	@GetMapping("/{algo}/block/{height}")
 	public IgnoringBlock getIgnoringBlock(@PathVariable("algo") String algo, @PathVariable("height") Integer height)
 			throws BlockNotFoundException, AlgorithmTypeNotFoundException {
 		Optional<IgnoringBlock> ignoringBlock = poolFactory.getIgnoringBlocksPool(algo).getIgnoringBlock(height);
@@ -106,7 +106,7 @@ public class LiveIgnoredController {
 		return ignoringBlock.get();
 	}
 
-	@GetMapping("/{algo}/blocks/last")
+	@GetMapping("/{algo}/block/last")
 	public IgnoringBlock getLast(@PathVariable("algo") String algo) throws BlockNotFoundException, AlgorithmTypeNotFoundException {
 		Optional<IgnoringBlock> ignoringBlock = poolFactory.getIgnoringBlocksPool(algo).getLast();
 		if (ignoringBlock.isEmpty()) {

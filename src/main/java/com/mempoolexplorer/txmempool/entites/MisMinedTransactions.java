@@ -22,7 +22,7 @@ import com.mempoolexplorer.txmempool.utils.SysProps;
  */
 public class MisMinedTransactions {
 
-	private final static Logger logger = LoggerFactory.getLogger(MisMinedTransactions.class);
+	private static final Logger logger = LoggerFactory.getLogger(MisMinedTransactions.class);
 
 	private Block block;// Really mined
 	private MinedBlockData minedBlockData;

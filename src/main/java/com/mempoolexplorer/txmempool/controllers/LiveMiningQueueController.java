@@ -99,7 +99,7 @@ public class LiveMiningQueueController {
 		LiveMiningQueue mq = liveMiningQueueContainer.atomicGet();
 		return mq.getMiningQueue().getGlobalTxStream().filter(txtbm -> {
 			return txtbm.getPayingChildTx().isPresent();
-		}).map(tx -> tx.getTxId()).collect(Collectors.toList());
+		}).map(TxToBeMined::getTxId).collect(Collectors.toList());
 	}
 
 	@ExceptionHandler(BlockNotFoundException.class)

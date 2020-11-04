@@ -3,6 +3,7 @@ package com.mempoolexplorer.txmempool.components;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,9 +23,12 @@ public class MinerNameResolverImpl implements MinerNameResolver {
 	public MinerNameResolverImpl() {
 
 		// Order is important (i.e. "E2M & BTC.TOP" vs "BTC.TOP")
-		minerNames = List.of("AntPool", "BTC.COM", "Huobi", "HuoBi", "poolin.com", "Bitfury", "E2M & BTC.TOP", "slush",
-				"bytepool.com", "BTC.TOP", "1THash&58COIN", "www.okex.com", "NovaBlock", "ViaBTC", "Ukrpool.com",
-				"SpiderPool", "TTTTTT3333", "taal.com", "bitcoin.com", "MiningCity", "ckpool", "CN/TT", "MrMike");
+		minerNames = List
+				.of("AntPool", "BTC.com", "Huobi", "HuoBi", "poolin.com", "Bitfury", "E2M & BTC.TOP", "slush",
+						"bytepool.com", "BTC.TOP", "1THash&58COIN", "www.okex.com", "NovaBlock", "ViaBTC",
+						"Ukrpool.com", "SpiderPool", "TTTTTT3333", "taal.com", "bitcoin.com", "MiningCity", "ckpool",
+						"CN/TT", "MrMike", "lubian.com", "Bitdeer", "Binance")
+				.stream().map(name -> name.toLowerCase()).collect(Collectors.toList());
 	}
 
 	@Override
@@ -56,7 +60,7 @@ public class MinerNameResolverImpl implements MinerNameResolver {
 	}
 
 	private Optional<String> getMinerNameFromAscci(String ascciFromHex) {
-		ascciFromHex = ascciFromHex.replaceAll("[^\\x00-\\x7F]", "");// Delete all non asccii chars
+		ascciFromHex = ascciFromHex.replaceAll("[^\\x00-\\x7F]", "").toLowerCase();// Delete all non asccii chars
 		for (String minerName : minerNames) {
 			if (ascciFromHex.contains(minerName)) {
 				return Optional.of(minerName);

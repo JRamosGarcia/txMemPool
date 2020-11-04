@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
+import com.mempoolexplorer.txmempool.components.containers.PoolFactory;
 import com.mempoolexplorer.txmempool.controllers.entities.CandidateBlockHistogram;
 import com.mempoolexplorer.txmempool.controllers.entities.CompleteLiveMiningQueueGraphData;
 import com.mempoolexplorer.txmempool.controllers.entities.DirectedEdge;
@@ -28,12 +29,18 @@ import com.mempoolexplorer.txmempool.controllers.entities.PrunedTx;
 import com.mempoolexplorer.txmempool.controllers.entities.SatVByteHistogramElement;
 import com.mempoolexplorer.txmempool.controllers.entities.TxDependenciesInfo;
 import com.mempoolexplorer.txmempool.controllers.entities.TxIdAndWeight;
+import com.mempoolexplorer.txmempool.controllers.entities.TxIgnoredData;
 import com.mempoolexplorer.txmempool.controllers.entities.TxNode;
 import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
+import com.mempoolexplorer.txmempool.controllers.exceptions.AlgorithmTypeNotFoundException;
 import com.mempoolexplorer.txmempool.controllers.exceptions.ServiceNotReadyYetException;
+import com.mempoolexplorer.txmempool.entites.AlgorithmType;
+import com.mempoolexplorer.txmempool.entites.IgnoredTransaction;
 import com.mempoolexplorer.txmempool.entites.miningqueue.LiveMiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.TxToBeMined;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author tomillo
@@ -52,10 +59,14 @@ import com.mempoolexplorer.txmempool.entites.miningqueue.TxToBeMined;
  */
 @RestController
 @RequestMapping("/api")
+@Slf4j
 public class APIController {
 
 	@Autowired
 	private LiveMiningQueueContainer liveMiningQueueContainer;
+
+	@Autowired
+	private PoolFactory poolFactory;
 
 	@GetMapping("/miningQueue/{lastModTime}/{clientHaveIt}")
 	public PrunedLiveMiningQueueGraphData getMiningQueue(@PathVariable("lastModTime") long clientLastModTime,
@@ -239,10 +250,31 @@ public class APIController {
 					pruned.setTxIdSelected(txId);
 					pruned.setTxIndexSelected(txIndex);
 					pruned.setTxDependenciesInfo(buildDependenciesInfo(txId, liveMiningQueue.getMiningQueue()));
+					pruned.setTxIgnoredData(buildTxIgnoredData(txId));
+					pruned.setTx(buildTx(txId, liveMiningQueue.getMiningQueue()));
 				}
 			}
 		}
+	}
 
+	private Transaction buildTx(String txId, MiningQueue miningQueue) {
+		Optional<TxToBeMined> txToBeMined = miningQueue.getTxToBeMined(txId);
+		if (txToBeMined.isEmpty())
+			return null;
+		return txToBeMined.get().getTx();
+	}
+
+	private TxIgnoredData buildTxIgnoredData(String txId) {
+		try {
+			Optional<IgnoredTransaction> ignoredTransaction = poolFactory
+					.getIgnoredTransactionsPool(AlgorithmType.OURS.name()).getIgnoredTransaction(txId);
+			if (!ignoredTransaction.isEmpty()) {
+				return TxIgnoredData.from(ignoredTransaction.get());
+			}
+		} catch (AlgorithmTypeNotFoundException e) {
+			log.error("This cannot happen", e);
+		}
+		return new TxIgnoredData();
 	}
 
 	private TxDependenciesInfo buildDependenciesInfo(String initTxId, MiningQueue miningQueue) {
@@ -301,8 +333,8 @@ public class APIController {
 		txIdToPairMap.values().forEach(pair -> {
 			TxToBeMined child = pair.getLeft();
 			int childIndex = pair.getRight();
-			
-			child.getTx().getTxAncestry().getDepends().forEach(parentId->{
+
+			child.getTx().getTxAncestry().getDepends().forEach(parentId -> {
 				int parentIndex = txIdToPairMap.get(parentId).getRight();
 				DirectedEdge de = new DirectedEdge(childIndex, parentIndex);
 				directedEdgeList.add(de);
@@ -311,19 +343,6 @@ public class APIController {
 		});
 	}
 
-/*	private void addEdgesLambda(List<DirectedEdge> directedEdgeList,
-			Map<String, Pair<TxToBeMined, Integer>> txIdToPairMap) {
-		txIdToPairMap.values().forEach(pair -> {
-			TxToBeMined child = pair.getLeft();
-			int childIndex = pair.getRight();
-
-			child.getTx().getTxAncestry().getDepends().stream().map(parentId -> txIdToPairMap.get(parentId).getRight())
-					.map(parentIndex -> new DirectedEdge(childIndex, parentIndex)).forEach(directedEdge -> {
-						directedEdgeList.add(directedEdge);
-					});
-		});
-	}
-*/
 	private TxNode buildFrom(TxToBeMined txToBeMined) {
 		Transaction tx = txToBeMined.getTx();
 		TxNode txNode = new TxNode();
@@ -331,7 +350,7 @@ public class APIController {
 		txNode.setContainingBlockIndex(txToBeMined.getContainingBlock().getIndex());
 		txNode.setModifiedSatVByte(txToBeMined.getModifiedSatVByte());
 		txNode.setBip125Replaceable(tx.getBip125Replaceable());
-		txNode.setTimeInSecs(tx.getTimeInSecs());
+		txNode.setTimeInMillis(tx.getTimeInSecs() * 1000);
 		txNode.setTxId(tx.getTxId());
 		txNode.setWeight(tx.getWeight());
 		return txNode;
@@ -353,7 +372,6 @@ public class APIController {
 		errorDetails.setErrorMessage(e.getMessage());
 		errorDetails.setErrorCode(HttpStatus.SERVICE_UNAVAILABLE.toString());
 		return new ResponseEntity<>(errorDetails, HttpStatus.SERVICE_UNAVAILABLE);
-
 	}
 
 }

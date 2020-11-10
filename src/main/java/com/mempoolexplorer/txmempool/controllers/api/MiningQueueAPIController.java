@@ -1,21 +1,12 @@
-package com.mempoolexplorer.txmempool.controllers;
+package com.mempoolexplorer.txmempool.controllers.api;
 
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Stack;
 import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
@@ -40,6 +31,16 @@ import com.mempoolexplorer.txmempool.entites.miningqueue.LiveMiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.TxToBeMined;
 
+import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -58,9 +59,9 @@ import lombok.extern.slf4j.Slf4j;
  *         queue and block data containing that histogram is returned.
  */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/miningQueueAPI")
 @Slf4j
-public class APIController {
+public class MiningQueueAPIController {
 
 	@Autowired
 	private LiveMiningQueueContainer liveMiningQueueContainer;
@@ -209,6 +210,14 @@ public class APIController {
 	private void addCommonData(CompleteLiveMiningQueueGraphData complete, PrunedLiveMiningQueueGraphData pruned) {
 		pruned.setLastModTime(complete.getLastModTime());
 		pruned.setWeightInLast10minutes(complete.getWeightInLast10minutes());
+		pruned.setFblTxSatVByte(1);
+		if (!complete.getCandidateBlockHistogramList().isEmpty()) {
+			CandidateBlockHistogram fbh = complete.getCandidateBlockHistogramList().get(0);
+			if (!fbh.getHistogramList().isEmpty()) {
+				SatVByteHistogramElement lastHistogram = fbh.getHistogramList().get(fbh.getHistogramList().size() - 1);
+				pruned.setFblTxSatVByte(lastHistogram.getModSatVByte());
+			}
+		}
 	}
 
 	private void addMiningQueueDataToPruned(PrunedLiveMiningQueueGraphData pruned,
@@ -293,7 +302,7 @@ public class APIController {
 	private void addNodes(List<TxNode> nodeList, MiningQueue miningQueue,
 			Map<String, Pair<TxToBeMined, Integer>> txIdToPairMap, String initTxId) {
 
-		Stack<String> txIdStack = new Stack<>();// Stack containing txIds to visit
+		Deque<String> txIdStack = new LinkedList<>();// Stack containing txIds to visit
 
 		// Adds initial tx to the stack and map.
 		txIdStack.push(initTxId);
@@ -318,12 +327,8 @@ public class APIController {
 
 				List<String> depends = tx.getTxAncestry().getDepends();
 				List<String> spentBy = tx.getTxAncestry().getSpentby();
-				depends.stream().filter(parent -> !txIdToPairMap.containsKey(parent)).forEach(parent -> {
-					txIdStack.add(parent);
-				});
-				spentBy.stream().filter(child -> !txIdToPairMap.containsKey(child)).forEach(child -> {
-					txIdStack.add(child);
-				});
+				depends.stream().filter(parent -> !txIdToPairMap.containsKey(parent)).forEach(txIdStack::add);
+				spentBy.stream().filter(child -> !txIdToPairMap.containsKey(child)).forEach(txIdStack::add);
 			}
 		}
 	}

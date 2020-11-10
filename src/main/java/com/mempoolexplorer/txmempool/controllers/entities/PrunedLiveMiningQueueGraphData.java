@@ -17,6 +17,8 @@ public class PrunedLiveMiningQueueGraphData {
 
 	private int weightInLast10minutes;
 
+	private int fblTxSatVByte;// First Block last Tx SatVByte
+
 	@JsonProperty("mempool")
 	private List<CandidateBlockRecap> candidateBlockRecapList = new ArrayList<>();
 

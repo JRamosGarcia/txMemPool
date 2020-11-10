@@ -59,7 +59,7 @@ public class MinerStatisticsController {
 		AlgorithmType algorithmType;
 		try {
 			algorithmType = AlgorithmType.valueOf(algo);
-		} catch (Throwable e) {
+		} catch (RuntimeException e) {
 			throw new AlgorithmTypeNotFoundException("Algorithm " + algo + " not found");
 		}
 		if (algorithmType == AlgorithmType.BITCOIND) {

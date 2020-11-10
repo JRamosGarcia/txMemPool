@@ -14,7 +14,7 @@ public class IgnoringBlockStatsEx extends IgnoringBlockStats {
         private int minedAndInCandidateBlockTxs;
         @JsonProperty("mInCBw")
         private int minedAndInCandidateBlockWeight;
-        @JsonProperty("minCBf")
+        @JsonProperty("mInCBf")
         private long minedAndInCandidateBlockFees;
         @JsonProperty("nmInCBn")
         private int notMinedButInCandidateBlockDataTxs;

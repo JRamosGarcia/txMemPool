@@ -15,4 +15,5 @@ public interface IgnoringBlocksPool {
 
 	Map<Integer, IgnoringBlock> getIgnoringBlocksMap();
 
+	void drop();
 }

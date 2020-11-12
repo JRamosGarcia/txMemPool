@@ -186,4 +186,9 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 		}
 	}
 
+	@Override
+	public void drop() {
+		ignoredTransactionMap = new HashMap<>(SysProps.EXPECTED_MAX_IGNORED_TXS);
+		ignoredTransactionMapRef.set(ignoredTransactionMap);
+	}
 }

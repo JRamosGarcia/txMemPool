@@ -16,4 +16,5 @@ public interface IgnoredTransactionsPool {
 
 	Optional<IgnoredTransaction> getIgnoredTransaction(String txId);
 
+	void drop();
 }

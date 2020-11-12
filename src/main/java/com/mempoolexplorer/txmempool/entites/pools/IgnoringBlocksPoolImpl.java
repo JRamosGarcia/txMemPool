@@ -14,7 +14,6 @@ public class IgnoringBlocksPoolImpl implements IgnoringBlocksPool {
 	private Map<Integer, IgnoringBlock> ignoringBlocksMap = new ConcurrentHashMap<>();
 	private IgnoringBlock last;
 
-
 	public IgnoringBlocksPoolImpl(TxMempoolProperties txMempoolProperties) {
 		super();
 		this.txMempoolProperties = txMempoolProperties;
@@ -42,5 +41,11 @@ public class IgnoringBlocksPoolImpl implements IgnoringBlocksPool {
 	@Override
 	public Map<Integer, IgnoringBlock> getIgnoringBlocksMap() {
 		return ignoringBlocksMap;
+	}
+
+	@Override
+	public void drop() {
+		ignoringBlocksMap = new ConcurrentHashMap<>();
+		last = null;
 	}
 }

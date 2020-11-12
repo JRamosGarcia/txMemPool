@@ -24,4 +24,8 @@ public class CompleteLiveMiningQueueGraphData {
 	// of big tx with high satVByte, or simply due to CPFP
 	List<CandidateBlockHistogram> candidateBlockHistogramList = new ArrayList<>();
 
+	public static CompleteLiveMiningQueueGraphData empty(){
+		return new CompleteLiveMiningQueueGraphData();
+	}
+
 }

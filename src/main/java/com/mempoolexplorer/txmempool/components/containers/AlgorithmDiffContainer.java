@@ -13,4 +13,5 @@ public interface AlgorithmDiffContainer {
 
 	Optional<AlgorithmDiff> getLast();
 
+	void drop();
 }

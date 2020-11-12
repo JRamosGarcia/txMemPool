@@ -8,19 +8,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.lang3.Validate;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.common.TopicPartition;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cloud.stream.annotation.EnableBinding;
-import org.springframework.cloud.stream.annotation.StreamListener;
-import org.springframework.context.ApplicationListener;
-import org.springframework.core.task.TaskExecutor;
-import org.springframework.kafka.event.ListenerContainerIdleEvent;
-import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.messaging.handler.annotation.Header;
-
 import com.mempoolexplorer.txmempool.StatisticsService;
 import com.mempoolexplorer.txmempool.TxMemPoolApplication;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
@@ -48,6 +35,19 @@ import com.mempoolexplorer.txmempool.events.MempoolEvent;
 import com.mempoolexplorer.txmempool.feinginterfaces.BitcoindAdapter;
 import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
 import com.mempoolexplorer.txmempool.utils.SysProps;
+
+import org.apache.commons.lang3.Validate;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.common.TopicPartition;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.stream.annotation.EnableBinding;
+import org.springframework.cloud.stream.annotation.StreamListener;
+import org.springframework.context.ApplicationListener;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.kafka.event.ListenerContainerIdleEvent;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -110,6 +110,7 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 
 	private boolean updateFullTxMemPool = true;
 
+	// This happens when a new block arrives.
 	private boolean forceMiningQueueRefresh = false;
 
 	private List<Integer> coinBaseTxWeightList = new ArrayList<>();
@@ -117,13 +118,13 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 	@StreamListener("txMemPoolEvents")
 	public void blockSink(MempoolEvent mempoolEvent, @Header(KafkaHeaders.CONSUMER) Consumer<?, ?> consumer) {
 		try {
+			// A new block when initializing is ignored.
 			if ((mempoolEvent.getEventType() == MempoolEvent.EventType.NEW_BLOCK) && (!initializing.get())) {
 				forceMiningQueueRefresh = true;
 				Block block = mempoolEvent.tryGetBlock().get();
 				log.info("New block(height: " + block.getHeight() + ", hash:" + block.getHash() + "txNum: "
 						+ block.getTxIds().size() + ") ---------------------------");
 				OnNewBlock(block);
-				// alarmLogger.prettyPrint();
 				numConsecutiveBlocks++;
 			} else if (mempoolEvent.getEventType() == MempoolEvent.EventType.REFRESH_POOL) {
 				numConsecutiveBlocks = 0;
@@ -229,7 +230,12 @@ public class TxMemPoolEventsHandler implements Runnable, ApplicationListener<Lis
 				log.info("Receiving full txMemPool due to bitcoindAdapter/txMemPool (re)start. "
 						+ "Dropping last txMemPool and BlockTemplate (if any) It can take a while...");
 				txMemPool.drop();
+				algoDiffContainer.drop();
 				blockTemplateContainer.drop();
+				liveAlgorithmDiffContainer.drop();
+				liveMiningQueueContainer.drop();
+				poolFactory.drop();
+				// Don't drop the data of MinerNamesUnresolvedContainer since it's useful.
 				updateFullTxMemPool = false;
 			}
 			txMemPool.refresh(txPoolChanges);

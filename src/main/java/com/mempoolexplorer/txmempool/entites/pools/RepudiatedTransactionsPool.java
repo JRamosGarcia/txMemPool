@@ -13,4 +13,5 @@ public interface RepudiatedTransactionsPool {
 
 	List<IgnoredTransaction> getRepudiatedTransactionList();
 
+	void drop();
 }

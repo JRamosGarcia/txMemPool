@@ -10,4 +10,5 @@ public interface LiveAlgorithmDiffContainer {
 
 	Optional<AlgorithmDiff> getliveAlgorithmDiff();
 
+	void drop();
 }

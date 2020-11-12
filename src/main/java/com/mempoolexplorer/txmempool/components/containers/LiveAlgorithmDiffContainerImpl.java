@@ -16,10 +16,15 @@ public class LiveAlgorithmDiffContainerImpl implements LiveAlgorithmDiffContaine
 	public Optional<AlgorithmDiff> getliveAlgorithmDiff() {
 		return Optional.ofNullable(liveAlgoDiffRef.get());
 	}
-	
+
 	@Override
 	public void setLiveAlgorithmDiff(AlgorithmDiff liveAlgorithmDiff) {
 		liveAlgoDiffRef.set(liveAlgorithmDiff);
+	}
+
+	@Override
+	public void drop() {
+		setLiveAlgorithmDiff(AlgorithmDiff.empty());
 	}
 
 }

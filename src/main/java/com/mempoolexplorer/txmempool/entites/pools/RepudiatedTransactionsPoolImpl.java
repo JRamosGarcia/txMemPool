@@ -28,4 +28,8 @@ public class RepudiatedTransactionsPoolImpl implements RepudiatedTransactionsPoo
 		return ignoredTransactionMap.values().stream().collect(Collectors.toList());
 	}
 
+	@Override
+	public void drop() {
+		ignoredTransactionMap = new ConcurrentHashMap<>();
+	}
 }

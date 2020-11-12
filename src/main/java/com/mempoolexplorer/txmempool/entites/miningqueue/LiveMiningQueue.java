@@ -2,31 +2,19 @@ package com.mempoolexplorer.txmempool.entites.miningqueue;
 
 import com.mempoolexplorer.txmempool.controllers.entities.CompleteLiveMiningQueueGraphData;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+@AllArgsConstructor
 public class LiveMiningQueue {
 
-	private CompleteLiveMiningQueueGraphData liveMiningQueueGraphData;
-	private MiningQueue miningQueue;
+	private CompleteLiveMiningQueueGraphData liveMiningQueueGraphData = CompleteLiveMiningQueueGraphData.empty();
+	private MiningQueue miningQueue = MiningQueue.empty();
 
-	public LiveMiningQueue(CompleteLiveMiningQueueGraphData liveMiningQueueGraphData, MiningQueue miningQueue) {
-		super();
-		this.liveMiningQueueGraphData = liveMiningQueueGraphData;
-		this.miningQueue = miningQueue;
+	public static LiveMiningQueue empty() {
+		return new LiveMiningQueue(CompleteLiveMiningQueueGraphData.empty(), MiningQueue.empty());
 	}
-
-	public CompleteLiveMiningQueueGraphData getLiveMiningQueueGraphData() {
-		return liveMiningQueueGraphData;
-	}
-
-	public void setLiveMiningQueueGraphData(CompleteLiveMiningQueueGraphData liveMiningQueueGraphData) {
-		this.liveMiningQueueGraphData = liveMiningQueueGraphData;
-	}
-
-	public MiningQueue getMiningQueue() {
-		return miningQueue;
-	}
-
-	public void setMiningQueue(MiningQueue miningQueue) {
-		this.miningQueue = miningQueue;
-	}
-
 }

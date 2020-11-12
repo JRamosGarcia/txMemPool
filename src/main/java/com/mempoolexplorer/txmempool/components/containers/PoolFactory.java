@@ -20,4 +20,5 @@ public interface PoolFactory {
 
 	RepudiatedTransactionsPool getRepudiatedTransactionsPool(String at) throws AlgorithmTypeNotFoundException;
 
+	void drop();
 }

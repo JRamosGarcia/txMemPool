@@ -37,7 +37,7 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 	@Autowired
 	private AlarmLogger alarmLogger;
 
-	private AtomicReference<LiveMiningQueue> liveMiningQueueRef = new AtomicReference<>();
+	private AtomicReference<LiveMiningQueue> liveMiningQueueRef = new AtomicReference<>(LiveMiningQueue.empty());
 
 	private int numRefreshedWatcher = Integer.MAX_VALUE;// Counter for not refreshing miningQueue all the time, first
 														// time we refresh
@@ -149,5 +149,11 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 				txIdAndWeightList, txIdToListIndex);
 		cbh.getHistogramMap().put((int) modSatVByte, sVByteHElement);
 		cbh.getHistogramList().add(sVByteHElement);
+	}
+
+	@Override
+	public void drop() {
+		liveMiningQueueRef.set(LiveMiningQueue.empty());
+		numRefreshedWatcher = Integer.MAX_VALUE;
 	}
 }

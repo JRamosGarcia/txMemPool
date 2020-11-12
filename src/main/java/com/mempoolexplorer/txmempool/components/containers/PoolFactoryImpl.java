@@ -88,4 +88,11 @@ public class PoolFactoryImpl implements PoolFactory {
 		throw new AlgorithmTypeNotFoundException();
 	}
 
+	@Override
+	public void drop() {
+		repTxPoolList.stream().forEach(RepudiatedTransactionsPool::drop);
+		igBlocksPoolList.stream().forEach(IgnoringBlocksPool::drop);
+		igTxPoolList.forEach(IgnoredTransactionsPool::drop);
+	}
+
 }

@@ -47,4 +47,10 @@ public class AlgorithmDiffContainerImpl implements AlgorithmDiffContainer {
 		return Optional.ofNullable(last.get());
 	}
 
+	@Override
+	public void drop() {
+		heightToAlgoDiffMap = new ConcurrentHashMap<>();
+		last = new AtomicReference<>();
+	}
+
 }

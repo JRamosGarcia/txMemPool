@@ -14,4 +14,5 @@ public interface LiveMiningQueueContainer {
 
 	MiningQueue forceRefresh();
 
+	void drop();
 }

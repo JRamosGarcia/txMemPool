@@ -1,7 +1,8 @@
 package com.mempoolexplorer.txmempool;
 
+import com.mempoolexplorer.txmempool.repositories.entities.MinerNameToBlockHeight;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.ExitCodeGenerator;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -15,8 +16,6 @@ import org.springframework.data.mongodb.core.index.IndexOperations;
 import org.springframework.data.mongodb.core.index.IndexResolver;
 import org.springframework.data.mongodb.core.index.MongoPersistentEntityIndexResolver;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
-
-import com.mempoolexplorer.txmempool.repositories.entities.MinerNameToBlockHeight;
 
 @SpringBootApplication
 @RefreshScope
@@ -37,13 +36,7 @@ public class TxMemPoolApplication {
 	}
 
 	public static void exit() {
-		SpringApplication.exit(context, new ExitCodeGenerator() {
-			@Override
-			public int getExitCode() {
-				// return the error code
-				return 1;
-			}
-		});
+		SpringApplication.exit(context, () -> 1);
 	}
 
 	@EventListener(ApplicationReadyEvent.class)

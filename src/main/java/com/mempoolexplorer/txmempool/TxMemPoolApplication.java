@@ -46,5 +46,4 @@ public class TxMemPoolApplication {
 		IndexOperations indexOps = mongoTemplate.indexOps(MinerNameToBlockHeight.class);
 		resolver.resolveIndexFor(MinerNameToBlockHeight.class).forEach(indexOps::ensureIndex);
 	}
-
 }

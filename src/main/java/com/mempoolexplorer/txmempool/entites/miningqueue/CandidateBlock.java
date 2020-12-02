@@ -19,7 +19,7 @@ public class CandidateBlock implements TxContainer {
 	private int coinBaseWeight = 0;
 	private int precedingTxsCount = 0; // Sum of all txs in preceding blocks
 
-	private Map<String, TxToBeMined> txMap = new HashMap<String, TxToBeMined>(SysProps.HM_INITIAL_CAPACITY_FOR_BLOCK);
+	private Map<String, TxToBeMined> txMap = new HashMap<>(SysProps.HM_INITIAL_CAPACITY_FOR_BLOCK);
 
 	// It's descending ordered because adds are ordered
 	private LinkedList<TxToBeMined> txList = new LinkedList<>();
@@ -46,7 +46,6 @@ public class CandidateBlock implements TxContainer {
 		TxToBeMined txToBeMined = new TxToBeMined(tx, payingChildTx, reducedBy, this, nextTxPositionInBlock++,
 				modifiedSatVByte);
 		if (null != txMap.put(tx.getTxId(), txToBeMined)) {
-			// TODO: See what to do here. Uncatched exception
 			throw new IllegalStateException();
 		}
 		txList.add(txToBeMined);
@@ -58,7 +57,7 @@ public class CandidateBlock implements TxContainer {
 		if (index != 0) {
 			return Optional.empty();
 		}
-		Iterator<Transaction> txIt = txList.stream().map(txTBM -> txTBM.getTx()).iterator();
+		Iterator<Transaction> txIt = txList.stream().map(TxToBeMined::getTx).iterator();
 		while (txIt.hasNext()) {
 			Transaction tx = txIt.next();
 			if (!txMap.containsKey(tx.getTxId())) {
@@ -156,14 +155,16 @@ public class CandidateBlock implements TxContainer {
 			builder.append(txToBeMined.getTx().getSatvByteIncludingAncestors());
 			builder.append(", (" + txToBeMined.getTx().getTxAncestry().getAncestorCount() + ","
 					+ txToBeMined.getTx().getTxAncestry().getDescendantCount() + ")");
-			if (txToBeMined.getPayingChildTx().isPresent()) {
+			Optional<Transaction> payingChildTx = txToBeMined.getPayingChildTx();
+			if (payingChildTx.isPresent()) {
 				// cp stands for "child paying"
-				builder.append(", cp: " + txToBeMined.getPayingChildTx().get().getTxId());
+				builder.append(", cp: " + payingChildTx.get().getTxId());
 			}
-			if (txToBeMined.getParentsAlreadyInBlock().isPresent()) {
+			Optional<List<Transaction>> parentsAlreadyInBlock = txToBeMined.getParentsAlreadyInBlock();
+			if (parentsAlreadyInBlock.isPresent()) {
 				// paob stands for "parents already on block"
 				builder.append(", paob: ");
-				Iterator<Transaction> it = txToBeMined.getParentsAlreadyInBlock().get().iterator();
+				Iterator<Transaction> it = parentsAlreadyInBlock.get().iterator();
 				while (it.hasNext()) {
 					Transaction nextTx = it.next();
 					builder.append(nextTx.getTxId());

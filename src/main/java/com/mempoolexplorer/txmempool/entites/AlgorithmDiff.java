@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
@@ -12,11 +11,15 @@ import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blocktemplate.Block
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.entites.blocktemplate.BlockTemplate;
 import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
+import com.mempoolexplorer.txmempool.entites.miningqueue.TxToBeMined;
 
+import lombok.Getter;
+
+@Getter
 public class AlgorithmDiff {
 
 	private int blockHeight;
-	private Optional<Boolean> candidateBlockCorrect = Optional.empty();
+	private boolean candidateBlockCorrect;
 	private String firstOffendingTx;
 	private FeeableData oursData = new FeeableData();
 	private FeeableData bitcoindData = new FeeableData();
@@ -35,10 +38,10 @@ public class AlgorithmDiff {
 	// Two constructors for the case when we have already calculate if
 	// candidateBlock is correct or not
 	public AlgorithmDiff(TxMemPool txMemPool, CandidateBlock oursCB, BlockTemplate blockTemplate, int blockHeight,
-			Optional<Boolean> candidateBlockCorrect) {
+			boolean candidateBlockCorrect) {
 		this.blockHeight = blockHeight;
 		this.candidateBlockCorrect = candidateBlockCorrect;
-		this.txOrderedListOurs = oursCB.getOrderedStream().map(txTBM -> txTBM.getTx())
+		this.txOrderedListOurs = oursCB.getOrderedStream().map(TxToBeMined::getTx)
 				.sorted(Comparator.comparingDouble(Transaction::getSatvByte).reversed()).collect(Collectors.toList());
 		order(blockTemplate);
 
@@ -51,7 +54,7 @@ public class AlgorithmDiff {
 	}
 
 	public AlgorithmDiff(TxMemPool txMemPool, CandidateBlock oursCB, BlockTemplate blockTemplate, int blockHeight) {
-		this(txMemPool, oursCB, blockTemplate, blockHeight, oursCB.checkIsCorrect());
+		this(txMemPool, oursCB, blockTemplate, blockHeight, oursCB.checkIsCorrect().orElse(false));
 	}
 
 	private void calculateFirstOffending() {
@@ -62,52 +65,17 @@ public class AlgorithmDiff {
 			BlockTemplateTx bitcoindTx = bitcoindIt.next();
 			String oursTxId = oursTx.getTxId();
 			String bitcoindTxId = bitcoindTx.getTxId();
-			if (!oursTxId.equals(bitcoindTxId)) {
-				if (oursTx.getSatvByte() != bitcoindTx.getSatvByte()) {
-					firstOffendingTx = bitcoindTxId;
-					break;
-				}
+			if ((!oursTxId.equals(bitcoindTxId)) && (oursTx.getSatvByte() != bitcoindTx.getSatvByte())) {
+				firstOffendingTx = bitcoindTxId;
+				break;
 			}
 		}
-
 	}
 
 	private void order(BlockTemplate blockTemplate) {
 		this.txOrderedListBitcoind = blockTemplate.getBlockTemplateTxMap().values().stream()
 				.sorted(Comparator.comparingDouble(BlockTemplateTx::getSatvByte).reversed())
 				.collect(Collectors.toList());
-	}
-
-	public int getBlockHeight() {
-		return blockHeight;
-	}
-
-	public Optional<Boolean> getCandidateBlockCorrect() {
-		return candidateBlockCorrect;
-	}
-
-	public String getFirstOffendingTx() {
-		return firstOffendingTx;
-	}
-
-	public FeeableData getOursData() {
-		return oursData;
-	}
-
-	public FeeableData getBitcoindData() {
-		return bitcoindData;
-	}
-
-	public AlgorithmDiffSets getAlgoDiffs() {
-		return algoDiffs;
-	}
-
-	public List<Transaction> getTxOrderedListOurs() {
-		return txOrderedListOurs;
-	}
-
-	public List<BlockTemplateTx> getTxOrderedListBitcoind() {
-		return txOrderedListBitcoind;
 	}
 
 }

@@ -3,6 +3,8 @@ package com.mempoolexplorer.txmempool.components;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,13 +12,13 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.mempool.TxPoolChanges;
 import com.mempoolexplorer.txmempool.entites.mempool.TxKey;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 @Component
 public class TxMemPoolImpl implements TxMemPool {
@@ -82,7 +84,7 @@ public class TxMemPoolImpl implements TxMemPool {
 
 	@Override
 	public Stream<Transaction> getDescendingTxStream() {
-		return txMemPool.descendingMap().entrySet().stream().map(e -> e.getValue());
+		return txMemPool.descendingMap().entrySet().stream().map(Entry::getValue);
 	}
 
 	@Override
@@ -109,32 +111,30 @@ public class TxMemPoolImpl implements TxMemPool {
 		return Optional.ofNullable(transaction);
 	}
 
-	// TODO: must be tested
 	@Override
 	public Set<String> getAllParentsOf(Transaction tx) {
 		// recursive witchcraft
 		List<String> txDepends = tx.getTxAncestry().getDepends();
 		if (!txDepends.isEmpty()) {
 			Set<String> parentSet = txDepends.stream().collect(Collectors.toSet());
-			Set<String> granpaSet = parentSet.stream().map(txId -> txKeyMap.get(txId)).filter(txKey -> txKey != null)
-					.map(txKey -> txMemPool.get(txKey)).filter(trx -> trx != null).map(trx -> getAllParentsOf(trx))
-					.flatMap(pSet -> pSet.stream()).collect(Collectors.toSet());
+			Set<String> granpaSet = parentSet.stream().map(txId -> txKeyMap.get(txId)).filter(Objects::nonNull)
+					.map(txKey -> txMemPool.get(txKey)).filter(Objects::nonNull).map(this::getAllParentsOf)
+					.flatMap(Set::stream).collect(Collectors.toSet());
 			parentSet.addAll(granpaSet);
 			return parentSet;
 		}
 		return new HashSet<>();
 	}
 
-	// TODO: must be tested
 	@Override
 	public Set<String> getAllChildrenOf(Transaction tx) {
 		// recursive witchcraft
 		List<String> txSpentBys = tx.getTxAncestry().getSpentby();
 		if (!txSpentBys.isEmpty()) {
 			Set<String> childrenSet = txSpentBys.stream().collect(Collectors.toSet());
-			Set<String> granSonsSet = childrenSet.stream().map(txId -> txKeyMap.get(txId))
-					.filter(txKey -> txKey != null).map(txKey -> txMemPool.get(txKey)).filter(trx -> trx != null)
-					.map(trx -> getAllChildrenOf(trx)).flatMap(pSet -> pSet.stream()).collect(Collectors.toSet());
+			Set<String> granSonsSet = childrenSet.stream().map(txId -> txKeyMap.get(txId)).filter(Objects::nonNull)
+					.map(txKey -> txMemPool.get(txKey)).filter(Objects::nonNull).map(this::getAllChildrenOf)
+					.flatMap(Set::stream).collect(Collectors.toSet());
 			childrenSet.addAll(granSonsSet);
 			return childrenSet;
 		}
@@ -167,7 +167,7 @@ public class TxMemPoolImpl implements TxMemPool {
 		if (tx.getTxInputs() != null) {
 			tx.getTxInputs().stream().forEach(txIn -> {
 				if (txIn.getAddressIds() != null) {
-					txIn.getAddressIds().stream().forEach(addrId -> retSet.add(addrId));
+					txIn.getAddressIds().stream().forEach(retSet::add);
 				}
 			});
 		}
@@ -175,7 +175,7 @@ public class TxMemPoolImpl implements TxMemPool {
 		if (tx.getTxOutputs() != null) {
 			tx.getTxOutputs().stream().forEach(txOut -> {
 				if (txOut.getAddressIds() != null) {
-					txOut.getAddressIds().stream().forEach(addrId -> retSet.add(addrId));
+					txOut.getAddressIds().stream().forEach(retSet::add);
 				}
 			});
 		}
@@ -211,16 +211,16 @@ public class TxMemPoolImpl implements TxMemPool {
 
 	private void logTxPoolChanges(TxPoolChanges txpc) {
 		StringBuilder sb = new StringBuilder();
-		sb.append("TxPoolChanges(");
-		sb.append(txpc.getChangeCounter());
-		sb.append("): ");
+		sb.append("TxPoolChanges: ");
 		sb.append(txpc.getNewTxs().size());
 		sb.append(" new transactions, ");
 		sb.append(txpc.getRemovedTxsId().size());
 		sb.append(" removed transactions, ");
 		sb.append(txpc.getTxAncestryChangesMap().size());
 		sb.append(" updated transactions.");
-		logger.info(sb.toString());
+		if (logger.isInfoEnabled()) {
+			logger.info(sb.toString());
+		}
 	}
 
 }

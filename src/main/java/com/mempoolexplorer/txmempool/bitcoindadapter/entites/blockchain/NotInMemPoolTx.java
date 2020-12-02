@@ -20,7 +20,7 @@ public class NotInMemPoolTx implements Feeable {
 		return txId;
 	}
 
-	// TODO: This two methods should not return the same but we don't have enough
+	// This two methods should not return the same but we don't have enough
 	// information
 	@Override
 	public double getSatvByteIncludingAncestors() {

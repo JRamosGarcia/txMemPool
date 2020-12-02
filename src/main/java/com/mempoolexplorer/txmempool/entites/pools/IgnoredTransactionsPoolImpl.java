@@ -3,13 +3,11 @@ package com.mempoolexplorer.txmempool.entites.pools;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
@@ -21,6 +19,9 @@ import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.NotMinedTransaction;
 import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
 import com.mempoolexplorer.txmempool.utils.SysProps;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 
@@ -61,9 +62,9 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 	}
 
 	@Override
-	public void refresh(Block block, MisMinedTransactions mmt, TxMemPool txMemPool) {
+	public void refresh(Block block, List<String> blockTxIds, MisMinedTransactions mmt, TxMemPool txMemPool) {
 
-		clearIgnoredTransactionMap(block, txMemPool);// In case of mined or deleted txs
+		clearIgnoredTransactionMap(block, blockTxIds, txMemPool);// In case of mined or deleted txs
 
 		IgnoringBlock ignoringBlock = new IgnoringBlock(mmt);
 
@@ -140,11 +141,11 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 		}
 	}
 
-	private void clearIgnoredTransactionMap(Block block, TxMemPool txMemPool) {
+	private void clearIgnoredTransactionMap(Block block, List<String> blockTxIds, TxMemPool txMemPool) {
 		Set<String> txIdsToRemoveSet = new HashSet<>(SysProps.EXPECTED_MAX_IGNORED_TXS);// txIds to remove.
 
 		// Delete mined transactions
-		for (String bTxId : block.getTxIds()) {
+		for (String bTxId : blockTxIds) {
 			IgnoredTransaction rt = ignoredTransactionMap.get(bTxId);
 			if (null != rt) {
 				txIdsToRemoveSet.add(bTxId);
@@ -153,8 +154,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 			}
 		}
 		// Delete deleted transactions
-		// TODO: It would be nice if we track new txs replacing old ones using Replace
-		// by Fee
+		// It would be nice if we track new txs replacing old ones using Replace by Fee
 		for (IgnoredTransaction igTx : ignoredTransactionMap.values()) {
 			String rTxId = igTx.getTx().getTxId();
 			if (!txMemPool.containsTxId(rTxId)) {
@@ -165,7 +165,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 		}
 
 		logClearedIgnoredTransactionMap(txIdsToRemoveSet);
-		// TODO: save in DB before delete?
+		// Save in DB before delete?
 		txIdsToRemoveSet.stream().forEach(txId -> ignoredTransactionMap.remove(txId));
 	}
 

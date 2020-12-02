@@ -20,8 +20,8 @@ public class OperationsController {
 	private StatisticsService statisticsService;
 
 	@GetMapping("/recalculateAllStats")
-	private RecalculateAllStatsResult recalculateAllStats() {
-		if (properties.getPersistState()) {
+	public RecalculateAllStatsResult recalculateAllStats() {
+		if (properties.isPersistState()) {
 			return statisticsService.recalculateAllStats();
 		}
 		var rasr = new RecalculateAllStatsResult();

@@ -15,7 +15,7 @@ public class SysProps {
 	public static final int EXPECTED_MAX_ANCESTRY_CHANGES = 200;
 	public static final int EXPECTED_MAX_IGNORED_TXS = 200;
 	public static final int BLOCK_HEADER_WEIGHT = 332;// In Weight units = 83 bytes
-	public static final int EXPECTED_BLOCK_HEADER_WEIGHT_VARIANCE = 8;//TODO: I have no idea about this.
+	public static final int EXPECTED_BLOCK_HEADER_WEIGHT_VARIANCE = 8;
 	public static final String MINER_NAME_UNKNOWN = "unknown";
 	public static final String MINED_BY_START = "Mined by ";
 	public static final String MINED_BY_END = "\\";

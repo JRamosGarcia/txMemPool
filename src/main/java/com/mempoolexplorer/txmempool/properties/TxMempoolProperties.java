@@ -12,16 +12,16 @@ import lombok.Setter;
 @Setter
 public class TxMempoolProperties {
 
-	private Integer refreshCountToCreateNewMiningQueue = 5;
-	private Integer miningQueueNumTxs = 100000;
-	private Integer miningQueueMaxNumBlocks = 30;
-	private Integer liveMiningQueueMaxTxs = 100000;
-	private Integer liveMiningQueueGraphSize = 500;
-	private Integer maxLiveDataBufferSize = 100;
-	private Integer numTimesTxIgnoredToRaiseAlarm = 3;
-	private Integer totalSatVBLostToRaiseAlarm = 3;
-	private Integer numTxMinedButNotInMemPoolToRaiseAlarm = 10;
-	private Boolean liveAlgorithmDiffsEnabled = false;
-	private Boolean persistState = false;
+	private int refreshCountToCreateNewMiningQueue = 5;
+	private int miningQueueNumTxs = 100000;
+	private int miningQueueMaxNumBlocks = 30;
+	private int liveMiningQueueMaxTxs = 100000;
+	private int liveMiningQueueGraphSize = 500;
+	private int maxLiveDataBufferSize = 100;
+	private int numTimesTxIgnoredToRaiseAlarm = 3;
+	private int totalSatVBLostToRaiseAlarm = 3;
+	private int numTxMinedButNotInMemPoolToRaiseAlarm = 10;
+	private boolean liveAlgorithmDiffsEnabled = false;
+	private boolean persistState = false;
 
 }

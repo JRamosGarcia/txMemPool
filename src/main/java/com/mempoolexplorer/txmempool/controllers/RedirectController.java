@@ -13,10 +13,11 @@ import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixProperty;
 
 
-//TODO: Hace falta poner un manejador de excepciones?
 @RestController
 @RequestMapping("/redirectMemPool")
 public class RedirectController {
+
+	Random rand = new Random();
 
 	@Autowired
 	private BitcoindAdapter bitcoinAdapter;
@@ -30,7 +31,7 @@ public class RedirectController {
 				threadPoolProperties =
 				{@HystrixProperty(name = "coreSize",value="3"),
 				@HystrixProperty(name="maxQueueSize", value="-1")})
-	public AppStateEnum getMemPool() {
+	public AppStateEnum getMemPool() throws InterruptedException {
 		randomlyRunLong();
 		return bitcoinAdapter.getState();
 	}
@@ -45,17 +46,17 @@ public class RedirectController {
 	private AppStateEnum getDefaultAppState() {
 		return AppStateEnum.LOADINGFROMBITCOINCLIENT;
 	}
-	private void randomlyRunLong(){
-		Random rand = new Random();
+	private void randomlyRunLong() throws InterruptedException {
 		int randomNum = rand.nextInt(4);
 		if (randomNum==3) sleep();
 	}
 	
-	private void sleep(){
+	private void sleep() throws InterruptedException {
 		try {
 			Thread.sleep(10000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+			throw e;
 		}
 	}
 }

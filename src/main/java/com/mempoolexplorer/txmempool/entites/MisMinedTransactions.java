@@ -1,11 +1,9 @@
 package com.mempoolexplorer.txmempool.entites;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
@@ -15,6 +13,9 @@ import com.mempoolexplorer.txmempool.entites.blocktemplate.BlockTemplate;
 import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 import com.mempoolexplorer.txmempool.entites.miningqueue.TxContainer;
 import com.mempoolexplorer.txmempool.utils.SysProps;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Class containing the mismached transactions between minedBlock and
@@ -65,13 +66,13 @@ public class MisMinedTransactions {
 	private AlgorithmType algorithmUsed;
 
 	// Constructor in case of BlockTemplate
-	public MisMinedTransactions(TxMemPool txMemPool, BlockTemplate blockTemplate, Block block,
+	public MisMinedTransactions(TxMemPool txMemPool, BlockTemplate blockTemplate, Block block, List<String> blockTxIds,
 			CoinBaseData coinBaseData) {
 		algorithmUsed = AlgorithmType.BITCOIND;
 		this.block = block;
 		this.numTxInMempool = txMemPool.getTxNumber();
 
-		calculateDataFromBlock(txMemPool, blockTemplate, block);
+		calculateDataFromBlock(txMemPool, blockTemplate, blockTxIds);
 
 		// In mempool and candidateBlock but not in block
 		calculateDataFromBlockTemplate(blockTemplate, txMemPool, block);
@@ -82,12 +83,12 @@ public class MisMinedTransactions {
 
 	// Constructor in case of CandidateBlock
 	public MisMinedTransactions(TxMemPool txMemPool, CandidateBlock candidateBlock, Block block,
-			CoinBaseData coinBaseData) {
+			List<String> blockTxIds, CoinBaseData coinBaseData) {
 		algorithmUsed = AlgorithmType.OURS;
 		this.block = block;
 		this.numTxInMempool = txMemPool.getTxNumber();
 
-		calculateDataFromBlock(txMemPool, candidateBlock, block);
+		calculateDataFromBlock(txMemPool, candidateBlock, blockTxIds);
 
 		// In mempool and candidateBlock but not in block
 		calculateDataFrom(candidateBlock);
@@ -108,8 +109,8 @@ public class MisMinedTransactions {
 				notMinedButInCandidateBlockMapWD.getFeeableMap().values().stream());
 	}
 
-	private void calculateDataFromBlock(TxMemPool txMemPool, TxContainer txContainer, Block block) {
-		block.getTxIds().stream().forEach(txId -> {
+	private void calculateDataFromBlock(TxMemPool txMemPool, TxContainer txContainer, List<String> blockTxIds) {
+		blockTxIds.stream().forEach(txId -> {
 			Optional<Transaction> optTx = txMemPool.getTx(txId);
 			if (optTx.isPresent()) {
 				minedAndInMemPoolMapWD.put(optTx.get());
@@ -140,11 +141,12 @@ public class MisMinedTransactions {
 	private void calculateDataFrom(CandidateBlock candidateBlock) {
 		FeeableData feeableData = new FeeableData();
 
-		candidateBlock.getEntriesStream().peek(e -> feeableData.checkFeeable(e.getValue()))
-				.filter(e -> !minedAndInMemPoolMapWD.containsKey(e.getKey())).map(e -> {
-					return new NotMinedTransaction(e.getValue().getTx(),
-							Optional.of(e.getValue().getPositionInBlock()));
-				}).forEach(nmt -> notMinedButInCandidateBlockMapWD.put(nmt));
+		candidateBlock.getEntriesStream().map(e -> {
+			feeableData.checkFeeable(e.getValue());
+			return e;
+		}).filter(e -> !minedAndInMemPoolMapWD.containsKey(e.getKey()))
+				.map(e -> new NotMinedTransaction(e.getValue().getTx(), Optional.of(e.getValue().getPositionInBlock())))
+				.forEach(nmt -> notMinedButInCandidateBlockMapWD.put(nmt));
 
 		candidateBlockData = new CandidateBlockData(candidateBlock, feeableData);
 
@@ -154,9 +156,6 @@ public class MisMinedTransactions {
 
 		CandidateBlockData cbd = new CandidateBlockData();
 		FeeableData feeableData = new FeeableData();
-
-		// Map<String, Transaction> blockTemplateTxMap = new
-		// HashMap<>(SysProps.HM_INITIAL_CAPACITY_FOR_BLOCK);
 
 		blockTemplate.getBlockTemplateTxMap().entrySet().forEach(e -> {
 			Optional<Transaction> opTx = txMemPool.getTx(e.getKey());
@@ -175,7 +174,6 @@ public class MisMinedTransactions {
 							e.getValue().getFee(), tx.getBaseFees(), tx.getTxId());
 				}
 				cbd.setTotalFees(cbd.getTotalFees() + e.getValue().getFee());
-				// if(e.getValue().getWeight()!=tx.getWeight()) {
 				cbd.setWeight(cbd.getWeight() + e.getValue().getWeight());
 
 			}
@@ -248,17 +246,9 @@ public class MisMinedTransactions {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("MisMinedTransactions ["
-				// + "block=");
-				// builder.append(block);
-				// builder.append(SysProps.NL);
-				// builder.append(", "
-				+ "minedBlockData=");
+		builder.append("MisMinedTransactions [" + "minedBlockData=");
 		builder.append(minedBlockData);
 		builder.append(SysProps.NL);
-		// builder.append(", candidateBlock=");
-		// builder.append(candidateBlock);
-		// builder.append(SysProps.NL);
 		builder.append(", candidateBlockData=");
 		builder.append(candidateBlockData);
 		builder.append(SysProps.NL);

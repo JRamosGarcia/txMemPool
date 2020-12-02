@@ -1,5 +1,6 @@
 package com.mempoolexplorer.txmempool.entites.pools;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -10,9 +11,9 @@ import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 
 public interface IgnoredTransactionsPool {
 
-	Map<String,IgnoredTransaction> atomicGetIgnoredTransactionMap();
+	Map<String, IgnoredTransaction> atomicGetIgnoredTransactionMap();
 
-	void refresh(Block block, MisMinedTransactions mmt, TxMemPool txMemPool);
+	void refresh(Block block, List<String> blockTxIds, MisMinedTransactions mmt, TxMemPool txMemPool);
 
 	Optional<IgnoredTransaction> getIgnoredTransaction(String txId);
 

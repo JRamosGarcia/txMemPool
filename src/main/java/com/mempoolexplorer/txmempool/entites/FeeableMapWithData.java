@@ -41,8 +41,6 @@ public class FeeableMapWithData<T extends Feeable> {
 		StringBuilder builder = new StringBuilder();
 		builder.append("FeeableMapWithData [feeableData=");
 		builder.append(feeableData);
-		//builder.append(", feeableMap=");
-		//builder.append(feeableMap);
 		builder.append("]");
 		return builder.toString();
 	}

@@ -157,9 +157,11 @@ public class MempoolEventConsumer implements Runnable {
                 // Block event has new block and refresh info, order matters
                 onNewBlock(event);
                 onRefreshEvent(event);
+                liveMiningQueueContainer.forceRefresh();
                 break;
             case REFRESH_POOL:
                 onRefreshEvent(event);
+                liveMiningQueueContainer.refreshIfNeeded();
                 break;
             default:
                 throw new IllegalArgumentException("WTF! MempoolEventType not valid");
@@ -222,7 +224,6 @@ public class MempoolEventConsumer implements Runnable {
         TxPoolChanges txpc = refreshEvent.getTxPoolChanges();
         validate(txpc);
         txMemPool.refresh(txpc);
-        // TODO: refresh liveminingqueue in other thread
     }
 
     private boolean errorInSeqNumber(MempoolEvent event) {

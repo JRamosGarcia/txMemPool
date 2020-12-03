@@ -12,7 +12,7 @@ import lombok.Setter;
 @Setter
 public class TxMempoolProperties {
 
-	private int refreshCountToCreateNewMiningQueue = 5;
+	private int liveMiningQueueRefreshEachMillis = 5000;
 	private int miningQueueNumTxs = 100000;
 	private int miningQueueMaxNumBlocks = 30;
 	private int liveMiningQueueMaxTxs = 100000;

@@ -7,11 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
@@ -19,13 +17,20 @@ import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.controllers.entities.CandidateBlockHistogram;
 import com.mempoolexplorer.txmempool.controllers.entities.CandidateBlockRecap;
 import com.mempoolexplorer.txmempool.controllers.entities.CompleteLiveMiningQueueGraphData;
-import com.mempoolexplorer.txmempool.controllers.entities.TxIdAndWeight;
 import com.mempoolexplorer.txmempool.controllers.entities.SatVByteHistogramElement;
+import com.mempoolexplorer.txmempool.controllers.entities.TxIdAndWeight;
 import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 import com.mempoolexplorer.txmempool.entites.miningqueue.LiveMiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
 import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Component
 public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 
@@ -40,8 +45,12 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 
 	private AtomicReference<LiveMiningQueue> liveMiningQueueRef = new AtomicReference<>(LiveMiningQueue.empty());
 
-	private int numRefreshedWatcher = Integer.MAX_VALUE;// Counter for not refreshing miningQueue all the time, first
-														// time we refresh
+	private AtomicBoolean refresh = new AtomicBoolean(false);
+
+	@Scheduled(fixedDelayString = "${txmempool.liveMiningQueueRefreshEachMillis}")
+	public void allowRefresh() {
+		refresh.set(true);
+	}
 
 	@Override
 	public LiveMiningQueue atomicGet() {
@@ -49,19 +58,20 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 	}
 
 	@Override
-	public Optional<MiningQueue> refreshIfNeeded() {
-		if (numRefreshedWatcher >= txMempoolProperties.getRefreshCountToCreateNewMiningQueue()) {
-			numRefreshedWatcher = 0;
-			return Optional.of(updateLiveMiningQueue());
+	public void refreshIfNeeded() {
+		if (refresh.getAndSet(false)) {
+			updateLiveMiningQueue();
 		}
-		numRefreshedWatcher++;
-		return Optional.empty();
 	}
 
 	@Override
-	public MiningQueue forceRefresh() {
-		numRefreshedWatcher = 0;
-		return updateLiveMiningQueue();
+	public void forceRefresh() {
+		updateLiveMiningQueue();
+	}
+
+	@Override
+	public void drop() {
+		liveMiningQueueRef.set(LiveMiningQueue.empty());
 	}
 
 	// Create LiveMiningQueue. All Blocks are taken from MiningQueue which are
@@ -72,6 +82,7 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 				txMempoolProperties.getMiningQueueNumTxs(), txMempoolProperties.getMiningQueueMaxNumBlocks());
 		if (newMiningQueue.isHadErrors()) {
 			alarmLogger.addAlarm("Mining Queue had errors, in updateLiveMiningQueue");
+			log.error("Mining Queue had errors, in updateLiveMiningQueue");
 		}
 		this.liveMiningQueueRef
 				.set(new LiveMiningQueue(buildLiveMiningQueueGraphDataFrom(newMiningQueue), newMiningQueue));
@@ -151,9 +162,4 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		cbh.getHistogramList().add(sVByteHElement);
 	}
 
-	@Override
-	public void drop() {
-		liveMiningQueueRef.set(LiveMiningQueue.empty());
-		numRefreshedWatcher = Integer.MAX_VALUE;
-	}
 }

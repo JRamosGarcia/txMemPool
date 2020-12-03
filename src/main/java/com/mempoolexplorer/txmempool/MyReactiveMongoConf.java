@@ -3,17 +3,19 @@ package com.mempoolexplorer.txmempool;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.data.mongodb.config.AbstractReactiveMongoConfiguration;
-import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
-
 import com.mempoolexplorer.txmempool.repositories.reactive.IgnoringBlockReactiveRepository;
 import com.mongodb.ConnectionString;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.mongodb.config.AbstractReactiveMongoConfiguration;
+import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
 @Configuration
+@EnableScheduling
 @EnableReactiveMongoRepositories(basePackageClasses = { IgnoringBlockReactiveRepository.class })
 class MyReactiveMongoConf extends AbstractReactiveMongoConfiguration {
 

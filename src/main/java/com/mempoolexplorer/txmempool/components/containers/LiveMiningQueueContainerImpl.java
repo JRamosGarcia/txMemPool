@@ -13,6 +13,7 @@ import java.util.stream.IntStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.controllers.entities.CandidateBlockHistogram;
@@ -90,7 +91,7 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 
 	private List<CandidateBlockRecap> createCandidateBlockRecapList(MiningQueue mq) {
 		List<CandidateBlockRecap> cbrList = new ArrayList<>();
-		IntStream.range(0, mq.getNumCandidateBlocks()).mapToObj(i -> mq.getCandidateBlock(i)).map(ocb -> ocb.get())
+		IntStream.range(0, mq.getNumCandidateBlocks()).mapToObj(mq::getCandidateBlock).map(Optional::get)
 				.forEach(cb -> {
 					CandidateBlockRecap cbr = new CandidateBlockRecap(cb.getWeight(), cb.getTotalFees(),
 							cb.getNumTxs());
@@ -101,7 +102,7 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 
 	private List<CandidateBlockHistogram> createCandidateBlockHistogramList(MiningQueue mq) {
 		List<CandidateBlockHistogram> cbhList = new ArrayList<>();
-		IntStream.range(0, mq.getNumCandidateBlocks()).mapToObj(i -> mq.getCandidateBlock(i)).map(ocb -> ocb.get())
+		IntStream.range(0, mq.getNumCandidateBlocks()).mapToObj(mq::getCandidateBlock).map(Optional::get)
 				.forEach(cb -> {
 					CandidateBlockHistogram cbh = createHistogramFor(cb);
 					cbhList.add(cbh);
@@ -121,9 +122,8 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 	}
 
 	private int calculateWeightInLast10minutes() {
-		int totalWeight = txMemPool.getTxsAfter(Instant.now().minusSeconds(TimeUnit.MINUTES.toSeconds(10)))
-				.mapToInt(tx -> tx.getWeight()).sum();
-		return Math.round(totalWeight);
+		return txMemPool.getTxsAfter(Instant.now().minusSeconds(TimeUnit.MINUTES.toSeconds(10)))
+				.mapToInt(Transaction::getWeight).sum();
 	}
 
 	private void addTx(String txId, double modSatVByte, int weight, CandidateBlockHistogram cbh) {

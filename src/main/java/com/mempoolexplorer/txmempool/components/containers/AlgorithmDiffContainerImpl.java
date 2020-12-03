@@ -31,7 +31,7 @@ public class AlgorithmDiffContainerImpl implements AlgorithmDiffContainer {
 			List<Integer> toRemoveList = heightToAlgoDiffMap.values().stream()
 					.filter(ad -> ad.getBlockHeight() > (last.get().getBlockHeight()
 							- txMempoolProperties.getMaxLiveDataBufferSize()))
-					.map(ad -> ad.getBlockHeight()).collect(Collectors.toList());
+					.map(AlgorithmDiff::getBlockHeight).collect(Collectors.toList());
 
 			toRemoveList.stream().forEach(height -> heightToAlgoDiffMap.remove(height));
 		}
@@ -52,5 +52,4 @@ public class AlgorithmDiffContainerImpl implements AlgorithmDiffContainer {
 		heightToAlgoDiffMap = new ConcurrentHashMap<>();
 		last = new AtomicReference<>();
 	}
-
 }

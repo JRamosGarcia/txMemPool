@@ -14,16 +14,18 @@ import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
 import com.mempoolexplorer.txmempool.entites.miningqueue.TxContainer;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.Getter;
+import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Class containing the mismached transactions between minedBlock and
  * mininigQueue
  */
+@Slf4j
+@Getter
+@ToString
 public class MisMinedTransactions {
-
-	private static final Logger logger = LoggerFactory.getLogger(MisMinedTransactions.class);
 
 	private Block block;// Really mined
 	private MinedBlockData minedBlockData;
@@ -170,8 +172,8 @@ public class MisMinedTransactions {
 
 				cbd.setNumTxs(cbd.getNumTxs() + 1);
 				if (e.getValue().getFee() != tx.getBaseFees()) {
-					logger.error("BlockTemplate.entry.getFee: {}, tx.getBaseFees:{}, for txId:{} ",
-							e.getValue().getFee(), tx.getBaseFees(), tx.getTxId());
+					log.error("BlockTemplate.entry.getFee: {}, tx.getBaseFees:{}, for txId:{} ", e.getValue().getFee(),
+							tx.getBaseFees(), tx.getTxId());
 				}
 				cbd.setTotalFees(cbd.getTotalFees() + e.getValue().getFee());
 				cbd.setWeight(cbd.getWeight() + e.getValue().getWeight());
@@ -185,98 +187,6 @@ public class MisMinedTransactions {
 		cbd.setFeeableData(feeableData);
 		candidateBlockData = cbd;
 
-	}
-
-	public AlgorithmType getAlgorithmUsed() {
-		return algorithmUsed;
-	}
-
-	public Set<String> getInCandidateBlockButNotInMemPool() {
-		return inCandidateBlockButNotInMemPool;
-	}
-
-	public Block getBlock() {
-		return block;
-	}
-
-	public MinedBlockData getMinedBlockData() {
-		return minedBlockData;
-	}
-
-	public CandidateBlockData getCandidateBlockData() {
-		return candidateBlockData;
-	}
-
-	public FeeableMapWithData<Transaction> getMinedAndInMemPoolMapWD() {
-		return minedAndInMemPoolMapWD;
-	}
-
-	public FeeableMapWithData<NotMinedTransaction> getNotMinedButInCandidateBlockMapWD() {
-		return notMinedButInCandidateBlockMapWD;
-	}
-
-	public TimeSinceEnteredStatistics getNotMinedButInCandidateBlockMPTStatistics() {
-		return notMinedButInCandidateBlockMPTStatistics;
-	}
-
-	public FeeableMapWithData<Transaction> getMinedInMempoolButNotInCandidateBlockMapWD() {
-		return minedInMempoolButNotInCandidateBlockMapWD;
-	}
-
-	public Set<String> getMinedButNotInMemPoolSet() {
-		return minedButNotInMemPoolSet;
-	}
-
-	public FeeableMapWithData<NotInMemPoolTx> getMinedButNotInMemPoolMapWD() {
-		return minedButNotInMemPoolMapWD;
-	}
-
-	public long getLostReward() {
-		return lostReward;
-	}
-
-	public long getLostRewardExcludingNotInMempoolTx() {
-		return lostRewardExcludingNotInMempoolTx;
-	}
-
-	public int getNumTxInMempool() {
-		return numTxInMempool;
-	}
-
-	@Override
-	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("MisMinedTransactions [" + "minedBlockData=");
-		builder.append(minedBlockData);
-		builder.append(SysProps.NL);
-		builder.append(", candidateBlockData=");
-		builder.append(candidateBlockData);
-		builder.append(SysProps.NL);
-		builder.append(", minedAndInMemPoolMapWD=");
-		builder.append(minedAndInMemPoolMapWD);
-		builder.append(SysProps.NL);
-		builder.append(", notMinedButInCandidateBlockMapWD=");
-		builder.append(notMinedButInCandidateBlockMapWD);
-		builder.append(SysProps.NL);
-		builder.append(", minedInMempoolButNotInCandidateBlockMapWD=");
-		builder.append(minedInMempoolButNotInCandidateBlockMapWD);
-		builder.append(SysProps.NL);
-		builder.append(", minedButNotInMemPoolSet=");
-		builder.append(minedButNotInMemPoolSet);
-		builder.append(SysProps.NL);
-		builder.append(", minedButNotInMemPoolMapWD=");
-		builder.append(minedButNotInMemPoolMapWD);
-		builder.append(SysProps.NL);
-		builder.append(", lostReward=");
-		builder.append(lostReward);
-		builder.append(SysProps.NL);
-		builder.append(", lostRewardExcludingNotInMempoolTx=");
-		builder.append(lostRewardExcludingNotInMempoolTx);
-		builder.append(SysProps.NL);
-		builder.append(", numTxInMempool=");
-		builder.append(numTxInMempool);
-		builder.append("]");
-		return builder.toString();
 	}
 
 }

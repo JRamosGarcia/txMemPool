@@ -3,11 +3,18 @@ package com.mempoolexplorer.txmempool.entites;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
+@Getter
+@ToString
+@NoArgsConstructor
 @Document(collection = "ignoringBlocks")
 public class IgnoringBlock {
 
@@ -27,10 +34,6 @@ public class IgnoringBlock {
 	private long lostReward;
 	private long lostRewardExcludingNotInMempoolTx;
 	private int numTxInMempool;
-
-	public IgnoringBlock() {
-
-	}
 
 	public IgnoringBlock(MisMinedTransactions mmt) {
 		this.algorithmUsed = mmt.getAlgorithmUsed();
@@ -55,58 +58,6 @@ public class IgnoringBlock {
 
 	private String builDBKey() {
 		return builDBKey(algorithmUsed, minedBlockData.getHeight());
-	}
-
-	public String getDbKey() {
-		return dbKey;
-	}
-
-	public AlgorithmType getAlgorithmUsed() {
-		return algorithmUsed;
-	}
-
-	public Set<String> getInCandidateBlockButNotInMemPool() {
-		return inCandidateBlockButNotInMemPool;
-	}
-
-	public MinedBlockData getMinedBlockData() {
-		return minedBlockData;
-	}
-
-	public CandidateBlockData getCandidateBlockData() {
-		return candidateBlockData;
-	}
-
-	public FeeableData getMinedAndInMemPoolData() {
-		return minedAndInMemPoolData;
-	}
-
-	public FeeableData getNotMinedButInCandidateBlockData() {
-		return notMinedButInCandidateBlockData;
-	}
-
-	public TimeSinceEnteredStatistics getNotMinedButInCandidateBlockMPTStatistics() {
-		return notMinedButInCandidateBlockMPTStatistics;
-	}
-
-	public FeeableData getMinedInMempoolButNotInCandidateBlockData() {
-		return minedInMempoolButNotInCandidateBlockData;
-	}
-
-	public FeeableData getMinedButNotInMemPoolData() {
-		return minedButNotInMemPoolData;
-	}
-
-	public long getLostReward() {
-		return lostReward;
-	}
-
-	public long getLostRewardExcludingNotInMempoolTx() {
-		return lostRewardExcludingNotInMempoolTx;
-	}
-
-	public int getNumTxInMempool() {
-		return numTxInMempool;
 	}
 
 }

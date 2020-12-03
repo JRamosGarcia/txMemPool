@@ -20,9 +20,9 @@ import com.mempoolexplorer.txmempool.entites.NotMinedTransaction;
 import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 
 	private AlarmLogger alarmLogger;
@@ -32,8 +32,6 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 	private RepudiatedTransactionsPool repudiatedTransactionsPool;
 
 	private TxMempoolProperties txMempoolProperties;
-
-	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
 	// Mutable version
 	private Map<String, IgnoredTransaction> ignoredTransactionMap = new HashMap<>(SysProps.EXPECTED_MAX_IGNORED_TXS);
@@ -70,8 +68,8 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 
 		ignoringBlocksPool.add(ignoringBlock);
 
-		if (logger.isDebugEnabled()) {
-			logger.debug(ignoringBlock.toString());
+		if (log.isDebugEnabled()) {
+			log.debug(ignoringBlock.toString());
 		}
 
 		Iterator<NotMinedTransaction> it = mmt.getNotMinedButInCandidateBlockMapWD().getFeeableMap().values()
@@ -127,7 +125,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 	}
 
 	private void logIt() {
-		if (logger.isDebugEnabled()) {
+		if (log.isDebugEnabled()) {
 
 			String nl = SysProps.NL;
 			StringBuilder sb = new StringBuilder();
@@ -137,7 +135,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 				sb.append(rtx.toString());
 				sb.append(nl);
 			});
-			logger.debug(sb.toString());
+			log.debug(sb.toString());
 		}
 	}
 
@@ -170,7 +168,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 	}
 
 	private void logClearedIgnoredTransactionMap(Set<String> txIds) {
-		if (logger.isDebugEnabled()) {
+		if (log.isDebugEnabled()) {
 
 			String nl = SysProps.NL;
 			StringBuilder sb = new StringBuilder();
@@ -182,7 +180,7 @@ public class IgnoredTransactionsPoolImpl implements IgnoredTransactionsPool {
 				sb.append(nl);
 				sb.append(igTx.toString());
 			}
-			logger.debug(sb.toString());
+			log.debug(sb.toString());
 		}
 	}
 

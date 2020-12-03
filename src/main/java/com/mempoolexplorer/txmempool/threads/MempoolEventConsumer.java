@@ -14,7 +14,6 @@ import com.mempoolexplorer.txmempool.components.MisMinedTransactionsChecker;
 import com.mempoolexplorer.txmempool.components.TxMemPool;
 import com.mempoolexplorer.txmempool.components.alarms.AlarmLogger;
 import com.mempoolexplorer.txmempool.components.containers.AlgorithmDiffContainer;
-import com.mempoolexplorer.txmempool.components.containers.LiveAlgorithmDiffContainer;
 import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
 import com.mempoolexplorer.txmempool.components.containers.MempoolEventQueueContainer;
 import com.mempoolexplorer.txmempool.components.containers.MinerNamesUnresolvedContainer;
@@ -61,8 +60,6 @@ public class MempoolEventConsumer implements Runnable {
     private TxMemPool txMemPool;
     @Autowired
     private AlgorithmDiffContainer algoDiffContainer;
-    @Autowired
-    private LiveAlgorithmDiffContainer liveAlgorithmDiffContainer;
     @Autowired
     private LiveMiningQueueContainer liveMiningQueueContainer;
     @Autowired
@@ -180,7 +177,7 @@ public class MempoolEventConsumer implements Runnable {
         if (Boolean.FALSE.equals(block.getConnected())) {
             alarmLogger.addAlarm("A disconnected block has arrived and has been ignored, height: " + block.getHeight()
                     + ", hash: " + block.getHash());
-            return;// Ignore it, but mempool is restored in onRefreshEvent for disconnected blocks.
+            return;// Ignore it, this disconnected block txs are addet to mempool in onRefreshEvent.
         }
 
         List<String> blockTxIds = blockEvent.tryGetBlockTxIds().orElseThrow();
@@ -226,7 +223,6 @@ public class MempoolEventConsumer implements Runnable {
         validate(txpc);
         txMemPool.refresh(txpc);
         // TODO: refresh liveminingqueue in other thread
-        // TODO: refresh liveAlgorithmDiffContainer on onNewBlock?
     }
 
     private boolean errorInSeqNumber(MempoolEvent event) {
@@ -259,7 +255,6 @@ public class MempoolEventConsumer implements Runnable {
     private void resetContainers() {
         txMemPool.drop();
         algoDiffContainer.drop();
-        liveAlgorithmDiffContainer.drop();
         liveMiningQueueContainer.drop();
         poolFactory.drop();
         // Don't drop the data of MinerNamesUnresolvedContainer since it's useful.

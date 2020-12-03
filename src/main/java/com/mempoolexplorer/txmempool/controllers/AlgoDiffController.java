@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mempoolexplorer.txmempool.components.containers.AlgorithmDiffContainer;
-import com.mempoolexplorer.txmempool.components.containers.LiveAlgorithmDiffContainer;
 import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
 import com.mempoolexplorer.txmempool.controllers.exceptions.BlockNotFoundException;
 import com.mempoolexplorer.txmempool.controllers.exceptions.ServiceNotReadyYetException;
@@ -24,9 +23,6 @@ public class AlgoDiffController {
 
 	@Autowired
 	private AlgorithmDiffContainer algoDiffContainer;
-
-	@Autowired
-	private LiveAlgorithmDiffContainer liveAlgoDiffContainer;
 
 	@GetMapping("/diffs/{height}")
 	public AlgorithmDiff getAlgorithmDifferences(@PathVariable("height") Integer height) throws BlockNotFoundException {
@@ -46,17 +42,8 @@ public class AlgoDiffController {
 		return opAlgorithmDifferences.get();
 	}
 
-	@GetMapping("/liveDiffs")
-	public AlgorithmDiff getLiveAlgorithmDiff() throws BlockNotFoundException, ServiceNotReadyYetException {
-		Optional<AlgorithmDiff> opLiveAlgorithmDiff = liveAlgoDiffContainer.getliveAlgorithmDiff();
-		if (opLiveAlgorithmDiff.isEmpty()) {
-			throw new ServiceNotReadyYetException("No LiveAlgorithmDiff yet.");
-		}
-		return opLiveAlgorithmDiff.get();
-	}
-
 	@ExceptionHandler(ServiceNotReadyYetException.class)
-	public ResponseEntity<?> onServiceNotReadyYetException(ServiceNotReadyYetException e) {
+	public ResponseEntity<ErrorDetails> onServiceNotReadyYetException(ServiceNotReadyYetException e) {
 		ErrorDetails errorDetails = new ErrorDetails();
 		errorDetails.setErrorMessage(e.getMessage());
 		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());
@@ -64,7 +51,7 @@ public class AlgoDiffController {
 	}
 
 	@ExceptionHandler(BlockNotFoundException.class)
-	public ResponseEntity<?> onIgnoringBlockNotFound(BlockNotFoundException e) {
+	public ResponseEntity<ErrorDetails> onIgnoringBlockNotFound(BlockNotFoundException e) {
 		ErrorDetails errorDetails = new ErrorDetails();
 		errorDetails.setErrorMessage(e.getMessage());
 		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());

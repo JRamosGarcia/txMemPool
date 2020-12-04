@@ -16,14 +16,13 @@ import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.mempool.TxPoolChanges;
 import com.mempoolexplorer.txmempool.entites.mempool.TxKey;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Component
 public class TxMemPoolImpl implements TxMemPool {
-
-	private Logger logger = LoggerFactory.getLogger(this.getClass());
 
 	private ConcurrentSkipListMap<TxKey, Transaction> txMemPool = new ConcurrentSkipListMap<>();
 
@@ -50,18 +49,18 @@ public class TxMemPoolImpl implements TxMemPool {
 					removeAddresses(tx);
 				}
 			} else {
-				logger.info("Removing non existing tx from mempool, txId: {}", txId);
+				log.info("Removing non existing tx from mempool, txId: {}", txId);
 			}
 		});
 		txPoolChanges.getTxAncestryChangesMap().entrySet().stream().forEach(entry -> {
 			TxKey txKey = txKeyMap.remove(entry.getKey());
 			if (null == txKey) {
-				logger.info("Non existing txKey in txKeyMap for update, txId: {}", entry.getKey());
+				log.info("Non existing txKey in txKeyMap for update, txId: {}", entry.getKey());
 				return;
 			}
 			Transaction oldTx = txMemPool.remove(txKey);
 			if (null == oldTx) {
-				logger.info("Non existing tx in txMemPool for update, txId: {}", entry.getKey());
+				log.info("Non existing tx in txMemPool for update, txId: {}", entry.getKey());
 				return;
 			}
 			// remove+put must be made each modification since tx modification while on map
@@ -199,7 +198,7 @@ public class TxMemPoolImpl implements TxMemPool {
 		for (String addrId : allAddresses) {
 			Set<String> txIdsSet = addressIdToTxIdMap.get(addrId);
 			if (txIdsSet == null) {
-				logger.error("No transactions found for addrId: {}", addrId);
+				log.error("No transactions found for addrId: {}", addrId);
 			} else {
 				txIdsSet.remove(tx.getTxId());
 				if (txIdsSet.isEmpty()) {
@@ -218,8 +217,8 @@ public class TxMemPoolImpl implements TxMemPool {
 		sb.append(" removed transactions, ");
 		sb.append(txpc.getTxAncestryChangesMap().size());
 		sb.append(" updated transactions.");
-		if (logger.isInfoEnabled()) {
-			logger.info(sb.toString());
+		if (log.isDebugEnabled()) {
+			log.debug(sb.toString());
 		}
 	}
 

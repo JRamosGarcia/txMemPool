@@ -49,7 +49,7 @@ public class TxMemPoolImpl implements TxMemPool {
 					removeAddresses(tx);
 				}
 			} else {
-				log.info("Removing non existing tx from mempool, txId: {}", txId);
+				log.debug("Removing non existing tx from mempool, txId: {}", txId);
 			}
 		});
 		txPoolChanges.getTxAncestryChangesMap().entrySet().stream().forEach(entry -> {

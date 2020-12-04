@@ -49,4 +49,6 @@
 		</root>
 	</springProfile>
 
+	<logger name="com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainerImpl" level="DEBUG" />
+
 </configuration>

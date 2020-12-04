@@ -7,6 +7,10 @@ public interface LiveMiningQueueContainer {
 	// Can return null if service is not initialized yet
 	LiveMiningQueue atomicGet();
 
+	void setAllowRefresh(boolean allowRefresh);
+
+	boolean isAllowRefresh();
+
 	void refreshIfNeeded();
 
 	void forceRefresh();

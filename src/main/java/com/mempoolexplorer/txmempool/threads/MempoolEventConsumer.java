@@ -111,12 +111,33 @@ public class MempoolEventConsumer implements Runnable {
     }
 
     private void onEvent(MempoolEvent event) throws InterruptedException {
+        // Checks if LiveMiningQueueContainer can refresh. (only when all tx has been
+        // loaded)
+        checkForAllowRefreshLiveMiningQueue();
         if (isStarting) {
             // ResetContainers or Queries full mempool with mempoolSequence number.
             onEventonStarting(event);
             isStarting = false;
         }
         treatEvent(event);
+    }
+
+    private void checkForAllowRefreshLiveMiningQueue() throws InterruptedException {
+        if (isStarting) {
+            // When starting better stop for 1 second to let mempoolEventQueue to fill. And then
+            // ask for its size==0 to ask if can allow refresh in liveMiningQueueContainer.
+            Thread.sleep(1000);
+            return;
+        }
+        // if no pending Txs or blocks, then we can allow refresh.
+        if (mempoolEventQueueContainer.getBlockingQueue().isEmpty() && (!liveMiningQueueContainer.isAllowRefresh())) {
+            liveMiningQueueContainer.setAllowRefresh(true);
+            log.info("BlockTemplateRefresherJob started");
+            // Execute ASAP. does not matter if scheduller also invokes it. It's thread
+            // safe.
+            liveMiningQueueContainer.forceRefresh();
+        }
+
     }
 
     private void onEventonStarting(MempoolEvent event) throws InterruptedException {
@@ -179,7 +200,8 @@ public class MempoolEventConsumer implements Runnable {
         if (Boolean.FALSE.equals(block.getConnected())) {
             alarmLogger.addAlarm("A disconnected block has arrived and has been ignored, height: " + block.getHeight()
                     + ", hash: " + block.getHash());
-            return;// Ignore it, this disconnected block txs are addet to mempool in onRefreshEvent.
+            return;// Ignore it, this disconnected block txs are addet to mempool in
+                   // onRefreshEvent.
         }
 
         List<String> blockTxIds = blockEvent.tryGetBlockTxIds().orElseThrow();
@@ -247,6 +269,8 @@ public class MempoolEventConsumer implements Runnable {
     }
 
     private void fullReset() {
+        // Do not allow liveMiningQueue refresh
+        liveMiningQueueContainer.setAllowRefresh(false);
         resetContainers();
         // Reset downstream counter to provoke cascade resets.
         isStarting = true;

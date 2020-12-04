@@ -28,6 +28,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -45,11 +47,17 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 
 	private AtomicReference<LiveMiningQueue> liveMiningQueueRef = new AtomicReference<>(LiveMiningQueue.empty());
 
+	@Getter(onMethod = @__(@Override))
+	@Setter(onMethod = @__(@Override))
+	private boolean allowRefresh = false;
+
 	private AtomicBoolean refresh = new AtomicBoolean(false);
 
 	@Scheduled(fixedDelayString = "${txmempool.liveMiningQueueRefreshEachMillis}")
-	public void allowRefresh() {
-		refresh.set(true);
+	public void tryRefresh() {
+		if (allowRefresh) {
+			refresh.set(true);
+		}
 	}
 
 	@Override
@@ -66,7 +74,9 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 
 	@Override
 	public void forceRefresh() {
-		updateLiveMiningQueue();
+		if (allowRefresh) {
+			updateLiveMiningQueue();
+		}
 	}
 
 	@Override
@@ -75,11 +85,14 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 	}
 
 	// Create LiveMiningQueue. All Blocks are taken from MiningQueue which are
-	// accurate (CPFP and block space left by big txs are taken into account). and
+	// accurate (CPFP and block space left by big txs are taken into account). And
 	// remaining blocks not in mining queue (not calculated) are not shown.
 	private MiningQueue updateLiveMiningQueue() {
+		log.debug("Updating live mining queue.");
 		MiningQueue newMiningQueue = MiningQueue.buildFrom(new ArrayList<>(), txMemPool,
 				txMempoolProperties.getMiningQueueNumTxs(), txMempoolProperties.getMiningQueueMaxNumBlocks());
+		log.debug("Live mining queue updated.");
+
 		if (newMiningQueue.isHadErrors()) {
 			alarmLogger.addAlarm("Mining Queue had errors, in updateLiveMiningQueue");
 			log.error("Mining Queue had errors, in updateLiveMiningQueue");

@@ -240,6 +240,13 @@ public class MempoolEventConsumer implements Runnable {
             statisticsService.saveStatisticsToDB(block.getHeight());
         }
 
+        //If a connectedBlock event arrives with seqNumber==0 then is probably sent from mempoolRecorder.
+        //We have to reset because in between blocks, ALL mempool before block sent is also sent by mempoolRecorder.
+        //If this block is from bitcoindAdapter, it's the first one so we don't care.
+        if(blockEvent.getSeqNumber()==0){
+            log.info("Full reset because this block was sent by mempoolRecorder.");
+            fullReset();
+        }
     }
 
     private void onRefreshEvent(MempoolEvent refreshEvent) {

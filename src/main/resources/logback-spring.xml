@@ -50,5 +50,6 @@
 	</springProfile>
 
 	<logger name="com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainerImpl" level="DEBUG" />
+	<logger name="com.mempoolexplorer.txmempool.threads.MempoolEventConsumer" level="DEBUG" />
 
 </configuration>

@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import com.mempoolexplorer.txmempool.StatisticsService;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.blockchain.Block;
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.mempool.TxPoolChanges;
@@ -17,9 +16,9 @@ import com.mempoolexplorer.txmempool.components.containers.AlgorithmDiffContaine
 import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
 import com.mempoolexplorer.txmempool.components.containers.MempoolEventQueueContainer;
 import com.mempoolexplorer.txmempool.components.containers.MinerNamesUnresolvedContainer;
-import com.mempoolexplorer.txmempool.components.containers.PoolFactory;
 import com.mempoolexplorer.txmempool.entites.AlgorithmDiff;
 import com.mempoolexplorer.txmempool.entites.CoinBaseData;
+import com.mempoolexplorer.txmempool.entites.IgnoringBlock;
 import com.mempoolexplorer.txmempool.entites.MisMinedTransactions;
 import com.mempoolexplorer.txmempool.entites.blocktemplate.BlockTemplate;
 import com.mempoolexplorer.txmempool.entites.miningqueue.CandidateBlock;
@@ -27,6 +26,8 @@ import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
 import com.mempoolexplorer.txmempool.events.MempoolEvent;
 import com.mempoolexplorer.txmempool.feinginterfaces.BitcoindAdapter;
 import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
+import com.mempoolexplorer.txmempool.services.IgnoredEntitiesService;
+import com.mempoolexplorer.txmempool.services.StatisticsService;
 import com.mempoolexplorer.txmempool.utils.SysProps;
 
 import org.apache.commons.lang3.Validate;
@@ -48,7 +49,9 @@ public class MempoolEventConsumer implements Runnable {
 
     // Other flags
     private int lastBASequence = 0;// Last BitcoindAdapter Sequence. must be 0 not -1 (see method errorInSeqNumber)
-    private boolean isStarting = true;
+    private boolean starting = true;
+    private boolean lastSync = false;
+    private boolean syncronizedWithUpStream = false;
 
     @Autowired
     private MempoolEventQueueContainer mempoolEventQueueContainer;
@@ -63,8 +66,6 @@ public class MempoolEventConsumer implements Runnable {
     @Autowired
     private LiveMiningQueueContainer liveMiningQueueContainer;
     @Autowired
-    private PoolFactory poolFactory;
-    @Autowired
     private TxMempoolProperties txMempoolProperties;
     @Autowired
     private MinerNameResolver minerNameResolver;
@@ -72,6 +73,8 @@ public class MempoolEventConsumer implements Runnable {
     private MinerNamesUnresolvedContainer minerNamesUnresolvedContainer;
     @Autowired
     private MisMinedTransactionsChecker misMinedTransactionsChecker;
+    @Autowired
+    private IgnoredEntitiesService ignoredEntitiesService;
     @Autowired
     private StatisticsService statisticsService;
 
@@ -97,7 +100,7 @@ public class MempoolEventConsumer implements Runnable {
         while (!endThread) {
             try {
                 MempoolEvent event = mempoolEventQueueContainer.getBlockingQueue().take();
-                log.debug("This is the event: {}", event);
+                log.debug("This is the event: {}", event.toString());
                 onEvent(event);
             } catch (InterruptedException e) {
                 log.info("Thread interrupted for shutdown.");
@@ -111,33 +114,55 @@ public class MempoolEventConsumer implements Runnable {
     }
 
     private void onEvent(MempoolEvent event) throws InterruptedException {
-        // Checks if LiveMiningQueueContainer can refresh. (only when all tx has been
-        // loaded)
+        // Various checks.
+        checkSyncWithUpStream(event);
         checkForAllowRefreshLiveMiningQueue();
-        if (isStarting) {
+
+        if (starting) {
             // ResetContainers or Queries full mempool with mempoolSequence number.
             onEventonStarting(event);
-            isStarting = false;
+            starting = false;
         }
         treatEvent(event);
+        checkIfCleanIgnoredTx();
     }
 
-    private void checkForAllowRefreshLiveMiningQueue() throws InterruptedException {
-        if (isStarting) {
-            // When starting better stop for 1 second to let mempoolEventQueue to fill. And then
-            // ask for its size==0 to ask if can allow refresh in liveMiningQueueContainer.
+    private void checkIfCleanIgnoredTx() {
+        if (!lastSync && syncronizedWithUpStream) {
+            log.info("Syncronization with upstream achived... Cleaning ignored Txs that are not in mempool...");
+            ignoredEntitiesService.cleanIgTxNotInMempool(txMemPool);
+            log.info("Clean complete");
+        }
+    }
+
+    private void checkSyncWithUpStream(MempoolEvent event) throws InterruptedException {
+        if (starting) {
+            // When starting better stop for 1 second to let mempoolEventQueue to fill. And
+            // then ask for its size==0 to ask if can allow refresh in
+            // liveMiningQueueContainer.
             Thread.sleep(1000);
             return;
         }
+
+        lastSync = syncronizedWithUpStream;
+
+        syncronizedWithUpStream = (event.getMempoolSize() == (txMemPool.getTxNumber() + event.getMempoolDelta()));
+
+        if (lastSync && !syncronizedWithUpStream) {
+            log.error("Syncronization with upStream lost!");
+            alarmLogger.addAlarm("Syncronization with upstream lost!");
+        }
+    }
+
+    private void checkForAllowRefreshLiveMiningQueue() {
         // if no pending Txs or blocks, then we can allow refresh.
-        if (mempoolEventQueueContainer.getBlockingQueue().isEmpty() && (!liveMiningQueueContainer.isAllowRefresh())) {
+        if (syncronizedWithUpStream && (!liveMiningQueueContainer.isAllowRefresh())) {
             liveMiningQueueContainer.setAllowRefresh(true);
             log.info("BlockTemplateRefresherJob started");
             // Execute ASAP. does not matter if scheduller also invokes it. It's thread
             // safe.
             liveMiningQueueContainer.forceRefresh();
         }
-
     }
 
     private void onEventonStarting(MempoolEvent event) throws InterruptedException {
@@ -181,12 +206,18 @@ public class MempoolEventConsumer implements Runnable {
                 liveMiningQueueContainer.forceRefresh();
                 break;
             case REFRESH_POOL:
+                onNewTx(event);
                 onRefreshEvent(event);
                 liveMiningQueueContainer.refreshIfNeeded();
                 break;
             default:
                 throw new IllegalArgumentException("WTF! MempoolEventType not valid");
         }
+    }
+
+    private void onNewTx(MempoolEvent event) {
+        // Deleted tx can be an ignored one. Delete from db in that case.
+        event.getTxPoolChanges().getRemovedTxsId().stream().forEach(ignoredEntitiesService::onDeleteTx);
     }
 
     private void onNewBlock(MempoolEvent blockEvent) {
@@ -200,13 +231,13 @@ public class MempoolEventConsumer implements Runnable {
         if (Boolean.FALSE.equals(block.getConnected())) {
             alarmLogger.addAlarm("A disconnected block has arrived and has been ignored, height: " + block.getHeight()
                     + ", hash: " + block.getHash());
-            return;// Ignore it, this disconnected block txs are addet to mempool in
+            return;// Ignore it, this disconnected block txs are added to mempool in
                    // onRefreshEvent.
         }
 
-        List<String> blockTxIds = blockEvent.tryGetBlockTxIds().orElseThrow();
+        List<String> minedBlockTxIds = blockEvent.tryGetBlockTxIds().orElseThrow();
         log.info("New block(connected: {}, height: {}, hash: {}, txNum: {}) ---------------------------",
-                block.getConnected(), block.getHeight(), block.getHash(), blockTxIds.size());
+                block.getConnected(), block.getHeight(), block.getHash(), minedBlockTxIds.size());
 
         MiningQueue miningQueue = buildMiningQueue(block);
         // CandidateBlock can be empty
@@ -218,9 +249,9 @@ public class MempoolEventConsumer implements Runnable {
         CoinBaseData coinBaseData = resolveMinerName(block);
 
         MisMinedTransactions mmtBlockTemplate = new MisMinedTransactions(txMemPool,
-                blockTemplate.orElse(BlockTemplate.empty()), block, blockTxIds, coinBaseData);
-        MisMinedTransactions mmtCandidateBlock = new MisMinedTransactions(txMemPool, candidateBlock, block, blockTxIds,
-                coinBaseData);
+                blockTemplate.orElse(BlockTemplate.empty()), block, minedBlockTxIds, coinBaseData);
+        MisMinedTransactions mmtCandidateBlock = new MisMinedTransactions(txMemPool, candidateBlock, block,
+                minedBlockTxIds, coinBaseData);
 
         buildAndStoreAlgorithmDifferences(block, candidateBlock, blockTemplate.orElse(BlockTemplate.empty()),
                 isCorrect);
@@ -229,21 +260,24 @@ public class MempoolEventConsumer implements Runnable {
         misMinedTransactionsChecker.check(mmtBlockTemplate);
         misMinedTransactionsChecker.check(mmtCandidateBlock);
 
-        poolFactory.getIgnoredTransactionsPool(mmtBlockTemplate.getAlgorithmUsed()).refresh(block, blockTxIds,
-                mmtBlockTemplate, txMemPool);
-        poolFactory.getIgnoredTransactionsPool(mmtCandidateBlock.getAlgorithmUsed()).refresh(block, blockTxIds,
-                mmtCandidateBlock, txMemPool);
+        IgnoringBlock igBlockTemplate = new IgnoringBlock(mmtBlockTemplate);
+        IgnoringBlock igBlockOurs = new IgnoringBlock(mmtCandidateBlock);
 
-        if (txMempoolProperties.isPersistState()) {
-            // Returns a boolean if blockHeight does not exist in igTxPool.
-            // we ignore it since it's saved above
-            statisticsService.saveStatisticsToDB(block.getHeight());
+        // Save ignored and repudiated Txs, ignoringBlocks stats only if we are in sync
+        if (syncronizedWithUpStream) {
+            ignoredEntitiesService.onNewBlockConnected(igBlockTemplate, minedBlockTxIds,
+                    mmtBlockTemplate.getNotMinedButInCandidateBlockMapWD().getFeeableMap().values());
+            ignoredEntitiesService.onNewBlockConnected(igBlockOurs, minedBlockTxIds,
+                    mmtCandidateBlock.getNotMinedButInCandidateBlockMapWD().getFeeableMap().values());
+            statisticsService.saveStatisticsToDB(igBlockTemplate, igBlockOurs);
         }
 
-        //If a connectedBlock event arrives with seqNumber==0 then is probably sent from mempoolRecorder.
-        //We have to reset because in between blocks, ALL mempool before block sent is also sent by mempoolRecorder.
-        //If this block is from bitcoindAdapter, it's the first one so we don't care.
-        if(blockEvent.getSeqNumber()==0){
+        // If a connectedBlock event arrives with seqNumber==0 then is probably sent
+        // from mempoolRecorder.
+        // We have to reset because in between blocks, ALL mempool before block sent is
+        // also sent by mempoolRecorder.
+        // If this block is from bitcoindAdapter, it's the first one so we don't care.
+        if (blockEvent.getSeqNumber() == 0) {
             log.info("Full reset because this block was sent by mempoolRecorder.");
             fullReset();
         }
@@ -280,15 +314,15 @@ public class MempoolEventConsumer implements Runnable {
         liveMiningQueueContainer.setAllowRefresh(false);
         resetContainers();
         // Reset downstream counter to provoke cascade resets.
-        isStarting = true;
+        starting = true;
         lastBASequence = 0;// Last BitcoindAdapter Sequence
+        syncronizedWithUpStream = false;
     }
 
     private void resetContainers() {
         txMemPool.drop();
         algoDiffContainer.drop();
         liveMiningQueueContainer.drop();
-        poolFactory.drop();
         // Don't drop the data of MinerNamesUnresolvedContainer since it's useful.
     }
 

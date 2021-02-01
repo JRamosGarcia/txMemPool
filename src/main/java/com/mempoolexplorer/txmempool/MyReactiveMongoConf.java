@@ -3,7 +3,7 @@ package com.mempoolexplorer.txmempool;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import com.mempoolexplorer.txmempool.repositories.reactive.IgnoringBlockReactiveRepository;
+import com.mempoolexplorer.txmempool.repositories.reactive.IgTransactionReactiveRepository;
 import com.mongodb.ConnectionString;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
@@ -16,7 +16,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Configuration
 @EnableScheduling
-@EnableReactiveMongoRepositories(basePackageClasses = { IgnoringBlockReactiveRepository.class })
+@EnableReactiveMongoRepositories(basePackageClasses = { IgTransactionReactiveRepository.class })
 class MyReactiveMongoConf extends AbstractReactiveMongoConfiguration {
 
 	@Value("${spring.data.mongodb.uri}")
@@ -35,7 +35,7 @@ class MyReactiveMongoConf extends AbstractReactiveMongoConfiguration {
 
 	@Override
 	public boolean autoIndexCreation() {
-		return false;// see TxMemPoolApplication.initIndicesAfterStartup
+		return false;// see AppLifeCyle.initIndicesAfterStartup
 	}
 
 	@Override

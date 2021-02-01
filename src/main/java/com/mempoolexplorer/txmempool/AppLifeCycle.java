@@ -55,7 +55,6 @@ public class AppLifeCycle {
 
     public void initIndicesAfterStartup() {
         IndexResolver resolver = new MongoPersistentEntityIndexResolver(mongoMappingContext);
-
         IndexOperations indexOps = mongoTemplate.indexOps(MinerNameToBlockHeight.class);
         resolver.resolveIndexFor(MinerNameToBlockHeight.class).forEach(indexOps::ensureIndex);
     }

@@ -21,6 +21,9 @@ import lombok.Setter;
  * Two kind of Events can be used: NEW_BLOCK and REFRESH_POOL. when NEW_BLOCK is
  * sent, Block, TxPoolChanges and blockTemplate are sent. when REFRESH_POOL is
  * sent, only txPoolChanges is sent.
+ * 
+ * mempoolSize is sent to know when downstream apps are syncronized with us.
+ * 
  */
 
 @Getter
@@ -33,6 +36,7 @@ public class MempoolEvent {
 	}
 
 	private int seqNumber;
+	private int mempoolSize;// This is the mempool size when this MeempoolEvent has been applied.
 	private EventType eventType;
 	private TxPoolChanges txPoolChanges;
 	private Optional<Block> block;
@@ -51,6 +55,19 @@ public class MempoolEvent {
 			}
 		}
 		return Optional.empty();
+	}
+
+	public int getMempoolDelta() {
+		int notInMempoolTxNumber = 0;
+		if (block.isPresent()) {
+			notInMempoolTxNumber = block.get().getNotInMemPoolTransactions().size() + 1; // +1 is coinbase.
+		}
+		return txPoolChanges.getNewTxs().size() - txPoolChanges.getRemovedTxsId().size() + notInMempoolTxNumber;
+	}
+
+	@Override
+	public String toString() {
+		return "MempoolEvent [eventType=" + eventType + ", seqNumber=" + seqNumber + "]";
 	}
 
 }

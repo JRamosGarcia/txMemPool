@@ -1,20 +1,19 @@
-package com.mempoolexplorer.txmempool;
+package com.mempoolexplorer.txmempool.services;
 
-import java.util.Optional;
+import java.time.Instant;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import com.mempoolexplorer.txmempool.components.containers.PoolFactory;
 import com.mempoolexplorer.txmempool.controllers.entities.RecalculateAllStatsResult;
 import com.mempoolexplorer.txmempool.entites.AlgorithmType;
 import com.mempoolexplorer.txmempool.entites.IgnoringBlock;
 import com.mempoolexplorer.txmempool.repositories.entities.MinerNameToBlockHeight;
 import com.mempoolexplorer.txmempool.repositories.entities.MinerStatistics;
-import com.mempoolexplorer.txmempool.repositories.reactive.IgnoringBlockReactiveRepository;
+import com.mempoolexplorer.txmempool.repositories.reactive.IgBlockReactiveRepository;
 import com.mempoolexplorer.txmempool.repositories.reactive.MinerNameToBlockHeightReactiveRepository;
 import com.mempoolexplorer.txmempool.repositories.reactive.MinerStatisticsReactiveRepository;
 import com.mempoolexplorer.txmempool.utils.SysProps;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -23,10 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 public class StatisticsServiceImpl implements StatisticsService {
 
 	@Autowired
-	private PoolFactory poolFactory;
-
-	@Autowired
-	private IgnoringBlockReactiveRepository ignoringBlockRepository;
+	private IgBlockReactiveRepository igBlockReactiveRepository;
 
 	@Autowired
 	private MinerStatisticsReactiveRepository minerStatisticsRepository;
@@ -43,7 +39,7 @@ public class StatisticsServiceImpl implements StatisticsService {
 		minerNameToBlockHeightRepository.deleteAll().block();
 		res.getExecutionInfoList().add("minerNameToBlockHeightRepository.deleteAll() executed.");
 
-		ignoringBlockRepository.findAll().doOnNext(ib -> saveStatistics(ib, res)).blockLast();
+		igBlockReactiveRepository.findAll().doOnNext(ib -> saveStatistics(ib, res)).blockLast();
 
 		return res;
 
@@ -62,44 +58,31 @@ public class StatisticsServiceImpl implements StatisticsService {
 			minerNameToBlockHeightRepository.save(
 					new MinerNameToBlockHeight(minerName, blockHeight, ib.getMinedBlockData().getMedianMinedTime()))
 					.block();
-			saveMinerStatistics(minerName, ib.getLostReward(), 0, 1);
-			saveMinerStatistics(SysProps.GLOBAL_MINER_NAME, ib.getLostReward(), 0, 1);
+			saveMinerStatistics(minerName, blockHeight, ib.getLostReward(), 0, 1);
+			saveMinerStatistics(SysProps.GLOBAL_MINER_NAME, blockHeight, ib.getLostReward(), 0, 1);
 		} else {
-			saveMinerStatistics(minerName, 0, ib.getLostReward(), 0);
-			saveMinerStatistics(SysProps.GLOBAL_MINER_NAME, 0, ib.getLostReward(), 0);
+			saveMinerStatistics(minerName, blockHeight, 0, ib.getLostReward(), 0);
+			saveMinerStatistics(SysProps.GLOBAL_MINER_NAME, blockHeight, 0, ib.getLostReward(), 0);
 		}
 		res.getExecutionInfoList().add("Saved stats for block: " + blockHeight + ", Algorithm: " + algorithmUsed);
 	}
 
 	@Override
-	public boolean saveStatisticsToDB(int blockHeight) {
-		Optional<IgnoringBlock> opIGBlockBitcoind = poolFactory.getIgnoringBlocksPool(AlgorithmType.BITCOIND)
-				.getIgnoringBlock(blockHeight);
-		Optional<IgnoringBlock> opIGBlockOurs = poolFactory.getIgnoringBlocksPool(AlgorithmType.OURS)
-				.getIgnoringBlock(blockHeight);
-		if (opIGBlockBitcoind.isEmpty() || opIGBlockOurs.isEmpty()) {
-			return false;
-		}
-
-		IgnoringBlock iGBlockBitcoind = opIGBlockBitcoind.get();
-		IgnoringBlock iGBlockOurs = opIGBlockOurs.get();
-
-		ignoringBlockRepository.save(iGBlockBitcoind).block();
-		ignoringBlockRepository.save(iGBlockOurs).block();
+	public void saveStatisticsToDB(IgnoringBlock iGBlockBitcoind, IgnoringBlock iGBlockOurs) {
 
 		String minerName = iGBlockBitcoind.getMinedBlockData().getCoinBaseData().getMinerName();
+		int height = iGBlockBitcoind.getMinedBlockData().getHeight();
+		Instant medianMinedTime = iGBlockBitcoind.getMinedBlockData().getMedianMinedTime();
 
-		minerNameToBlockHeightRepository.save(new MinerNameToBlockHeight(minerName, blockHeight,
-				iGBlockBitcoind.getMinedBlockData().getMedianMinedTime())).block();
+		minerNameToBlockHeightRepository.save(new MinerNameToBlockHeight(minerName, height, medianMinedTime)).block();
 
-		saveMinerStatistics(minerName, iGBlockBitcoind.getLostReward(), iGBlockOurs.getLostReward(), 1);
+		saveMinerStatistics(minerName, height, iGBlockBitcoind.getLostReward(), iGBlockOurs.getLostReward(), 1);
 
 		// SaveGlobalStatistics
-		saveMinerStatistics(SysProps.GLOBAL_MINER_NAME, iGBlockBitcoind.getLostReward(), iGBlockOurs.getLostReward(),
-				1);
+		saveMinerStatistics(SysProps.GLOBAL_MINER_NAME, height, iGBlockBitcoind.getLostReward(),
+				iGBlockOurs.getLostReward(), 1);
 
 		log.info("Statistics persisted.");
-		return true;
 	}
 
 	/**
@@ -111,20 +94,24 @@ public class StatisticsServiceImpl implements StatisticsService {
 	 *                                  ms.setNumBlocksMined, useful when there is
 	 *                                  igblocks from different algoritms in db.
 	 */
-	private void saveMinerStatistics(String minerName, long iGBlockBitcoindLostReward, long iGBlockOursLostReward,
-			int add) {
+	private void saveMinerStatistics(String minerName, int blockHeight, long iGBlockBitcoindLostReward,
+			long iGBlockOursLostReward, int add) {
 		MinerStatistics minerStatistics = minerStatisticsRepository.findById(minerName).map(ms -> {
 			ms.setNumBlocksMined(ms.getNumBlocksMined() + add);
 			ms.setTotalLostRewardBT(ms.getTotalLostRewardBT() + iGBlockBitcoindLostReward);
 			ms.setTotalLostRewardCB(ms.getTotalLostRewardCB() + iGBlockOursLostReward);
-			//Avoid division by 0
-			ms.setTotalLostRewardBTPerBlock(ms.getTotalLostRewardBT() / Math.max(ms.getNumBlocksMined(),1));
-			ms.setTotalLostRewardCBPerBlock(ms.getTotalLostRewardCB() / Math.max(ms.getNumBlocksMined(),1));
+			// Avoid division by 0
+			ms.setTotalLostRewardBTPerBlock(ms.getTotalLostRewardBT() / Math.max(ms.getNumBlocksMined(), 1));
+			ms.setTotalLostRewardCBPerBlock(ms.getTotalLostRewardCB() / Math.max(ms.getNumBlocksMined(), 1));
 			return ms;
-		}).defaultIfEmpty(new MinerStatistics(minerName, iGBlockBitcoindLostReward, iGBlockOursLostReward, add,
+		}).defaultIfEmpty(new MinerStatistics(minerName, -1, iGBlockBitcoindLostReward, iGBlockOursLostReward, add,
 				iGBlockBitcoindLostReward, iGBlockOursLostReward)).block();
 
-		minerStatisticsRepository.save(minerStatistics).block();
+		// Only save if another instance has not done it yet.
+		if (minerStatistics.getLastMinedBlock() != blockHeight) {
+			minerStatistics.setLastMinedBlock(blockHeight);
+			minerStatisticsRepository.save(minerStatistics).block();
+		}
 	}
 
 }

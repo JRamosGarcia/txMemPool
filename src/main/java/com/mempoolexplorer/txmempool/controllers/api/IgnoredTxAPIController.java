@@ -1,44 +1,33 @@
 package com.mempoolexplorer.txmempool.controllers.api;
 
 import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
-import com.mempoolexplorer.txmempool.components.containers.PoolFactory;
 import com.mempoolexplorer.txmempool.controllers.entities.TxIdTimesIgnored;
-import com.mempoolexplorer.txmempool.controllers.exceptions.AlgorithmTypeNotFoundException;
-import com.mempoolexplorer.txmempool.controllers.exceptions.ServiceNotReadyYetException;
 import com.mempoolexplorer.txmempool.entites.AlgorithmType;
-import com.mempoolexplorer.txmempool.entites.IgnoredTransaction;
-import com.mempoolexplorer.txmempool.entites.pools.IgnoredTransactionsPool;
+import com.mempoolexplorer.txmempool.repositories.reactive.IgTransactionReactiveRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import reactor.core.publisher.Flux;
+
+@CrossOrigin
 @RestController
 @RequestMapping("/ignoredTxAPI")
 public class IgnoredTxAPIController {
 
     @Autowired
-    private PoolFactory poolFactory;
+    private IgTransactionReactiveRepository igTxReactiveRepository;
 
     @GetMapping("/ignoredTxs")
-    public List<TxIdTimesIgnored> getIgnoredTxs() throws ServiceNotReadyYetException, AlgorithmTypeNotFoundException {
+    public Flux<TxIdTimesIgnored> getIgnoredTxs() {
 
-        IgnoredTransactionsPool igTxPool = poolFactory.getIgnoredTransactionsPool(AlgorithmType.OURS.name());
-        if (igTxPool == null)
-            throw new ServiceNotReadyYetException();
-
-        Map<String, IgnoredTransaction> igTxMap = igTxPool.atomicGetIgnoredTransactionMap();
-        return igTxMap.values().stream()
-                .map(igTx -> new TxIdTimesIgnored(igTx.getTx().getTxId(),
-                        Integer.valueOf(igTx.getIgnoringBlockList().size())))
-                .sorted(Comparator.comparingInt(TxIdTimesIgnored::getNIgnored).reversed()
-                        .thenComparing(TxIdTimesIgnored::getTxId))
-                .collect(Collectors.toList());
+        return igTxReactiveRepository.findAll().filter(igTx -> igTx.getAType() == AlgorithmType.OURS)
+                .map(igTx -> new TxIdTimesIgnored(igTx.getTxId(), Integer.valueOf(igTx.getIgnoringBlocks().size())))
+                .sort(Comparator.comparingInt(TxIdTimesIgnored::getNIgnored).reversed()
+                        .thenComparing(TxIdTimesIgnored::getTxId));
     }
-
 }

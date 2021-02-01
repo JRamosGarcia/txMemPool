@@ -13,6 +13,7 @@ public class MinerStatistics {
 
 	@Id
 	private String minerName;
+	private int lastMinedBlock;
 	private Long totalLostRewardBT;
 	private Long totalLostRewardCB;
 	private Integer numBlocksMined;

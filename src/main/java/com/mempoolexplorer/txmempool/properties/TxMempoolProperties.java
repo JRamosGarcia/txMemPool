@@ -21,6 +21,5 @@ public class TxMempoolProperties {
 	private int numTimesTxIgnoredToRaiseAlarm = 3;
 	private int totalSatVBLostToRaiseAlarm = 3;
 	private int numTxMinedButNotInMemPoolToRaiseAlarm = 10;
-	private boolean persistState = false;
 
 }

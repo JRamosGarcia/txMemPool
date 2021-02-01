@@ -1,21 +1,15 @@
 package com.mempoolexplorer.txmempool.controllers.api;
 
 import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
-import com.mempoolexplorer.txmempool.components.containers.PoolFactory;
 import com.mempoolexplorer.txmempool.controllers.entities.IgnoringBlockStats;
 import com.mempoolexplorer.txmempool.controllers.entities.MinerStats;
-import com.mempoolexplorer.txmempool.controllers.exceptions.AlgorithmTypeNotFoundException;
-import com.mempoolexplorer.txmempool.controllers.exceptions.ServiceNotReadyYetException;
 import com.mempoolexplorer.txmempool.entites.AlgorithmType;
-import com.mempoolexplorer.txmempool.entites.IgnoringBlock;
-import com.mempoolexplorer.txmempool.entites.pools.IgnoringBlocksPool;
+import com.mempoolexplorer.txmempool.repositories.reactive.IgBlockReactiveRepository;
 import com.mempoolexplorer.txmempool.repositories.reactive.MinerStatisticsReactiveRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import reactor.core.publisher.Flux;
 
+@CrossOrigin
 @RestController
 @RequestMapping("/minersStatsAPI")
 public class MinerStatsAPIController {
@@ -31,7 +26,7 @@ public class MinerStatsAPIController {
     private MinerStatisticsReactiveRepository minerStatisticsRepository;
 
     @Autowired
-    private PoolFactory poolFactory;
+    private IgBlockReactiveRepository igBlockReactiveRepository;
 
     @GetMapping("/historicStats")
     public Flux<MinerStats> getMinersStats() {
@@ -39,16 +34,10 @@ public class MinerStatsAPIController {
     }
 
     @GetMapping("/ignoringBlocks/{minerName}")
-    public List<IgnoringBlockStats> getIgnoringBlocks(@PathVariable("minerName") String minerName)
-            throws AlgorithmTypeNotFoundException, ServiceNotReadyYetException {
-        IgnoringBlocksPool igBlocksPool = poolFactory.getIgnoringBlocksPool(AlgorithmType.OURS.name());
-        if (igBlocksPool == null)
-            throw new ServiceNotReadyYetException();
+    public Flux<IgnoringBlockStats> getIgnoringBlocks(@PathVariable("minerName") String minerName) {
 
-        Map<Integer, IgnoringBlock> ignoringBlocksMap = igBlocksPool.getIgnoringBlocksMap();
-
-        return ignoringBlocksMap.values().stream().map(IgnoringBlockStats::new)
-                .filter(ibs -> ibs.getMinerName().compareToIgnoreCase(minerName) == 0)
-                .sorted(Comparator.comparingInt(IgnoringBlockStats::getHeight)).collect(Collectors.toList());
+        return igBlockReactiveRepository.findAll().filter(igBlock -> igBlock.getAlgorithmUsed() == AlgorithmType.OURS)
+                .map(IgnoringBlockStats::new).filter(ibs -> ibs.getMinerName().compareToIgnoreCase(minerName) == 0)
+                .sort(Comparator.comparingInt(IgnoringBlockStats::getHeight));
     }
 }

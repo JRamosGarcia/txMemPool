@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 
 import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
 import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
-import com.mempoolexplorer.txmempool.components.containers.PoolFactory;
 import com.mempoolexplorer.txmempool.controllers.entities.CandidateBlockHistogram;
 import com.mempoolexplorer.txmempool.controllers.entities.CompleteLiveMiningQueueGraphData;
 import com.mempoolexplorer.txmempool.controllers.entities.DirectedEdge;
@@ -23,25 +22,24 @@ import com.mempoolexplorer.txmempool.controllers.entities.TxIdAndWeight;
 import com.mempoolexplorer.txmempool.controllers.entities.TxIgnoredData;
 import com.mempoolexplorer.txmempool.controllers.entities.TxNode;
 import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
-import com.mempoolexplorer.txmempool.controllers.exceptions.AlgorithmTypeNotFoundException;
 import com.mempoolexplorer.txmempool.controllers.exceptions.ServiceNotReadyYetException;
 import com.mempoolexplorer.txmempool.entites.AlgorithmType;
 import com.mempoolexplorer.txmempool.entites.IgnoredTransaction;
 import com.mempoolexplorer.txmempool.entites.miningqueue.LiveMiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.MiningQueue;
 import com.mempoolexplorer.txmempool.entites.miningqueue.TxToBeMined;
+import com.mempoolexplorer.txmempool.repositories.reactive.IgTransactionReactiveRepository;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author tomillo
@@ -58,16 +56,16 @@ import lombok.extern.slf4j.Slf4j;
  *         client is querying an histogram and it is not updated then mining
  *         queue and block data containing that histogram is returned.
  */
+@CrossOrigin
 @RestController
 @RequestMapping("/miningQueueAPI")
-@Slf4j
 public class MiningQueueAPIController {
 
 	@Autowired
 	private LiveMiningQueueContainer liveMiningQueueContainer;
 
 	@Autowired
-	private PoolFactory poolFactory;
+	private IgTransactionReactiveRepository igTxReactiveRepository;
 
 	@GetMapping("/miningQueue/{lastModTime}/{clientHaveIt}")
 	public PrunedLiveMiningQueueGraphData getMiningQueue(@PathVariable("lastModTime") long clientLastModTime,
@@ -274,16 +272,12 @@ public class MiningQueueAPIController {
 	}
 
 	private TxIgnoredData buildTxIgnoredData(String txId) {
-		try {
-			Optional<IgnoredTransaction> ignoredTransaction = poolFactory
-					.getIgnoredTransactionsPool(AlgorithmType.OURS.name()).getIgnoredTransaction(txId);
-			if (!ignoredTransaction.isEmpty()) {
-				return TxIgnoredData.from(ignoredTransaction.get());
-			}
-		} catch (AlgorithmTypeNotFoundException e) {
-			log.error("This cannot happen", e);
+		IgnoredTransaction igTx = igTxReactiveRepository
+				.findById(IgnoredTransaction.buildDBKey(txId, AlgorithmType.OURS)).block();
+		if (igTx == null) {
+			return new TxIgnoredData();
 		}
-		return new TxIgnoredData();
+		return TxIgnoredData.from(igTx);
 	}
 
 	private TxDependenciesInfo buildDependenciesInfo(String initTxId, MiningQueue miningQueue) {
@@ -372,7 +366,7 @@ public class MiningQueueAPIController {
 	}
 
 	@ExceptionHandler(ServiceNotReadyYetException.class)
-	public ResponseEntity<?> onServiceNotReadyYet(ServiceNotReadyYetException e) {
+	public ResponseEntity<ErrorDetails> onServiceNotReadyYet(ServiceNotReadyYetException e) {
 		ErrorDetails errorDetails = new ErrorDetails();
 		errorDetails.setErrorMessage(e.getMessage());
 		errorDetails.setErrorCode(HttpStatus.SERVICE_UNAVAILABLE.toString());

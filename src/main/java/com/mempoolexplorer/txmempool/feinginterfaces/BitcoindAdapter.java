@@ -17,4 +17,8 @@ public interface BitcoindAdapter {
 	@GetMapping(value = "/memPool/full", consumes = "application/json")
 	Map<String, Transaction> getFullMemPool();
 
+	@GetMapping(value = "/memPool/size", consumes = "application/json")
+	Integer getMemPoolSize();
+
+
 }

@@ -24,6 +24,8 @@ import com.mempoolexplorer.txmempool.controllers.exceptions.TransactionNotFoundE
 @RequestMapping("/memPool")
 public class MemPoolController {
 
+	private static final String NF= " not found.";
+
 	@Autowired
 	private TxMemPool txMemPool;
 
@@ -48,7 +50,7 @@ public class MemPoolController {
 		if (tx.isPresent()) {
 			return tx.get();
 		}
-		throw new TransactionNotFoundException("txId: " + txId + " not found.");
+		throw new TransactionNotFoundException("txId: " + txId + NF);
 	}
 
 	@GetMapping("/fullRaw")
@@ -58,7 +60,7 @@ public class MemPoolController {
 
 	@GetMapping("/fullTxIds")
 	public List<String> getTxIdsList() {
-		return txMemPool.getDescendingTxStream().map(tx -> tx.getTxId()).collect(Collectors.toList());
+		return txMemPool.getDescendingTxStream().map(Transaction::getTxId).collect(Collectors.toList());
 	}
 
 	@GetMapping("/parentsOf/{txId}")
@@ -68,7 +70,7 @@ public class MemPoolController {
 		if (tx.isPresent()) {
 			return txMemPool.getAllParentsOf(tx.get());
 		}
-		throw new TransactionNotFoundException("txId: " + txId + " not found.");
+		throw new TransactionNotFoundException("txId: " + txId + NF);
 	}
 
 	@GetMapping("/address/{addrId}")
@@ -76,13 +78,13 @@ public class MemPoolController {
 			throws AddressNotFoundInMemPoolException {
 		Set<String> txIdsOfAddress = txMemPool.getTxIdsOfAddress(addrId);
 		if (txIdsOfAddress.isEmpty()) {
-			throw new AddressNotFoundInMemPoolException("addrId: " + addrId + " not found.");
+			throw new AddressNotFoundInMemPoolException("addrId: " + addrId + NF);
 		}
 		return txIdsOfAddress;
 	}
 
 	@ExceptionHandler(TransactionNotFoundException.class)
-	public ResponseEntity<?> onTransactionNotFound(TransactionNotFoundException e) {
+	public ResponseEntity<ErrorDetails> onTransactionNotFound(TransactionNotFoundException e) {
 		ErrorDetails errorDetails = new ErrorDetails();
 		errorDetails.setErrorMessage(e.getMessage());
 		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());
@@ -90,7 +92,7 @@ public class MemPoolController {
 	}
 
 	@ExceptionHandler(AddressNotFoundInMemPoolException.class)
-	public ResponseEntity<?> onAddressNotFound(AddressNotFoundInMemPoolException e) {
+	public ResponseEntity<ErrorDetails> onAddressNotFound(AddressNotFoundInMemPoolException e) {
 		ErrorDetails errorDetails = new ErrorDetails();
 		errorDetails.setErrorMessage(e.getMessage());
 		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());

@@ -10,9 +10,11 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 
 @Getter
+@Setter
 @ToString
 @NoArgsConstructor
 @Document(collection = "ignoringBlocks")
@@ -52,12 +54,12 @@ public class IgnoringBlock {
 		this.dbKey = builDBKey();
 	}
 
-	public static String builDBKey(AlgorithmType algoType, int height) {
-		return algoType.toString() + height;
+	public static String builDBKey(int height, AlgorithmType algoType) {
+		return height + "-" + algoType.toString();
 	}
 
 	private String builDBKey() {
-		return builDBKey(algorithmUsed, minedBlockData.getHeight());
+		return builDBKey(minedBlockData.getHeight(), algorithmUsed);
 	}
 
 }

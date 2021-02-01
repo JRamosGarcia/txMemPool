@@ -29,7 +29,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -48,7 +47,6 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 	private AtomicReference<LiveMiningQueue> liveMiningQueueRef = new AtomicReference<>(LiveMiningQueue.empty());
 
 	@Getter(onMethod = @__(@Override))
-	@Setter(onMethod = @__(@Override))
 	private boolean allowRefresh = false;
 
 	private AtomicBoolean refresh = new AtomicBoolean(false);
@@ -61,10 +59,17 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 	}
 
 	@Override
+	public void setAllowRefresh(boolean allowRefresh){
+		this.allowRefresh=allowRefresh;
+		this.refresh.set(allowRefresh);
+	}
+
+	@Override
 	public LiveMiningQueue atomicGet() {
 		return liveMiningQueueRef.get();
 	}
 
+	//Called when new Tx
 	@Override
 	public void refreshIfNeeded() {
 		if (refresh.getAndSet(false)) {
@@ -72,6 +77,7 @@ public class LiveMiningQueueContainerImpl implements LiveMiningQueueContainer {
 		}
 	}
 
+	//Called when new Block
 	@Override
 	public void forceRefresh() {
 		if (allowRefresh) {

@@ -3,6 +3,7 @@ package com.mempoolexplorer.txmempool;
 import com.mempoolexplorer.txmempool.components.containers.MempoolEventQueueContainer;
 import com.mempoolexplorer.txmempool.events.CustomChannels;
 import com.mempoolexplorer.txmempool.events.MempoolEvent;
+import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,11 +17,17 @@ public class TxMempoolEventsHandler {
     private String topic;
 
     @Autowired
-    MempoolEventQueueContainer mempoolEventQueueContainer;
+    private MempoolEventQueueContainer mempoolEventQueueContainer;
+
+    @Autowired
+    private TxMempoolProperties properties;
 
     @StreamListener("txMemPoolEvents")
     public void blockSink(MempoolEvent mempoolEvent) {
-        mempoolEventQueueContainer.getBlockingQueue().add(mempoolEvent);
+        //If detached, no MempoolEvent is processed.
+        if (!properties.isDetached()) {
+            mempoolEventQueueContainer.getBlockingQueue().add(mempoolEvent);
+        }
     }
 
 }

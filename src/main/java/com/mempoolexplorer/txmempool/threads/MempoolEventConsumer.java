@@ -404,10 +404,10 @@ public class MempoolEventConsumer implements Runnable {
         algoDiffContainer.put(ad);
 
         Optional<Long> bitcoindTotalBaseFee = ad.getBitcoindData().getTotalBaseFee();
-        Optional<Long> oursTotalBaseFeel = ad.getOursData().getTotalBaseFee();
+        Optional<Long> oursTotalBaseFee = ad.getOursData().getTotalBaseFee();
 
-        if (bitcoindTotalBaseFee.isPresent() && oursTotalBaseFeel.isPresent()
-                && bitcoindTotalBaseFee.get().longValue() > oursTotalBaseFeel.get().longValue()) {
+        if (bitcoindTotalBaseFee.isPresent() && oursTotalBaseFee.isPresent()
+                && bitcoindTotalBaseFee.get().longValue() > oursTotalBaseFee.get().longValue()) {
             alarmLogger.addAlarm("Bitcoind algorithm better than us in block: " + block.getHeight());
         }
     }

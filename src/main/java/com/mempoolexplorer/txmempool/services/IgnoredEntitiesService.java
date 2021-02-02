@@ -19,4 +19,6 @@ public interface IgnoredEntitiesService {
 
         public void cleanIgTxNotInMempool(TxMemPool txMemPool);
 
+        public void onRecalculateBlockFromRecorder(IgnoringBlock igBlock);
+
 }

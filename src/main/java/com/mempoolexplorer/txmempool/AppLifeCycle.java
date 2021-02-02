@@ -1,5 +1,6 @@
 package com.mempoolexplorer.txmempool;
 
+import com.mempoolexplorer.txmempool.properties.TxMempoolProperties;
 import com.mempoolexplorer.txmempool.repositories.entities.MinerNameToBlockHeight;
 import com.mempoolexplorer.txmempool.threads.MempoolEventConsumer;
 
@@ -35,7 +36,10 @@ public class AppLifeCycle {
     private MongoMappingContext mongoMappingContext;
 
     @Autowired
-    MempoolEventConsumer mempoolEventConsumer;
+    private MempoolEventConsumer mempoolEventConsumer;
+
+    @Autowired
+    private TxMempoolProperties properties;
 
     // It seems that Spring aplicaton events are thrown more than once, so these are
     // the flags to avoid calling clean-up methods more than once.
@@ -91,6 +95,9 @@ public class AppLifeCycle {
     }
 
     private void initialization() {
+        if (properties.isDetached()) {
+            log.info("TXMEMPOOL IS RUNNING IN DETACHED MODE.");
+        }
         log.info("MempoolEventConsumer is starting...");
         mempoolEventConsumer.start();
         log.info("MempoolEventConsumer started.");

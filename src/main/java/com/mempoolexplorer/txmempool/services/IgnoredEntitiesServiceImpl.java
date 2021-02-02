@@ -52,6 +52,12 @@ public class IgnoredEntitiesServiceImpl implements IgnoredEntitiesService {
     }
 
     @Override
+    public void onRecalculateBlockFromRecorder(IgnoringBlock igBlock) {
+        igBlockReactiveRepository.save(igBlock).block();
+    }
+
+
+    @Override
     public void onNewBlockConnected(IgnoringBlock igBlock, List<String> minedBlockTxIds,
             Collection<NotMinedTransaction> ignoredTxs) {
 
@@ -148,5 +154,6 @@ public class IgnoredEntitiesServiceImpl implements IgnoredEntitiesService {
     private long calculateTotalFeesLost(IgnoredTransaction igTx, long txFees) {
         return (long) (igTx.getTotalSatvBytesLost() * txFees);
     }
+
 
 }

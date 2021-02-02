@@ -55,6 +55,11 @@ public class OperationsController {
 
 	private final String ERR_NO_DETACHED = "txMempool is not in detached state. Change txMempool properties.";
 
+	@GetMapping("/hasBlock/{height}")
+	public Boolean hasBlock(@PathVariable("height") int height) {
+		return mempoolRecorder.getHasBlock(height);
+	}
+
 	@GetMapping("/recalculateAllStats")
 	public RecalculateAllStatsResult recalculateAllStats() {
 		if (properties.isDetached()) {

@@ -12,4 +12,8 @@ public interface MempoolRecorder {
     @GetMapping(value = "/fullStateOnNewBlock/height/{height}", consumes = "application/json")
 	FullStateOnNewBlock getFullStateOnNewBlock(@PathVariable int height);
 
+    @GetMapping(value = "/fullStateOnNewBlock/hasBlock/{height}", consumes = "application/json")
+	Boolean getHasBlock(@PathVariable int height);
+
+
 }

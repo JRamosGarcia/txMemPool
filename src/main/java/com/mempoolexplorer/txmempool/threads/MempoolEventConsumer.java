@@ -50,7 +50,7 @@ public class MempoolEventConsumer implements Runnable {
     // Other flags
     private int lastBASequence = 0;// Last BitcoindAdapter Sequence. must be 0 not -1 (see method errorInSeqNumber)
     private boolean starting = true;
-    private boolean lastSync = false;
+    private boolean lastSync = true;//This is really needed to avoid delete ignoredTransactions.
     private boolean syncronizedWithUpStream = false;
 
     @Autowired
@@ -148,7 +148,7 @@ public class MempoolEventConsumer implements Runnable {
 
         syncronizedWithUpStream = (event.getMempoolSize() == (txMemPool.getTxNumber() + event.getMempoolDelta()));
 
-        if (lastSync && !syncronizedWithUpStream) {
+        if (lastSync && !syncronizedWithUpStream && !starting) {
             log.error("Syncronization with upStream lost!");
             alarmLogger.addAlarm("Syncronization with upstream lost!");
         }

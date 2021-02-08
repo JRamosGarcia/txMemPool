@@ -56,7 +56,6 @@ public class IgnoredEntitiesServiceImpl implements IgnoredEntitiesService {
         igBlockReactiveRepository.save(igBlock).block();
     }
 
-
     @Override
     public void onNewBlockConnected(IgnoringBlock igBlock, List<String> minedBlockTxIds,
             Collection<NotMinedTransaction> ignoredTxs) {
@@ -75,7 +74,8 @@ public class IgnoredEntitiesServiceImpl implements IgnoredEntitiesService {
         }
 
         for (NotMinedTransaction nmTx : ignoredTxs) {
-            IgnoredTransaction igTx = igTxReactiveRepository.findById(nmTx.getTxId()).block();
+            IgnoredTransaction igTx = igTxReactiveRepository
+            .findById(IgnoredTransaction.buildDBKey(nmTx.getTxId(), igBlock.getAlgorithmUsed())).block();
             if (igTx == null) {
                 igTx = new IgnoredTransaction();
                 igTx.setTxId(nmTx.getTxId());
@@ -154,6 +154,5 @@ public class IgnoredEntitiesServiceImpl implements IgnoredEntitiesService {
     private long calculateTotalFeesLost(IgnoredTransaction igTx, long txFees) {
         return (long) (igTx.getTotalSatvBytesLost() * txFees);
     }
-
 
 }

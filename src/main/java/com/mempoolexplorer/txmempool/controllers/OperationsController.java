@@ -60,6 +60,11 @@ public class OperationsController {
 		return mempoolRecorder.getHasBlock(height);
 	}
 
+	@GetMapping("/cleanIgTxNotInMempool")
+	public void cleanIgTxNotInMempool(){
+		ignoredEntitiesService.cleanIgTxNotInMempool(txMemPool);
+	}
+
 	@GetMapping("/recalculateAllStats")
 	public RecalculateAllStatsResult recalculateAllStats() {
 		if (properties.isDetached()) {

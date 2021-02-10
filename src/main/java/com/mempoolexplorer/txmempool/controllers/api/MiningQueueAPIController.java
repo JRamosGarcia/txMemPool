@@ -67,87 +67,55 @@ public class MiningQueueAPIController {
 	@Autowired
 	private IgTransactionReactiveRepository igTxReactiveRepository;
 
-	@GetMapping("/miningQueue/{lastModTime}/{clientHaveIt}")
-	public PrunedLiveMiningQueueGraphData getMiningQueue(@PathVariable("lastModTime") long clientLastModTime,
-			@PathVariable("clientHaveIt") boolean clientHaveIt) throws ServiceNotReadyYetException {
+	@GetMapping("/miningQueue")
+	public PrunedLiveMiningQueueGraphData getMiningQueue() throws ServiceNotReadyYetException {
 
 		CompleteLiveMiningQueueGraphData complete = obtainLiveMiningQueue().getLiveMiningQueueGraphData();
 		PrunedLiveMiningQueueGraphData pruned = new PrunedLiveMiningQueueGraphData();
 		addCommonData(complete, pruned);
-
-		if (complete.getLastModTime() > clientLastModTime || !clientHaveIt) {
-			// An update has happened
-			addMiningQueueDataToPruned(pruned, complete);
-		}
+		addMiningQueueDataToPruned(pruned, complete);
 		return pruned;
 	}
 
-	@GetMapping("/block/{blockIndex}/{lastModTime}/{clientHaveIt}")
-	public PrunedLiveMiningQueueGraphData getBlockIndex(@PathVariable("blockIndex") Integer blockIndex,
-			@PathVariable("lastModTime") long clientLastModTime, @PathVariable("clientHaveIt") boolean clientHaveIt)
+	@GetMapping("/block/{blockIndex}")
+	public PrunedLiveMiningQueueGraphData getBlockIndex(@PathVariable("blockIndex") Integer blockIndex)
 			throws ServiceNotReadyYetException {
 
 		CompleteLiveMiningQueueGraphData complete = obtainLiveMiningQueue().getLiveMiningQueueGraphData();
 		PrunedLiveMiningQueueGraphData pruned = new PrunedLiveMiningQueueGraphData();
 		addCommonData(complete, pruned);
-
-		if (!clientHaveIt) {
-			// Searching for block data that client does not have
-			addBlockDataToPruned(blockIndex, complete, pruned);
-			if (complete.getLastModTime() > clientLastModTime) {
-				// An update has happened, adds rest of data
-				addMiningQueueDataToPruned(pruned, complete);
-			}
-		} else if (complete.getLastModTime() > clientLastModTime) {
-			// Clients search data that already have but could be updated (and it did)
-			addMiningQueueDataToPruned(pruned, complete);
-			addBlockDataToPruned(blockIndex, complete, pruned);
-		}
+		addMiningQueueDataToPruned(pruned, complete);
+		addBlockDataToPruned(blockIndex, complete, pruned);
 		return pruned;
 	}
 
-	@GetMapping("/histogram/{blockIndex}/{satVByte}/{lastModTime}/{clientHaveIt}")
+	@GetMapping("/histogram/{blockIndex}/{satVByte}")
 	public PrunedLiveMiningQueueGraphData getHistogram(@PathVariable("blockIndex") Integer blockIndex,
-			@PathVariable("satVByte") Integer satVByte, @PathVariable("lastModTime") long clientLastModTime,
-			@PathVariable("clientHaveIt") boolean clientHaveIt) throws ServiceNotReadyYetException {
+			@PathVariable("satVByte") Integer satVByte) throws ServiceNotReadyYetException {
 
 		CompleteLiveMiningQueueGraphData complete = obtainLiveMiningQueue().getLiveMiningQueueGraphData();
 		PrunedLiveMiningQueueGraphData pruned = new PrunedLiveMiningQueueGraphData();
 		addCommonData(complete, pruned);
-
-		if (!clientHaveIt) {
-			// Searching for histogram data that client does not have
-			addHistogramDataToPruned(blockIndex, satVByte, complete, pruned);
-			if (complete.getLastModTime() > clientLastModTime) {
-				// An update has happened, adds rest of data
-				addMiningQueueDataToPruned(pruned, complete);
-				addBlockDataToPruned(blockIndex, complete, pruned);
-			}
-		} else if (complete.getLastModTime() > clientLastModTime) {
-			// Clients search data that already have but could be updated (and it did)
-			addMiningQueueDataToPruned(pruned, complete);
-			addBlockDataToPruned(blockIndex, complete, pruned);
-			addHistogramDataToPruned(blockIndex, satVByte, complete, pruned);
-		}
+		addMiningQueueDataToPruned(pruned, complete);
+		addBlockDataToPruned(blockIndex, complete, pruned);
+		addHistogramDataToPruned(blockIndex, satVByte, complete, pruned);
 		return pruned;
 	}
 
-	@GetMapping("/txIndex/{blockIndex}/{satVByte}/{txIndex}/{lastModTime}/{clientHaveIt}")
+	@GetMapping("/txIndex/{blockIndex}/{satVByte}/{txIndex}")
 	public PrunedLiveMiningQueueGraphData getTxByIndex(@PathVariable("blockIndex") Integer blockIndex,
-			@PathVariable("satVByte") Integer satVByte, @PathVariable("txIndex") int txIndex,
-			@PathVariable("lastModTime") long clientLastModTime, @PathVariable("clientHaveIt") boolean clientHaveIt)
+			@PathVariable("satVByte") Integer satVByte, @PathVariable("txIndex") int txIndex)
 			throws ServiceNotReadyYetException {
 
 		LiveMiningQueue liveMiningQueue = obtainLiveMiningQueue();
 
 		CompleteLiveMiningQueueGraphData complete = liveMiningQueue.getLiveMiningQueueGraphData();
-		return getTxByIndex(blockIndex, satVByte, txIndex, clientLastModTime, clientHaveIt, liveMiningQueue, complete);
+		return getTxByIndex(blockIndex, satVByte, txIndex, liveMiningQueue, complete);
 
 	}
 
-	@GetMapping("/tx/{txId}/{lastModTime}/{clientHaveIt}")
-	public PrunedLiveMiningQueueGraphData getTxById(@PathVariable("txId") String txId,
-			@PathVariable("lastModTime") long clientLastModTime, @PathVariable("clientHaveIt") boolean clientHaveIt)
+	@GetMapping("/tx/{txId}")
+	public PrunedLiveMiningQueueGraphData getTxById(@PathVariable("txId") String txId)
 			throws ServiceNotReadyYetException {
 
 		LiveMiningQueue liveMiningQueue = obtainLiveMiningQueue();
@@ -156,7 +124,7 @@ public class MiningQueueAPIController {
 		Optional<TxToBeMined> opTxToBeMined = miningQueue.getTxToBeMined(txId);
 
 		if (opTxToBeMined.isEmpty())
-			return getMiningQueue(clientLastModTime, clientHaveIt);
+			return getMiningQueue();
 
 		TxToBeMined txToBeMined = opTxToBeMined.get();// Safe
 		int blockIndex = txToBeMined.getContainingBlock().getIndex();
@@ -167,7 +135,7 @@ public class MiningQueueAPIController {
 		int txIndex = complete.getCandidateBlockHistogramList().get(blockIndex).getHistogramMap().get(satVByte)
 				.getTxIdToListIndex().get(txId);
 
-		return getTxByIndex(blockIndex, satVByte, txIndex, clientLastModTime, clientHaveIt, liveMiningQueue, complete);
+		return getTxByIndex(blockIndex, satVByte, txIndex, liveMiningQueue, complete);
 
 	}
 
@@ -181,27 +149,13 @@ public class MiningQueueAPIController {
 	}
 
 	private PrunedLiveMiningQueueGraphData getTxByIndex(Integer blockIndex, Integer satVByte, int txIndex,
-			long clientLastModTime, boolean clientHaveIt, LiveMiningQueue liveMiningQueue,
-			CompleteLiveMiningQueueGraphData complete) {
+			LiveMiningQueue liveMiningQueue, CompleteLiveMiningQueueGraphData complete) {
 		PrunedLiveMiningQueueGraphData pruned = new PrunedLiveMiningQueueGraphData();
 		addCommonData(complete, pruned);
-
-		if (!clientHaveIt) {
-			// Searching for histogram data that client does not have
-			addTxByIndexToPruned(blockIndex, satVByte, txIndex, liveMiningQueue, pruned);
-			if (complete.getLastModTime() > clientLastModTime) {
-				// An update has happened, adds rest of data
-				addHistogramDataToPruned(blockIndex, satVByte, complete, pruned);
-				addMiningQueueDataToPruned(pruned, complete);
-				addBlockDataToPruned(blockIndex, complete, pruned);
-			}
-		} else if (complete.getLastModTime() > clientLastModTime) {
-			// Clients search data that already have but could be updated (and it did)
-			addMiningQueueDataToPruned(pruned, complete);
-			addBlockDataToPruned(blockIndex, complete, pruned);
-			addHistogramDataToPruned(blockIndex, satVByte, complete, pruned);
-			addTxByIndexToPruned(blockIndex, satVByte, txIndex, liveMiningQueue, pruned);
-		}
+		addMiningQueueDataToPruned(pruned, complete);
+		addBlockDataToPruned(blockIndex, complete, pruned);
+		addHistogramDataToPruned(blockIndex, satVByte, complete, pruned);
+		addTxByIndexToPruned(blockIndex, satVByte, txIndex, liveMiningQueue, pruned);
 		return pruned;
 	}
 
@@ -210,7 +164,7 @@ public class MiningQueueAPIController {
 		pruned.setWeightInLast10minutes(complete.getWeightInLast10minutes());
 		pruned.setFblTxSatVByte(1);
 		if (!complete.getCandidateBlockHistogramList().isEmpty()) {
-			CandidateBlockHistogram fbh = complete.getCandidateBlockHistogramList().get(0);
+			CandidateBlockHistogram fbh = complete.getCandidateBlockHistogramList().get(0);// First Block Histogram
 			if (!fbh.getHistogramList().isEmpty()) {
 				SatVByteHistogramElement lastHistogram = fbh.getHistogramList().get(fbh.getHistogramList().size() - 1);
 				pruned.setFblTxSatVByte(lastHistogram.getModSatVByte());

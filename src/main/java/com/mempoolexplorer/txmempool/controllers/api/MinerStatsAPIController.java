@@ -1,7 +1,5 @@
 package com.mempoolexplorer.txmempool.controllers.api;
 
-import java.util.Comparator;
-
 import com.mempoolexplorer.txmempool.controllers.entities.IgnoringBlockStats;
 import com.mempoolexplorer.txmempool.controllers.entities.MinerStats;
 import com.mempoolexplorer.txmempool.entites.AlgorithmType;
@@ -9,6 +7,7 @@ import com.mempoolexplorer.txmempool.repositories.reactive.IgBlockReactiveReposi
 import com.mempoolexplorer.txmempool.repositories.reactive.MinerStatisticsReactiveRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,11 +32,13 @@ public class MinerStatsAPIController {
         return minerStatisticsRepository.findAll().map(MinerStats::new);
     }
 
-    @GetMapping("/ignoringBlocks/{minerName}")
-    public Flux<IgnoringBlockStats> getIgnoringBlocks(@PathVariable("minerName") String minerName) {
+    @GetMapping("/ignoringBlocks/{minerName}/{page}/{size}")
+    public Flux<IgnoringBlockStats> getIgnoringBlocks(@PathVariable("minerName") String minerName,
+            @PathVariable("page") Integer page, @PathVariable("size") Integer size) {
 
-        return igBlockReactiveRepository.findAll().filter(igBlock -> igBlock.getAlgorithmUsed() == AlgorithmType.OURS)
-                .map(IgnoringBlockStats::new).filter(ibs -> ibs.getMinerName().compareToIgnoreCase(minerName) == 0)
-                .sort(Comparator.comparingInt(IgnoringBlockStats::getHeight));
+        return igBlockReactiveRepository.findByAlgorithmUsedAndMinedBlockDataCoinBaseDataMinerNameOrderByDbKeyDesc(
+                AlgorithmType.OURS, minerName, PageRequest.of(page, size)).map(IgnoringBlockStats::new);
+
     }
+
 }

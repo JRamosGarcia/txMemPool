@@ -1,9 +1,16 @@
 package com.mempoolexplorer.txmempool.controllers;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
+import com.mempoolexplorer.txmempool.components.TxMemPool;
+import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
+import com.mempoolexplorer.txmempool.controllers.exceptions.AddressNotFoundInMemPoolException;
+import com.mempoolexplorer.txmempool.controllers.exceptions.TransactionNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,17 +21,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.mempoolexplorer.txmempool.bitcoindadapter.entites.Transaction;
-import com.mempoolexplorer.txmempool.components.TxMemPool;
-import com.mempoolexplorer.txmempool.controllers.errors.ErrorDetails;
-import com.mempoolexplorer.txmempool.controllers.exceptions.AddressNotFoundInMemPoolException;
-import com.mempoolexplorer.txmempool.controllers.exceptions.TransactionNotFoundException;
-
 @RestController
 @RequestMapping("/memPool")
 public class MemPoolController {
 
-	private static final String NF= " not found.";
+	private static final String NF = " not found.";
 
 	@Autowired
 	private TxMemPool txMemPool;
@@ -64,8 +65,7 @@ public class MemPoolController {
 	}
 
 	@GetMapping("/parentsOf/{txId}")
-	public Set<String> getParentsOfTxId(@PathVariable("txId") String txId)
-			throws TransactionNotFoundException {
+	public Set<String> getParentsOfTxId(@PathVariable("txId") String txId) throws TransactionNotFoundException {
 		Optional<Transaction> tx = txMemPool.getTx(txId);
 		if (tx.isPresent()) {
 			return txMemPool.getAllParentsOf(tx.get());
@@ -81,6 +81,17 @@ public class MemPoolController {
 			throw new AddressNotFoundInMemPoolException("addrId: " + addrId + NF);
 		}
 		return txIdsOfAddress;
+	}
+
+	@GetMapping("/nonStandardTxs")
+	public List<String> getNonStandardTxs() {
+		List<String> retList = new ArrayList<>();
+		txMemPool.getDescendingTxStream().forEach(tx -> {
+			if (tx.isNonStandard()) {
+				retList.add(tx.getTxId());
+			}
+		});
+		return retList;
 	}
 
 	@ExceptionHandler(TransactionNotFoundException.class)

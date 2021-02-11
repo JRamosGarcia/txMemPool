@@ -27,10 +27,10 @@ public class Transaction implements Feeable {
 		Transaction tx = new Transaction();
 		tx.setTxId(this.txId);
 		if (this.txInputs != null) {
-			tx.setTxInputs(this.txInputs.stream().map(txi -> txi.deepCopy()).collect(Collectors.toList()));
+			tx.setTxInputs(this.txInputs.stream().map(TxInput::deepCopy).collect(Collectors.toList()));
 		}
 		if (this.txOutputs != null) {
-			tx.setTxOutputs(this.txOutputs.stream().map(txo -> txo.deepCopy()).collect(Collectors.toList()));
+			tx.setTxOutputs(this.txOutputs.stream().map(TxOutput::deepCopy).collect(Collectors.toList()));
 		}
 		tx.setWeight(weight);
 		if (this.fees != null) {
@@ -45,15 +45,24 @@ public class Transaction implements Feeable {
 		return tx;
 	}
 
+	public boolean isNonStandard() {
+		for (TxOutput txo : txOutputs) {
+			if (txo.getAddressIds() == null || txo.getAddressIds().isEmpty()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * Returns all addresses involved in this transaction, address in inputs,
 	 * outputs and duplicated.
 	 * 
 	 */
 	public List<String> listAddresses() {
-		List<String> txInputsAddresses = txInputs.stream().map(txInput -> txInput.getAddressIds())
-				.flatMap(addresses -> addresses.stream()).collect(Collectors.toList());
-		return txOutputs.stream().map(txOutput -> txOutput.getAddressIds()).flatMap(addresses -> addresses.stream())
+		List<String> txInputsAddresses = txInputs.stream().map(TxInput::getAddressIds).flatMap(List::stream)
+				.collect(Collectors.toList());
+		return txOutputs.stream().map(TxOutput::getAddressIds).flatMap(List::stream)
 				.collect(Collectors.toCollection(() -> txInputsAddresses));
 	}
 

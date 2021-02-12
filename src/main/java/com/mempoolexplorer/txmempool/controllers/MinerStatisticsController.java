@@ -75,7 +75,7 @@ public class MinerStatisticsController {
 	}
 
 	@ExceptionHandler(MinerNameNotFoundException.class)
-	public ResponseEntity<?> onMinerNameNotFound(MinerNameNotFoundException e) {
+	public ResponseEntity<ErrorDetails> onMinerNameNotFound(MinerNameNotFoundException e) {
 		ErrorDetails errorDetails = new ErrorDetails();
 		errorDetails.setErrorMessage(e.getMessage());
 		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());
@@ -83,7 +83,7 @@ public class MinerStatisticsController {
 	}
 
 	@ExceptionHandler(MinerNameNotFoundException.class)
-	public ResponseEntity<?> onAlgorithmTypeNotFound(AlgorithmTypeNotFoundException e) {
+	public ResponseEntity<ErrorDetails> onAlgorithmTypeNotFound(AlgorithmTypeNotFoundException e) {
 		ErrorDetails errorDetails = new ErrorDetails();
 		errorDetails.setErrorMessage(e.getMessage());
 		errorDetails.setErrorCode(HttpStatus.NOT_FOUND.toString());

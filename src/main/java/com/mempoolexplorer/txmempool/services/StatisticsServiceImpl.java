@@ -108,7 +108,7 @@ public class StatisticsServiceImpl implements StatisticsService {
 				iGBlockBitcoindLostReward, iGBlockOursLostReward)).block();
 
 		// Only save if another instance has not done it yet.
-		if (minerStatistics.getLastMinedBlock() != blockHeight) {
+		if (minerStatistics!=null && minerStatistics.getLastMinedBlock() != blockHeight) {
 			minerStatistics.setLastMinedBlock(blockHeight);
 			minerStatisticsRepository.save(minerStatistics).block();
 		}

@@ -16,6 +16,7 @@ import com.mempoolexplorer.txmempool.components.containers.AlgorithmDiffContaine
 import com.mempoolexplorer.txmempool.components.containers.LiveMiningQueueContainer;
 import com.mempoolexplorer.txmempool.components.containers.MempoolEventQueueContainer;
 import com.mempoolexplorer.txmempool.components.containers.MinerNamesUnresolvedContainer;
+import com.mempoolexplorer.txmempool.components.health.MempoolSyncedHealthIndicator;
 import com.mempoolexplorer.txmempool.entites.AlgorithmDiff;
 import com.mempoolexplorer.txmempool.entites.CoinBaseData;
 import com.mempoolexplorer.txmempool.entites.IgnoringBlock;
@@ -77,6 +78,9 @@ public class MempoolEventConsumer implements Runnable {
     private IgnoredEntitiesService ignoredEntitiesService;
     @Autowired
     private StatisticsService statisticsService;
+    @Autowired
+    private MempoolSyncedHealthIndicator mempoolSyncedHealthIndicator;
+
 
     public void start() {
         if (threadFinished)
@@ -147,6 +151,7 @@ public class MempoolEventConsumer implements Runnable {
         lastSync = syncronizedWithUpStream;
 
         syncronizedWithUpStream = (event.getMempoolSize() == (txMemPool.getTxNumber() + event.getMempoolDelta()));
+        mempoolSyncedHealthIndicator.setMempoolSynced(syncronizedWithUpStream);
 
         if (lastSync && !syncronizedWithUpStream && !starting) {
             log.error("Syncronization with upStream lost!");
@@ -318,6 +323,7 @@ public class MempoolEventConsumer implements Runnable {
         starting = true;
         lastBASequence = 0;// Last BitcoindAdapter Sequence
         syncronizedWithUpStream = false;
+        mempoolSyncedHealthIndicator.setMempoolSynced(false);
     }
 
     private void resetContainers() {

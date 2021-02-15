@@ -50,7 +50,7 @@ public class MempoolEventConsumer implements Runnable {
     // Other flags
     private int lastBASequence = 0;// Last BitcoindAdapter Sequence. must be 0 not -1 (see method errorInSeqNumber)
     private boolean starting = true;
-    private boolean lastSync = true;//This is really needed to avoid delete ignoredTransactions.
+    private boolean lastSync = true;// This is really needed to avoid delete ignoredTransactions.
     private boolean syncronizedWithUpStream = false;
 
     @Autowired
@@ -253,6 +253,7 @@ public class MempoolEventConsumer implements Runnable {
         MisMinedTransactions mmtCandidateBlock = new MisMinedTransactions(txMemPool, candidateBlock, block,
                 minedBlockTxIds, coinBaseData);
 
+        // Disabled for the moment.
         buildAndStoreAlgorithmDifferences(block, candidateBlock, blockTemplate.orElse(BlockTemplate.empty()),
                 isCorrect);
 
@@ -401,7 +402,7 @@ public class MempoolEventConsumer implements Runnable {
     private void buildAndStoreAlgorithmDifferences(Block block, CandidateBlock candidateBlock,
             BlockTemplate blockTemplate, boolean isCorrect) {
         AlgorithmDiff ad = new AlgorithmDiff(txMemPool, candidateBlock, blockTemplate, block.getHeight(), isCorrect);
-        algoDiffContainer.put(ad);
+        // algoDiffContainer.put(ad);
 
         Optional<Long> bitcoindTotalBaseFee = ad.getBitcoindData().getTotalBaseFee();
         Optional<Long> oursTotalBaseFee = ad.getOursData().getTotalBaseFee();
@@ -411,5 +412,4 @@ public class MempoolEventConsumer implements Runnable {
             alarmLogger.addAlarm("Bitcoind algorithm better than us in block: " + block.getHeight());
         }
     }
-
 }

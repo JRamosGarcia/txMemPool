@@ -20,4 +20,4 @@ FROM openjdk:11
 
 #Opcion funciona mio
 COPY ${DEPENDENCY} /
-ENTRYPOINT ["java", "-jar", "/app/txMemPool-0.0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["java","-Xmx1500m","-Xms1500m","-jar","/app/txMemPool-0.0.1-SNAPSHOT.jar"]
